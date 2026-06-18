@@ -694,6 +694,37 @@
       margin-top: 6px;
     }
 
+    .fav-item-row {
+      display: grid;
+      grid-template-columns: 1fr 60px 90px 28px;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .fav-item-row input {
+      width: 100%;
+      padding: 7px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      outline: none;
+    }
+    .fav-item-row input:focus { border-color: var(--accent); }
+    .btn-remove-item {
+      width: 28px; height: 28px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn-remove-item:hover { border-color: var(--expense); color: var(--expense); }
+
     .pair-item {
       display: flex;
       align-items: center;
@@ -1004,9 +1035,17 @@
 
     <!-- ── FAKTURY ── -->
     <div id="view-invoices" class="view">
-      <div class="view-header">
-        <div class="view-title">Přijaté faktury</div>
-        <button class="btn-primary" id="btn-add-invoice" style="flex:none;padding:8px 14px;font-size:13px;">+ Přidat fakturu</button>
+     <div class="view-header">
+        <div class="view-title">Faktury</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-secondary" id="btn-add-fap" style="font-size:13px;padding:8px 14px;">+ Přijatá</button>
+          <button class="btn-primary" id="btn-add-fav" style="font-size:13px;padding:8px 14px;">+ Vystavená</button>
+        </div>
+      </div>
+      <div class="doc-filters" id="inv-type-filters">
+        <button class="filter-btn active" data-inv-filter="all">Vše</button>
+        <button class="filter-btn" data-inv-filter="fap">Přijaté (FAP)</button>
+        <button class="filter-btn" data-inv-filter="fav">Vystavené (FAV)</button>
       </div>
       <div id="invoice-list-wrap">
         <div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">Žádné faktury</div>
@@ -1178,9 +1217,24 @@
           <input id="inv-vendor" type="text" placeholder="Název dodavatele" />
         </div>
         <div class="field">
-          <label>Číslo faktury</label>
-          <input id="inv-number" type="text" placeholder="FA 2025001" />
+          <label>Interní číslo</label>
+          <input id="inv-number" type="text" readonly style="background:var(--surface);color:var(--muted);" placeholder="Generuje se automaticky" />
         </div>
+        <div class="field">
+          <label>Číslo faktury dodavatele</label>
+          <input id="inv-orig-number" type="text" placeholder="Číslo z faktury dodavatele" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Variabilní symbol</label>
+            <input id="inv-vs" type="text" placeholder="Číslo faktury dodavatele" />
+          </div>
+          <div class="field">
+            <label>Konstantní symbol</label>
+            <input id="inv-ks" type="text" placeholder="0308" />
+          </div>
+        </div>
+
         <div class="field-row">
           <div class="field">
             <label>Částka (Kč)</label>
@@ -1208,6 +1262,71 @@
     <div class="modal-footer">
       <button class="btn-secondary" data-close="modal-invoice">Zrušit</button>
       <button class="btn-primary" id="btn-invoice-save">Uložit fakturu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL: NOVÁ VYSTAVENÁ FAKTURA
+══════════════════════════════════ -->
+<div class="modal-overlay" id="modal-fav">
+  <div class="modal" style="max-width:540px;">
+    <div class="modal-header">
+      <div class="modal-title">Vystavit fakturu</div>
+      <button class="modal-close" data-close="modal-fav">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <div class="field">
+          <label>Interní číslo</label>
+          <input id="fav-number" type="text" readonly style="background:var(--surface);color:var(--muted);" placeholder="Generuje se automaticky" />
+        </div>
+        <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
+          <div style="flex:1;">
+            <label>IČO odběratele</label>
+            <input id="fav-ico" type="text" placeholder="12345678" maxlength="8" />
+          </div>
+          <button class="btn-secondary" id="btn-ares-fav" style="height:38px;padding:0 14px;font-size:13px;white-space:nowrap;">Doplnit z ARES</button>
+        </div>
+        <div class="field">
+          <label>Odběratel</label>
+          <input id="fav-vendor" type="text" placeholder="Název odběratele" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Datum vystavení</label>
+            <input id="fav-date" type="date" />
+          </div>
+          <div class="field">
+            <label>Datum splatnosti</label>
+            <input id="fav-due" type="date" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Variabilní symbol</label>
+            <input id="fav-vs" type="text" placeholder="Vyplní se z čísla faktury" />
+          </div>
+          <div class="field">
+            <label>Konstantní symbol</label>
+            <input id="fav-ks" type="text" placeholder="0308" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Poznámka / popis</label>
+          <input id="fav-desc" type="text" placeholder="Např. Umělecké vystoupení" />
+        </div>
+        <!-- POLOŽKY -->
+        <div class="field">
+          <label>Položky</label>
+          <div id="fav-items-wrap"></div>
+          <button class="btn-secondary" id="btn-fav-add-item" style="margin-top:8px;font-size:12px;padding:6px 12px;">+ Přidat položku</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-close="modal-fav">Zrušit</button>
+      <button class="btn-primary" id="btn-fav-save">Uložit a stáhnout PDF</button>
     </div>
   </div>
 </div>
@@ -1388,6 +1507,8 @@ let unsubInv    = null;
 let allInvoices = [];
 let allTx       = [];
 let docFilter   = 'all';
+let favItems    = [{ desc: '', qty: 1, price: 0 }];
+let invFilter   = 'all';
 let editTxId    = null;
 let editTxType  = 'income';
 let editInvId   = null;
@@ -1697,32 +1818,47 @@ function invoiceStatus(inv) {
 
 function renderInvoices() {
   const wrap = $('invoice-list-wrap');
-  if (!allInvoices.length) {
+  let list = invFilter === 'all' ? allInvoices
+    : allInvoices.filter(i => i.invType === invFilter);
+
+  if (!list.length) {
     wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">Žádné faktury</div>';
     return;
   }
-  wrap.innerHTML = '<div class="invoice-list">' + allInvoices.map(inv => {
+  wrap.innerHTML = '<div class="invoice-list">' + list.map(inv => {
     const st = invoiceStatus(inv);
     const statusLabel = { paid: 'Uhrazena', unpaid: 'Nezaplacena', due: 'Brzy splatná', overdue: 'Po splatnosti' };
     const badgeClass  = { paid: 'badge-paid', unpaid: 'badge-unpaid', due: 'badge-due', overdue: 'badge-unpaid' };
     const dotClass    = { paid: 'paid', unpaid: 'unpaid', due: 'due', overdue: 'unpaid' };
+    const typeLabel   = inv.invType === 'fav' ? 'FAV' : 'FAP';
     return `
       <div class="invoice-card" data-inv-id="${inv.id}">
         <div class="inv-status ${dotClass[st]}"></div>
         <div class="inv-info">
-          <div class="inv-vendor">${escHtml(inv.vendor)}</div>
-          <div class="inv-meta">${inv.number ? escHtml(inv.number) + ' · ' : ''}${fmtDate(inv.date)}${inv.desc ? ' · ' + escHtml(inv.desc) : ''}</div>
+          <div class="inv-vendor">${escHtml(inv.vendor)} <span class="badge" style="background:var(--surface2);color:var(--muted);margin-left:4px;">${typeLabel}</span></div>
+          <div class="inv-meta">${inv.invNumber ? '<span class="mono">' + escHtml(inv.invNumber) + '</span> · ' : ''}${fmtDate(inv.date)}${inv.desc ? ' · ' + escHtml(inv.desc) : ''}</div>
         </div>
         <div class="inv-right">
           <div class="inv-amount">${fmt(inv.amount)}</div>
-          <div class="inv-due">
-            <span class="badge ${badgeClass[st]}">${statusLabel[st]}</span>
+          <div class="inv-due"><span class="badge ${badgeClass[st]}">${statusLabel[st]}</span></div>
+          <div style="display:flex;gap:8px;margin-top:4px;justify-content:flex-end;">
+            ${inv.url ? `<a href="${escHtml(inv.url)}" target="_blank" style="color:var(--accent);font-size:11px;">PDF ↗</a>` : ''}
+            ${inv.invType === 'fav' ? `<a href="#" class="btn-pdf-fav" data-inv-id="${inv.id}" style="color:var(--accent);font-size:11px;">Stáhnout PDF</a>` : ''}
           </div>
-          ${inv.url ? `<div style="margin-top:4px;"><a href="${escHtml(inv.url)}" target="_blank" style="color:var(--accent);font-size:11px;">Otevřít PDF ↗</a></div>` : ''}
         </div>
       </div>
     `;
   }).join('') + '</div>';
+
+  // PDF download pro FAV
+  document.querySelectorAll('.btn-pdf-fav').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      e.preventDefault();
+      const inv = allInvoices.find(i => i.id === btn.dataset.invId);
+      if (inv) await generateInvoicePDF(inv);
+    });
+  });
 }
 
 function openInvEditModal(inv) {
@@ -1790,6 +1926,53 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
     docFilter = btn.dataset.filter;
     renderDocuments();
   });
+});
+
+/* ════════════════════════════════
+   INVOICE FILTERS
+════════════════════════════════ */
+document.querySelectorAll('[data-inv-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-inv-filter]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    invFilter = btn.dataset.invFilter;
+    renderInvoices();
+  });
+});
+
+/* ════════════════════════════════
+   FAV ITEMS
+════════════════════════════════ */
+function renderFavItems() {
+  const wrap = $('fav-items-wrap');
+  wrap.innerHTML = favItems.map((item, i) => `
+    <div class="fav-item-row">
+      <input type="text" placeholder="Popis položky" value="${escHtml(item.desc)}" data-item="${i}" data-field="desc" />
+      <input type="number" placeholder="Ks" value="${item.qty}" min="1" data-item="${i}" data-field="qty" />
+      <input type="number" placeholder="Cena Kč" value="${item.price || ''}" min="0" data-item="${i}" data-field="price" />
+      <button class="btn-remove-item" data-remove="${i}">✕</button>
+    </div>
+  `).join('');
+
+  wrap.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const i = parseInt(inp.dataset.item);
+      const f = inp.dataset.field;
+      favItems[i][f] = f === 'desc' ? inp.value : (parseFloat(inp.value) || 0);
+    });
+  });
+  wrap.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (favItems.length === 1) { toast('Musí být alespoň jedna položka.'); return; }
+      favItems.splice(parseInt(btn.dataset.remove), 1);
+      renderFavItems();
+    });
+  });
+}
+
+$('btn-fav-add-item').addEventListener('click', () => {
+  favItems.push({ desc: '', qty: 1, price: 0 });
+  renderFavItems();
 });
 
 /* ════════════════════════════════
@@ -2000,16 +2183,34 @@ $('btn-tx-delete').addEventListener('click', async () => {
 /* ════════════════════════════════
    ADD INVOICE MODAL
 ════════════════════════════════ */
-$('btn-add-invoice').addEventListener('click', () => {
-  $('inv-ico').value    = '';
-  $('inv-vendor').value = '';
-  $('inv-number').value = '';
-  $('inv-amount').value = '';
-  $('inv-date').value   = today();
-  $('inv-due').value    = '';
-  $('inv-url').value    = '';
-  $('inv-desc').value   = '';
+$('btn-add-fap').addEventListener('click', async () => {
+  $('inv-ico').value         = '';
+  $('inv-vendor').value      = '';
+  $('inv-number').value      = await generateInvNumber('fap');
+  $('inv-orig-number').value = '';
+  $('inv-amount').value      = '';
+  $('inv-date').value        = today();
+  $('inv-due').value         = '';
+  $('inv-url').value         = '';
+  $('inv-desc').value        = '';
+  $('inv-vs').value          = '';
+  $('inv-ks').value          = '';
   openModal('modal-invoice');
+});
+
+$('btn-add-fav').addEventListener('click', async () => {
+  favItems = [{ desc: 'Umělecké vystoupení', qty: 1, price: 0 }];
+  const num = await generateInvNumber('fav');
+  $('fav-number').value = num;
+  $('fav-ico').value    = '';
+  $('fav-vendor').value = '';
+  $('fav-date').value   = today();
+  $('fav-due').value    = '';
+  $('fav-vs').value     = num.replace(/\D/g,'');
+  $('fav-ks').value     = '';
+  $('fav-desc').value   = '';
+  renderFavItems();
+  openModal('modal-fav');
 });
 
 $('btn-ares').addEventListener('click', async () => {
@@ -2028,6 +2229,22 @@ $('btn-ares').addEventListener('click', async () => {
   }
   $('btn-ares').textContent = 'Doplnit z ARES';
   $('btn-ares').disabled = false;
+});
+
+$('btn-ares-fav').addEventListener('click', async () => {
+  const ico = $('fav-ico').value.trim();
+  if (!ico || ico.length < 6) { toast('Zadej IČO.'); return; }
+  $('btn-ares-fav').textContent = '…';
+  $('btn-ares-fav').disabled = true;
+  try {
+    const res = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    $('fav-vendor').value = data.obchodniJmeno || '';
+    toast('Údaje doplněny z ARES ✓');
+  } catch(e) { toast('IČO nenalezeno v ARES.'); }
+  $('btn-ares-fav').textContent = 'Doplnit z ARES';
+  $('btn-ares-fav').disabled = false;
 });
 
 $('btn-ares-edit').addEventListener('click', async () => {
@@ -2058,16 +2275,21 @@ $('btn-invoice-save').addEventListener('click', async () => {
   $('btn-invoice-save').disabled = true;
   try {
     await addDoc(collection(db, 'orgs', currentUser.uid, 'invoices'), {
+      invType:    'fap',
+      invNumber:  $('inv-number').value.trim(),
       vendor, amount,
-      ico:     $('inv-ico').value.trim(),
-      number:  $('inv-number').value.trim(),
-      date:    $('inv-date').value,
+      ico:        $('inv-ico').value.trim(),
+      origNumber: $('inv-orig-number').value.trim(),
+      date:       $('inv-date').value,
       dueDate,
-      url:     $('inv-url').value.trim(),
-      desc:    $('inv-desc').value.trim(),
-      paid:    false,
-      createdAt: serverTimestamp(),
+      vs:         $('inv-vs').value.trim(),
+      ks:         $('inv-ks').value.trim(),
+      url:        $('inv-url').value.trim(),
+      desc:       $('inv-desc').value.trim(),
+      paid:       false,
+      createdAt:  serverTimestamp(),
     });
+
     await saveContactIfNew(vendor, $('inv-ico').value.trim());
     closeModal('modal-invoice');
     toast('Faktura uložena ✓');
@@ -2111,6 +2333,221 @@ $('btn-invoice-delete').addEventListener('click', async () => {
 });
 
 /* ════════════════════════════════
+   PDF GENERATION
+════════════════════════════════ */
+async function generateInvoicePDF(inv) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210; const H = 297;
+  const ml = 15; const mr = 15; const contentW = W - ml - mr;
+
+  // --- load logo ---
+  let logoData = null;
+  try {
+    const blob = await fetch(ORG_LOGO).then(r => r.blob());
+    logoData = await new Promise(res => {
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  } catch(e) { logoData = null; }
+
+  // --- colors ---
+  const dark  = [15, 17, 23];
+  const muted = [120, 128, 160];
+  const accent = [79, 124, 255];
+
+  // --- header band ---
+  pdf.setFillColor(...accent);
+  pdf.rect(0, 0, W, 2, 'F');
+
+  // --- logo ---
+  let logoEndX = ml;
+  if (logoData) {
+    pdf.addImage(logoData, 'PNG', ml, 8, 30, 12, undefined, 'FAST');
+    logoEndX = ml + 32;
+  }
+
+  // --- org info top right ---
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8);
+  pdf.setTextColor(...muted);
+  const orgLines = [
+    orgData.name,
+    `IČO: ${orgData.ico}`,
+    orgData.address || '',
+    ORG_BANK,
+    ORG_IBAN,
+  ].filter(Boolean);
+  let oy = 10;
+  orgLines.forEach(line => {
+    pdf.text(line, W - mr, oy, { align: 'right' });
+    oy += 4;
+  });
+
+  // --- divider ---
+  pdf.setDrawColor(...accent);
+  pdf.setLineWidth(0.3);
+  pdf.line(ml, 28, W - mr, 28);
+
+  // --- invoice title ---
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(18);
+  pdf.setTextColor(...dark);
+  const typeLabel = inv.invType === 'fav' ? 'FAKTURA – DAŇOVÝ DOKLAD' : 'PŘIJATÁ FAKTURA';
+  pdf.text(typeLabel, ml, 38);
+
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(9);
+  pdf.setTextColor(...muted);
+  pdf.text(`Číslo: ${inv.invNumber}`, ml, 44);
+
+  // --- invoice meta box ---
+  pdf.setFillColor(245, 246, 250);
+  pdf.roundedRect(ml, 48, contentW, 22, 2, 2, 'F');
+
+  pdf.setFontSize(8);
+  pdf.setTextColor(...muted);
+  const metaLeft = [
+    ['Datum vystavení', fmtDate(inv.date)],
+    ['Datum splatnosti', fmtDate(inv.dueDate)],
+    ['Variabilní symbol', inv.vs || inv.invNumber.replace(/\D/g,'')],
+  ];
+  const metaRight = [
+    ['Konstantní symbol', inv.ks || '0308'],
+    ['Forma úhrady', 'Bankovní převod'],
+    inv.origNumber ? ['Číslo faktury dodavatele', inv.origNumber] : null,
+  ].filter(Boolean);
+
+  let mx = ml + 4;
+  metaLeft.forEach(([label, val]) => {
+    pdf.setTextColor(...muted); pdf.text(label, mx, 54);
+    pdf.setTextColor(...dark);  pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
+    pdf.text(val || '–', mx, 58);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8);
+    mx += 58;
+  });
+  mx = ml + 4 + 58 * metaLeft.length - 58;
+  let mx2 = ml + contentW / 2 + 4;
+  metaRight.forEach(([label, val]) => {
+    pdf.setTextColor(...muted); pdf.text(label, mx2, 54);
+    pdf.setTextColor(...dark);  pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
+    pdf.text(val || '–', mx2, 58);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8);
+    mx2 += 55;
+  });
+
+  // --- parties ---
+  let py = 78;
+  const halfW = (contentW - 8) / 2;
+
+  // dodavatel / odběratel
+  const leftTitle  = inv.invType === 'fav' ? 'Dodavatel' : 'Dodavatel';
+  const rightTitle = inv.invType === 'fav' ? 'Odběratel' : 'Vystavil';
+
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(8); pdf.setTextColor(...accent);
+  pdf.text(leftTitle.toUpperCase(), ml, py);
+  pdf.text(rightTitle.toUpperCase(), ml + halfW + 8, py);
+  py += 4;
+
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.setTextColor(...dark);
+  if (inv.invType === 'fav') {
+    pdf.text(inv.vendor || '–', ml, py);
+    pdf.text(orgData.name, ml + halfW + 8, py);
+  } else {
+    pdf.text(inv.vendor || '–', ml, py);
+    pdf.text(orgData.name, ml + halfW + 8, py);
+  }
+  py += 5;
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(...muted);
+  if (inv.ico) { pdf.text(`IČO: ${inv.ico}`, ml, py); py += 4; }
+  py = 87;
+  pdf.text(`IČO: ${orgData.ico}`, ml + halfW + 8, py);
+
+  // --- items table ---
+  py = 110;
+  pdf.setFillColor(...accent);
+  pdf.rect(ml, py, contentW, 7, 'F');
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(8); pdf.setTextColor(255,255,255);
+  pdf.text('Popis', ml + 3, py + 4.5);
+  pdf.text('Množství', ml + contentW - 60, py + 4.5);
+  pdf.text('Cena/ks', ml + contentW - 35, py + 4.5);
+  pdf.text('Celkem', ml + contentW - 12, py + 4.5, { align: 'right' });
+  py += 7;
+
+  const items = inv.items || [{ desc: inv.desc || '', qty: 1, price: inv.amount }];
+  items.forEach((item, i) => {
+    if (i % 2 === 0) {
+      pdf.setFillColor(248, 249, 252);
+      pdf.rect(ml, py, contentW, 7, 'F');
+    }
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(9); pdf.setTextColor(...dark);
+    pdf.text(String(item.desc || ''), ml + 3, py + 4.5);
+    pdf.text(String(item.qty || 1), ml + contentW - 60, py + 4.5);
+    pdf.text(fmt(item.price || 0), ml + contentW - 35, py + 4.5);
+    pdf.text(fmt((item.qty || 1) * (item.price || 0)), ml + contentW - 3, py + 4.5, { align: 'right' });
+    py += 7;
+  });
+
+  // --- total ---
+  const total = items.reduce((s, i) => s + (i.qty || 1) * (i.price || 0), 0);
+  py += 4;
+  pdf.setDrawColor(...accent); pdf.setLineWidth(0.3);
+  pdf.line(ml + contentW - 70, py, ml + contentW, py);
+  py += 6;
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(12); pdf.setTextColor(...dark);
+  pdf.text('Celkem k úhradě:', ml + contentW - 70, py);
+  pdf.setTextColor(...accent);
+  pdf.text(fmt(total), ml + contentW - 3, py, { align: 'right' });
+
+  // --- QR platba ---
+  py += 14;
+  pdf.setFont('helvetica','bold'); pdf.setFontSize(8); pdf.setTextColor(...muted);
+  pdf.text('QR PLATBA', ml, py);
+  py += 4;
+
+  const vs = inv.vs || inv.invNumber.replace(/\D/g,'');
+  const qrString = `SPD*1.0*ACC:${ORG_IBAN}*AM:${total}*CC:CZK*X-VS:${vs}*MSG:${inv.invNumber}`;
+
+  // QR via canvas
+  try {
+    const qrDiv = document.createElement('div');
+    qrDiv.style.display = 'none';
+    document.body.appendChild(qrDiv);
+    new QRCode(qrDiv, { text: qrString, width: 80, height: 80, correctLevel: QRCode.CorrectLevel.M });
+    await new Promise(r => setTimeout(r, 300));
+    const canvas = qrDiv.querySelector('canvas');
+    if (canvas) {
+      const qrData = canvas.toDataURL('image/png');
+      pdf.addImage(qrData, 'PNG', ml, py, 25, 25);
+    }
+    document.body.removeChild(qrDiv);
+  } catch(e) { /* QR skip */ }
+
+  // bank info next to QR
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.setTextColor(...muted);
+  pdf.text('Číslo účtu:', ml + 28, py + 5);
+  pdf.setTextColor(...dark); pdf.setFont('helvetica','bold');
+  pdf.text(ORG_BANK, ml + 28 + 22, py + 5);
+  pdf.setFont('helvetica','normal'); pdf.setTextColor(...muted);
+  pdf.text('IBAN:', ml + 28, py + 10);
+  pdf.setTextColor(...dark); pdf.setFont('helvetica','bold');
+  pdf.text(ORG_IBAN, ml + 28 + 22, py + 10);
+  pdf.setFont('helvetica','normal'); pdf.setTextColor(...muted);
+  pdf.text('Variabilní symbol:', ml + 28, py + 15);
+  pdf.setTextColor(...dark); pdf.setFont('helvetica','bold');
+  pdf.text(vs, ml + 28 + 22, py + 15);
+
+  // --- footer ---
+  pdf.setFillColor(...accent);
+  pdf.rect(0, H - 10, W, 10, 'F');
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(255,255,255);
+  pdf.text('Vystaveno ve vlastní 10men účetní aplikaci 10korun', W / 2, H - 4, { align: 'center' });
+
+  pdf.save(`${inv.invNumber}.pdf`);
+}
+
+/* ════════════════════════════════
    DOCUMENT NUMBERING
 ════════════════════════════════ */
 async function generateInvNumber(type) {
@@ -2134,6 +2571,44 @@ async function generateDocNumber(account) {
   const seq = String(count + 1).padStart(3, '0');
   return `${prefix}${year}${seq}`;
 }
+
+$('btn-fav-save').addEventListener('click', async () => {
+  const vendor  = $('fav-vendor').value.trim();
+  const dueDate = $('fav-due').value;
+  const total   = favItems.reduce((s, i) => s + (i.qty||1) * (i.price||0), 0);
+
+  if (!vendor)       { toast('Zadej odběratele.'); return; }
+  if (!dueDate)      { toast('Zadej datum splatnosti.'); return; }
+  if (total <= 0)    { toast('Zadej ceny položek.'); return; }
+
+  $('btn-fav-save').disabled = true;
+  try {
+    const invData = {
+      invType:   'fav',
+      invNumber: $('fav-number').value,
+      vendor,
+      ico:       $('fav-ico').value.trim(),
+      date:      $('fav-date').value,
+      dueDate,
+      vs:        $('fav-vs').value.trim(),
+      ks:        $('fav-ks').value.trim(),
+      desc:      $('fav-desc').value.trim(),
+      items:     favItems,
+      amount:    total,
+      paid:      false,
+      createdAt: serverTimestamp(),
+    };
+    await addDoc(collection(db, 'orgs', currentUser.uid, 'invoices'), invData);
+    await saveContactIfNew(vendor, $('fav-ico').value.trim());
+    await generateInvoicePDF({ ...invData });
+    closeModal('modal-fav');
+    toast('Faktura uložena a PDF staženo ✓');
+  } catch(e) {
+    console.error(e);
+    toast('Chyba při ukládání.');
+  }
+  $('btn-fav-save').disabled = false;
+});
 
 /* ════════════════════════════════
    CONTACTS

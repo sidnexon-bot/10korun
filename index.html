@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10korun</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #181c27;
+      --surface2:  #1f2435;
+      --border:    #2a3045;
+      --accent:    #4f7cff;
+      --accent-dim:#1e2f5c;
+      --income:    #2dd98a;
+      --expense:   #ff5e5e;
+      --warn:      #ffb84d;
+      --text:      #e8eaf2;
+      --muted:     #7a80a0;
+      --mono:      'DM Mono', monospace;
+      --sans:      'Inter', sans-serif;
+      --r:         10px;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── UTILITY ── */
+    .hidden { display: none !important; }
+    .mono { font-family: var(--mono); }
+    .muted { color: var(--muted); }
+    .income-color { color: var(--income); }
+    .expense-color { color: var(--expense); }
+    .warn-color { color: var(--warn); }
+
+    /* ── SCREEN LAYERS ── */
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* ══════════════════════════════════
+       LOGIN SCREEN
+    ══════════════════════════════════ */
+    #screen-login {
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 30% 40%, #1a2545 0%, var(--bg) 65%);
+    }
+
+    .login-card {
+      text-align: center;
+      max-width: 340px;
+      width: 100%;
+      padding: 0 24px;
+    }
+
+    .login-logo {
+      font-family: var(--mono);
+      font-size: 48px;
+      font-weight: 500;
+      letter-spacing: -2px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .login-sub {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 40px;
+    }
+
+    .btn-google {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 20px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--text);
+      font-size: 14px;
+      font-family: var(--sans);
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .btn-google:hover { background: #252b40; border-color: var(--accent); }
+    .btn-google svg { flex-shrink: 0; }
+
+    /* ══════════════════════════════════
+       ONBOARDING SCREEN
+    ══════════════════════════════════ */
+    #screen-onboarding {
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .onboarding-wrap {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .ob-step { display: none; }
+    .ob-step.active { display: block; }
+
+    .ob-header {
+      margin-bottom: 32px;
+    }
+
+    .ob-step-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .ob-title {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .ob-desc {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+      font-weight: 500;
+      letter-spacing: .02em;
+    }
+
+    .field input, .field select {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+    .field input::placeholder { color: var(--muted); }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .ob-nav { display: flex; gap: 10px; }
+
+    .btn-primary {
+      flex: 1;
+      padding: 11px 20px;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn-primary:hover { opacity: .85; }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-secondary {
+      padding: 11px 20px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 14px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+
+    .ob-progress {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 32px;
+    }
+    .ob-dot {
+      height: 3px;
+      flex: 1;
+      background: var(--border);
+      border-radius: 2px;
+      transition: background .3s;
+    }
+    .ob-dot.done { background: var(--accent); }
+
+    /* ══════════════════════════════════
+       APP SHELL
+    ══════════════════════════════════ */
+    #screen-app {
+      flex-direction: column;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-logo {
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: -1px;
+    }
+
+    .topbar-org {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* ── NAV ── */
+    .nav {
+      display: flex;
+      gap: 2px;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .nav-item {
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .nav-item:hover { color: var(--text); }
+    .nav-item.active { color: var(--text); border-bottom-color: var(--accent); }
+
+    /* ── MAIN CONTENT ── */
+    .main {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    /* ── VIEWS ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ══════════════════════════════════
+       DASHBOARD VIEW
+    ══════════════════════════════════ */
+    .period-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .period-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .period-value {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px 16px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .stat-value.positive { color: var(--income); }
+    .stat-value.negative { color: var(--expense); }
+    .stat-value.neutral  { color: var(--text); }
+
+    /* ── SPLIT PANEL ── */
+    .split-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 700px) {
+      .split-panel { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    .ledger {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+
+    .ledger-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ledger-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .ledger-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .dot-cash { background: var(--warn); }
+    .dot-bank { background: var(--accent); }
+
+    .ledger-balance {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .ledger-body {
+      max-height: 340px;
+      overflow-y: auto;
+    }
+
+    .tx-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+      cursor: pointer;
+      transition: background .1s;
+    }
+    .tx-row:last-child { border-bottom: none; }
+    .tx-row:hover { background: var(--surface2); }
+
+    .tx-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .tx-icon.income-bg { background: rgba(45,217,138,.12); }
+    .tx-icon.expense-bg { background: rgba(255,94,94,.12); }
+
+    .tx-info { flex: 1; min-width: 0; }
+    .tx-desc {
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tx-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    .tx-amount {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .ledger-footer {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-add {
+      width: 100%;
+      padding: 8px;
+      background: var(--accent-dim);
+      border: 1px dashed var(--accent);
+      border-radius: 7px;
+      color: var(--accent);
+      font-family: var(--sans);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-add:hover { background: #263666; }
+
+    .ledger-empty {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* ══════════════════════════════════
+       FAKTURY VIEW
+    ══════════════════════════════════ */
+    .view-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .view-title { font-size: 16px; font-weight: 600; }
+
+    .invoice-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .invoice-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .invoice-card:hover { border-color: var(--accent); }
+
+    .inv-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .inv-status.unpaid { background: var(--expense); }
+    .inv-status.paid   { background: var(--income); }
+    .inv-status.due    { background: var(--warn); }
+
+    .inv-info { flex: 1; min-width: 0; }
+    .inv-vendor { font-size: 13px; font-weight: 500; }
+    .inv-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .inv-right { text-align: right; }
+    .inv-amount { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+    .inv-due { font-size: 11px; margin-top: 3px; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .badge-unpaid { background: rgba(255,94,94,.15); color: var(--expense); }
+    .badge-paid   { background: rgba(45,217,138,.15); color: var(--income); }
+    .badge-due    { background: rgba(255,184,77,.15); color: var(--warn); }
+
+    /* ══════════════════════════════════
+       MODAL
+    ══════════════════════════════════ */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 460px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title { font-size: 15px; font-weight: 600; }
+
+    .modal-close {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: var(--surface2);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    .modal-body { padding: 20px; }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    /* ── TYPE TOGGLE ── */
+    .type-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .type-btn {
+      padding: 9px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .15s;
+      text-align: center;
+    }
+    .type-btn.active-income {
+      background: rgba(45,217,138,.12);
+      border-color: var(--income);
+      color: var(--income);
+    }
+    .type-btn.active-expense {
+      background: rgba(255,94,94,.12);
+      border-color: var(--expense);
+      color: var(--expense);
+    }
+
+    /* ── AI HINT ── */
+    .ai-hint {
+      display: none;
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .ai-hint.visible { display: block; }
+    .ai-hint-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: 5px;
+    }
+
+    .ai-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── CATEGORY SELECT ── */
+    .field select option { background: #1f2435; }
+
+    /* ── INVOICE PAIR ── */
+    .pair-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .pair-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      cursor: pointer;
+      transition: border-color .15s;
+      font-size: 12px;
+    }
+    .pair-item:hover { border-color: var(--accent); }
+    .pair-item.selected { border-color: var(--income); background: rgba(45,217,138,.06); }
+    .pair-item-vendor { flex: 1; font-weight: 500; }
+    .pair-item-amount { font-family: var(--mono); }
+
+    /* ══════════════════════════════════
+       DOKLADY VIEW
+    ══════════════════════════════════ */
+    .doc-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .filter-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .doc-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .doc-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .doc-type {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      background: var(--surface2);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .doc-desc { flex: 1; }
+    .doc-date { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .doc-amount { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+
+    /* ══════════════════════════════════
+       TOAST
+    ══════════════════════════════════ */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ══════════════════════════════════
+       SCROLLBAR
+    ══════════════════════════════════ */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     LOGIN
+══════════════════════════════════ -->
+<div id="screen-login" class="screen active">
+  <div class="login-card">
+    <div class="login-logo">10korun</div>
+    <div class="login-sub">Evidence příjmů a výdajů pro 10men</div>
+    <button class="btn-google" id="btn-google-login">
+      <svg width="18" height="18" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Přihlásit se přes Google
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     ONBOARDING
+══════════════════════════════════ -->
+<div id="screen-onboarding" class="screen">
+  <div class="onboarding-wrap">
+
+    <div class="ob-progress">
+      <div class="ob-dot" id="dot-0"></div>
+      <div class="ob-dot" id="dot-1"></div>
+      <div class="ob-dot" id="dot-2"></div>
+    </div>
+
+    <!-- KROK 1: Organizace -->
+    <div class="ob-step active" id="ob-step-0">
+      <div class="ob-header">
+        <div class="ob-step-label">Krok 1 ze 3</div>
+        <div class="ob-title">Základní údaje</div>
+        <div class="ob-desc">Zadej údaje o organizaci – použijí se na dokladech.</div>
+      </div>
+      <div class="field-group">
+        <div class="field">
+          <label>Název organizace</label>
+          <input id="ob-name" type="text" placeholder="Vokální skupina 10men, z. s." />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>IČO</label>
+            <input id="ob-ico" type="text" placeholder="21194297" maxlength="8" />
+          </div>
+          <div class="field">
+            <label>DIČ (nepovinné)</label>
+            <input id="ob-dic" type="text" placeholder="CZ..." />
+          </div>
+        </div>
+        <div class="field">
+          <label>Adresa sídla</label>
+          <input id="ob-address" type="text" placeholder="Ulice 1, 110 00 Praha 1" />
+        </div>
+      </div>
+      <div class="ob-nav">
+        <button class="btn-primary" id="ob-next-0">Pokračovat →</button>
+      </div>
+    </div>
+
+    <!-- KROK 2: Účetní období -->
+    <div class="ob-step" id="ob-step-1">
+      <div class="ob-header">
+        <div class="ob-step-label">Krok 2 ze 3</div>
+        <div class="ob-title">Účetní období</div>
+        <div class="ob-desc">Otevři první účetní období. Obvykle odpovídá kalendářnímu roku.</div>
+      </div>
+      <div class="field-group">
+        <div class="field-row">
+          <div class="field">
+            <label>Začátek období</label>
+            <input id="ob-period-from" type="date" />
+          </div>
+          <div class="field">
+            <label>Konec období</label>
+            <input id="ob-period-to" type="date" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Počáteční stav pokladny (Kč)</label>
+          <input id="ob-cash-init" type="number" placeholder="0" min="0" />
+        </div>
+        <div class="field">
+          <label>Počáteční stav bankovního účtu (Kč)</label>
+          <input id="ob-bank-init" type="number" placeholder="0" min="0" />
+        </div>
+      </div>
+      <div class="ob-nav">
+        <button class="btn-secondary" id="ob-back-1">← Zpět</button>
+        <button class="btn-primary" id="ob-next-1">Pokračovat →</button>
+      </div>
+    </div>
+
+    <!-- KROK 3: Shrnutí -->
+    <div class="ob-step" id="ob-step-2">
+      <div class="ob-header">
+        <div class="ob-step-label">Krok 3 ze 3</div>
+        <div class="ob-title">Vše připraveno</div>
+        <div class="ob-desc">Zkontroluj nastavení a spusť 10korun.</div>
+      </div>
+      <div id="ob-summary" style="margin-bottom:28px; padding:16px; background:var(--surface2); border-radius:var(--r); font-size:13px; line-height:2;"></div>
+      <div class="ob-nav">
+        <button class="btn-secondary" id="ob-back-2">← Zpět</button>
+        <button class="btn-primary" id="ob-finish">Spustit 10korun</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     APP
+══════════════════════════════════ -->
+<div id="screen-app" class="screen">
+
+  <div class="topbar">
+    <div>
+      <div class="topbar-logo">10korun</div>
+    </div>
+    <div class="topbar-org" id="topbar-org-name"></div>
+    <div class="topbar-right">
+      <div class="avatar" id="user-avatar" title="Odhlásit se">
+        <img id="avatar-img" src="" alt="" />
+      </div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="nav-item active" data-view="dashboard">Přehled</div>
+    <div class="nav-item" data-view="invoices">Faktury</div>
+    <div class="nav-item" data-view="documents">Doklady</div>
+    <div class="nav-item" data-view="settings">Nastavení</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="view-dashboard" class="view active">
+
+      <div class="period-bar">
+        <span class="period-label">Účetní období</span>
+        <span class="period-value mono" id="dash-period">–</span>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Příjmy</div>
+          <div class="stat-value positive" id="stat-income">0 Kč</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Výdaje</div>
+          <div class="stat-value negative" id="stat-expense">0 Kč</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Výsledek</div>
+          <div class="stat-value neutral" id="stat-result">0 Kč</div>
+        </div>
+      </div>
+
+      <div class="split-panel">
+        <!-- POKLADNA -->
+        <div class="ledger" id="ledger-cash">
+          <div class="ledger-header">
+            <div class="ledger-title">
+              <div class="ledger-dot dot-cash"></div>
+              Pokladna
+            </div>
+            <div class="ledger-balance" id="balance-cash">0 Kč</div>
+          </div>
+          <div class="ledger-body" id="txlist-cash">
+            <div class="ledger-empty">Žádné záznamy</div>
+          </div>
+          <div class="ledger-footer">
+            <button class="btn-add" data-account="cash">+ Nový záznam</button>
+          </div>
+        </div>
+
+        <!-- BANKOVNÍ ÚČET -->
+        <div class="ledger" id="ledger-bank">
+          <div class="ledger-header">
+            <div class="ledger-title">
+              <div class="ledger-dot dot-bank"></div>
+              Bankovní účet
+            </div>
+            <div class="ledger-balance" id="balance-bank">0 Kč</div>
+          </div>
+          <div class="ledger-body" id="txlist-bank">
+            <div class="ledger-empty">Žádné záznamy</div>
+          </div>
+          <div class="ledger-footer">
+            <button class="btn-add" data-account="bank">+ Nový záznam</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── FAKTURY ── -->
+    <div id="view-invoices" class="view">
+      <div class="view-header">
+        <div class="view-title">Přijaté faktury</div>
+        <button class="btn-primary" id="btn-add-invoice" style="flex:none;padding:8px 14px;font-size:13px;">+ Přidat fakturu</button>
+      </div>
+      <div id="invoice-list-wrap">
+        <div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">Žádné faktury</div>
+      </div>
+    </div>
+
+    <!-- ── DOKLADY ── -->
+    <div id="view-documents" class="view">
+      <div class="view-header">
+        <div class="view-title">Doklady</div>
+      </div>
+      <div class="doc-filters">
+        <button class="filter-btn active" data-filter="all">Vše</button>
+        <button class="filter-btn" data-filter="PPD">PPD</button>
+        <button class="filter-btn" data-filter="VPD">VPD</button>
+        <button class="filter-btn" data-filter="BANK">Bankovní</button>
+      </div>
+      <div id="doc-list-wrap">
+        <div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">Žádné doklady</div>
+      </div>
+    </div>
+
+    <!-- ── NASTAVENÍ ── -->
+    <div id="view-settings" class="view">
+      <div class="view-title" style="margin-bottom:20px;">Nastavení</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;font-size:13px;line-height:2.2;" id="settings-info"></div>
+      <div style="margin-top:12px;">
+        <button class="btn-secondary" id="btn-signout" style="font-size:13px;">Odhlásit se</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL: NOVÁ TRANSAKCE
+══════════════════════════════════ -->
+<div class="modal-overlay" id="modal-tx">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-tx-title">Nový záznam</div>
+      <button class="modal-close" data-close="modal-tx">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="type-toggle">
+        <button class="type-btn active-income" id="tx-type-income" data-type="income">↑ Příjem</button>
+        <button class="type-btn" id="tx-type-expense" data-type="expense">↓ Výdaj</button>
+      </div>
+      <div class="field-group">
+        <div class="field">
+          <label>Popis</label>
+          <input id="tx-desc" type="text" placeholder="Např. Odměna za vystoupení na Noci kostelů" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Částka (Kč)</label>
+            <input id="tx-amount" type="number" min="0" placeholder="0" />
+          </div>
+          <div class="field">
+            <label>Datum</label>
+            <input id="tx-date" type="date" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Kategorie</label>
+          <select id="tx-category">
+            <option value="">— vyber —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Protistrana (nepovinné)</label>
+          <input id="tx-party" type="text" placeholder="Název organizace nebo osoby" />
+        </div>
+        <div class="field" id="tx-pair-wrap" style="display:none;">
+          <label>Spárovat s fakturou (nepovinné)</label>
+          <div class="pair-list" id="tx-pair-list"></div>
+        </div>
+      </div>
+
+      <div class="ai-hint" id="ai-hint-box">
+        <div class="ai-hint-label">💡 Rada k zaúčtování</div>
+        <div id="ai-hint-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-close="modal-tx">Zrušit</button>
+      <button class="btn-primary" id="btn-tx-save">Uložit záznam</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODAL: NOVÁ FAKTURA
+══════════════════════════════════ -->
+<div class="modal-overlay" id="modal-invoice">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Přidat fakturu</div>
+      <button class="modal-close" data-close="modal-invoice">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <div class="field">
+          <label>Dodavatel</label>
+          <input id="inv-vendor" type="text" placeholder="Název dodavatele" />
+        </div>
+        <div class="field">
+          <label>Číslo faktury</label>
+          <input id="inv-number" type="text" placeholder="FA 2025001" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Částka (Kč)</label>
+            <input id="inv-amount" type="number" min="0" placeholder="0" />
+          </div>
+          <div class="field">
+            <label>Datum vystavení</label>
+            <input id="inv-date" type="date" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Datum splatnosti</label>
+          <input id="inv-due" type="date" />
+        </div>
+        <div class="field">
+          <label>Odkaz na PDF (Google Drive)</label>
+          <input id="inv-url" type="url" placeholder="https://drive.google.com/..." />
+        </div>
+        <div class="field">
+          <label>Popis / poznámka</label>
+          <input id="inv-desc" type="text" placeholder="Např. FA za nahrávání CD" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-close="modal-invoice">Zrušit</button>
+      <button class="btn-primary" id="btn-invoice-save">Uložit fakturu</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════
+     FIREBASE + APP LOGIC
+══════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc,
+  query, orderBy, onSnapshot, updateDoc, serverTimestamp, where, getDocs }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAXTSVShXlJKDf2quwqiFO4UuxzI80Lugk",
+  authDomain: "korun-95c19.firebaseapp.com",
+  databaseURL: "https://korun-95c19-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "korun-95c19",
+  storageBucket: "korun-95c19.firebasestorage.app",
+  messagingSenderId: "49992318866",
+  appId: "1:49992318866:web:888e22d20fa9f643fc4b4b"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+/* ════════════════════════════════
+   HELPERS
+════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n).toLocaleString('cs-CZ') + ' Kč';
+const fmtDate = d => d ? new Date(d).toLocaleDateString('cs-CZ') : '';
+const today = () => new Date().toISOString().slice(0,10);
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  $('view-' + id).classList.add('active');
+  document.querySelector(`.nav-item[data-view="${id}"]`)?.classList.add('active');
+}
+
+function toast(msg, duration = 2800) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function openModal(id) { $(id).classList.add('open'); }
+function closeModal(id) { $(id).classList.remove('open'); }
+
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); });
+});
+
+/* ════════════════════════════════
+   CATEGORIES
+════════════════════════════════ */
+const INCOME_CATS = [
+  'Prodej zboží',
+  'Prodej výrobků a služeb',
+  'Příjmy z veřejných sbírek',
+  'Přijaté peněžní dary mimo veřejné sbírky',
+  'Přijaté členské příspěvky',
+  'Dotace a příspěvky z veřejných rozpočtů',
+  'Ostatní',
+  'Průběžné položky',
+  'Kurzové rozdíly',
+];
+const EXPENSE_CATS = [
+  'Dlouhodobý nehmotný a hmotný majetek',
+  'Materiál',
+  'Zboží',
+  'Služby',
+  'Mzdy',
+  'Pojistné za zaměstnance a zaměstnavatele',
+  'Ostatní osobní výdaje',
+  'Ostatní',
+  'Průběžné položky',
+  'Kurzové rozdíly',
+];
+
+function setCategoryOptions(type) {
+  const sel = $('tx-category');
+  const cats = type === 'income' ? INCOME_CATS : EXPENSE_CATS;
+  sel.innerHTML = '<option value="">— vyber kategorii —</option>' +
+    cats.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+/* ════════════════════════════════
+   STATE
+════════════════════════════════ */
+let currentUser = null;
+let orgData     = null;
+let txAccount   = 'cash'; // which ledger triggered modal
+let txType      = 'income';
+let selectedPairId = null;
+let unsubTx     = null;
+let unsubInv    = null;
+let allInvoices = [];
+let allTx       = [];
+let docFilter   = 'all';
+
+/* ════════════════════════════════
+   AUTH
+════════════════════════════════ */
+$('btn-google-login').addEventListener('click', async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  } catch(e) { toast('Přihlášení se nezdařilo.'); }
+});
+
+$('btn-signout').addEventListener('click', async () => {
+  await signOut(auth);
+});
+
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    currentUser = null;
+    showScreen('screen-login');
+    return;
+  }
+  currentUser = user;
+  const img = $('avatar-img');
+  if (user.photoURL) img.src = user.photoURL;
+
+  // check org
+  const orgRef = doc(db, 'orgs', user.uid);
+  const orgSnap = await getDoc(orgRef);
+
+  if (!orgSnap.exists()) {
+    showScreen('screen-onboarding');
+    initOnboarding();
+  } else {
+    orgData = orgSnap.data();
+    launchApp();
+  }
+});
+
+/* ════════════════════════════════
+   ONBOARDING
+════════════════════════════════ */
+let obStep = 0;
+
+function initOnboarding() {
+  obStep = 0;
+  showObStep(0);
+  $('ob-period-from').value = `${new Date().getFullYear()}-01-01`;
+  $('ob-period-to').value   = `${new Date().getFullYear()}-12-31`;
+}
+
+function showObStep(n) {
+  document.querySelectorAll('.ob-step').forEach((s,i) => {
+    s.classList.toggle('active', i === n);
+  });
+  document.querySelectorAll('.ob-dot').forEach((d,i) => {
+    d.classList.toggle('done', i <= n);
+  });
+  obStep = n;
+}
+
+$('ob-next-0').addEventListener('click', () => {
+  if (!$('ob-name').value.trim()) { toast('Zadej název organizace.'); return; }
+  if (!$('ob-ico').value.trim())  { toast('Zadej IČO.'); return; }
+  showObStep(1);
+});
+
+$('ob-back-1').addEventListener('click', () => showObStep(0));
+$('ob-next-1').addEventListener('click', () => {
+  if (!$('ob-period-from').value || !$('ob-period-to').value) {
+    toast('Zadej začátek a konec účetního období.'); return;
+  }
+  // build summary
+  $('ob-summary').innerHTML = `
+    <span class="muted">Organizace:</span> <strong>${$('ob-name').value}</strong><br>
+    <span class="muted">IČO:</span> ${$('ob-ico').value}${$('ob-dic').value ? ' &nbsp;|&nbsp; DIČ: ' + $('ob-dic').value : ''}<br>
+    <span class="muted">Adresa:</span> ${$('ob-address').value || '–'}<br>
+    <span class="muted">Účetní období:</span> ${fmtDate($('ob-period-from').value)} – ${fmtDate($('ob-period-to').value)}<br>
+    <span class="muted">Počáteční stav pokladny:</span> ${fmt($('ob-cash-init').value || 0)}<br>
+    <span class="muted">Počáteční stav BÚ:</span> ${fmt($('ob-bank-init').value || 0)}
+  `;
+  showObStep(2);
+});
+
+$('ob-back-2').addEventListener('click', () => showObStep(1));
+
+$('ob-finish').addEventListener('click', async () => {
+  $('ob-finish').disabled = true;
+  const data = {
+    name:        $('ob-name').value.trim(),
+    ico:         $('ob-ico').value.trim(),
+    dic:         $('ob-dic').value.trim(),
+    address:     $('ob-address').value.trim(),
+    periodFrom:  $('ob-period-from').value,
+    periodTo:    $('ob-period-to').value,
+    cashInit:    parseFloat($('ob-cash-init').value) || 0,
+    bankInit:    parseFloat($('ob-bank-init').value) || 0,
+    createdAt:   serverTimestamp(),
+  };
+  try {
+    await setDoc(doc(db, 'orgs', currentUser.uid), data);
+    orgData = data;
+    launchApp();
+  } catch(e) {
+    toast('Chyba při ukládání. Zkus to znovu.');
+    $('ob-finish').disabled = false;
+  }
+});
+
+/* ════════════════════════════════
+   APP LAUNCH
+════════════════════════════════ */
+function launchApp() {
+  showScreen('screen-app');
+  showView('dashboard');
+
+  $('topbar-org-name').textContent = orgData.name || '';
+  $('settings-info').innerHTML = `
+    <span class="muted">Organizace:</span> ${orgData.name}<br>
+    <span class="muted">IČO:</span> ${orgData.ico}<br>
+    <span class="muted">Adresa:</span> ${orgData.address || '–'}<br>
+    <span class="muted">Účetní období:</span> ${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}
+  `;
+
+  const df = fmtDate(orgData.periodFrom);
+  const dt = fmtDate(orgData.periodTo);
+  $('dash-period').textContent = `${df} – ${dt}`;
+
+  subscribeTransactions();
+  subscribeInvoices();
+}
+
+/* ════════════════════════════════
+   NAVIGATION
+════════════════════════════════ */
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => showView(item.dataset.view));
+});
+
+/* ════════════════════════════════
+   TRANSACTIONS – SUBSCRIBE
+════════════════════════════════ */
+function subscribeTransactions() {
+  if (unsubTx) unsubTx();
+  const txCol = collection(db, 'orgs', currentUser.uid, 'transactions');
+  const q = query(txCol, orderBy('date', 'desc'));
+
+  unsubTx = onSnapshot(q, snap => {
+    allTx = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderLedger('cash');
+    renderLedger('bank');
+    renderStats();
+    renderDocuments();
+  });
+}
+
+function renderLedger(account) {
+  const list = allTx.filter(t => t.account === account);
+  const wrap = $('txlist-' + account);
+
+  // balance
+  const init = account === 'cash' ? (orgData.cashInit||0) : (orgData.bankInit||0);
+  const balance = list.reduce((sum, t) => {
+    return sum + (t.type === 'income' ? t.amount : -t.amount);
+  }, init);
+
+  $('balance-' + account).textContent = fmt(balance);
+  $('balance-' + account).style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
+
+  if (!list.length) {
+    wrap.innerHTML = '<div class="ledger-empty">Žádné záznamy</div>';
+    return;
+  }
+
+  wrap.innerHTML = list.slice(0,30).map(t => `
+    <div class="tx-row" data-id="${t.id}">
+      <div class="tx-icon ${t.type === 'income' ? 'income-bg' : 'expense-bg'}">
+        ${t.type === 'income' ? '↑' : '↓'}
+      </div>
+      <div class="tx-info">
+        <div class="tx-desc">${escHtml(t.desc)}</div>
+        <div class="tx-meta">${fmtDate(t.date)}${t.category ? ' · ' + t.category : ''}${t.pairedInvoice ? ' · <span style="color:var(--income)">spárováno</span>' : ''}</div>
+      </div>
+      <div class="tx-amount ${t.type === 'income' ? 'income-color' : 'expense-color'}">
+        ${t.type === 'income' ? '+' : '−'}${fmt(t.amount)}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderStats() {
+  const income  = allTx.filter(t => t.type === 'income').reduce((s,t) => s + t.amount, 0);
+  const expense = allTx.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
+  const result  = income - expense;
+
+  $('stat-income').textContent  = fmt(income);
+  $('stat-expense').textContent = fmt(expense);
+  $('stat-result').textContent  = fmt(result);
+  $('stat-result').className    = 'stat-value ' + (result >= 0 ? 'positive' : 'negative');
+}
+
+/* ════════════════════════════════
+   INVOICES – SUBSCRIBE
+════════════════════════════════ */
+function subscribeInvoices() {
+  if (unsubInv) unsubInv();
+  const invCol = collection(db, 'orgs', currentUser.uid, 'invoices');
+  const q = query(invCol, orderBy('dueDate', 'asc'));
+
+  unsubInv = onSnapshot(q, snap => {
+    allInvoices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderInvoices();
+  });
+}
+
+function invoiceStatus(inv) {
+  if (inv.paid) return 'paid';
+  const now = new Date(); now.setHours(0,0,0,0);
+  const due = new Date(inv.dueDate);
+  if (due < now) return 'overdue';
+  const soon = new Date(now); soon.setDate(soon.getDate() + 7);
+  if (due <= soon) return 'due';
+  return 'unpaid';
+}
+
+function renderInvoices() {
+  const wrap = $('invoice-list-wrap');
+  if (!allInvoices.length) {
+    wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">Žádné faktury</div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="invoice-list">' + allInvoices.map(inv => {
+    const st = invoiceStatus(inv);
+    const statusLabel = { paid: 'Uhrazena', unpaid: 'Nezaplacena', due: 'Brzy splatná', overdue: 'Po splatnosti' };
+    const badgeClass  = { paid: 'badge-paid', unpaid: 'badge-unpaid', due: 'badge-due', overdue: 'badge-unpaid' };
+    const dotClass    = { paid: 'paid', unpaid: 'unpaid', due: 'due', overdue: 'unpaid' };
+    return `
+      <div class="invoice-card" data-inv-id="${inv.id}">
+        <div class="inv-status ${dotClass[st]}"></div>
+        <div class="inv-info">
+          <div class="inv-vendor">${escHtml(inv.vendor)}</div>
+          <div class="inv-meta">${inv.number ? escHtml(inv.number) + ' · ' : ''}${fmtDate(inv.date)}${inv.desc ? ' · ' + escHtml(inv.desc) : ''}</div>
+        </div>
+        <div class="inv-right">
+          <div class="inv-amount">${fmt(inv.amount)}</div>
+          <div class="inv-due">
+            <span class="badge ${badgeClass[st]}">${statusLabel[st]}</span>
+          </div>
+          ${inv.url ? `<div style="margin-top:4px;"><a href="${escHtml(inv.url)}" target="_blank" style="color:var(--accent);font-size:11px;">Otevřít PDF ↗</a></div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('') + '</div>';
+}
+
+/* ════════════════════════════════
+   DOCUMENTS VIEW
+════════════════════════════════ */
+function renderDocuments() {
+  const wrap = $('doc-list-wrap');
+  let list = [...allTx];
+  if (docFilter !== 'all') {
+    list = list.filter(t => {
+      if (docFilter === 'PPD') return t.account === 'cash' && t.type === 'income';
+      if (docFilter === 'VPD') return t.account === 'cash' && t.type === 'expense';
+      if (docFilter === 'BANK') return t.account === 'bank';
+      return true;
+    });
+  }
+  list.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+  if (!list.length) {
+    wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">Žádné doklady</div>';
+    return;
+  }
+
+  wrap.innerHTML = '<div class="doc-list">' + list.map(t => {
+    let docType = t.account === 'bank' ? 'BANK' : (t.type === 'income' ? 'PPD' : 'VPD');
+    return `
+      <div class="doc-row">
+        <div class="doc-type">${docType}</div>
+        <div class="doc-desc">${escHtml(t.desc)}</div>
+        <div class="doc-date">${fmtDate(t.date)}</div>
+        <div class="doc-amount ${t.type === 'income' ? 'income-color' : 'expense-color'}">
+          ${t.type === 'income' ? '+' : '−'}${fmt(t.amount)}
+        </div>
+      </div>
+    `;
+  }).join('') + '</div>';
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    docFilter = btn.dataset.filter;
+    renderDocuments();
+  });
+});
+
+/* ════════════════════════════════
+   ADD TRANSACTION MODAL
+════════════════════════════════ */
+document.querySelectorAll('.btn-add').forEach(btn => {
+  btn.addEventListener('click', () => {
+    txAccount = btn.dataset.account;
+    txType    = 'income';
+    selectedPairId = null;
+    openTxModal();
+  });
+});
+
+function openTxModal() {
+  $('modal-tx-title').textContent = txAccount === 'cash' ? 'Nový záznam – Pokladna' : 'Nový záznam – Banka';
+  $('tx-desc').value    = '';
+  $('tx-amount').value  = '';
+  $('tx-date').value    = today();
+  $('tx-party').value   = '';
+  $('ai-hint-box').classList.remove('visible');
+  $('tx-type-income').classList.add('active-income');
+  $('tx-type-expense').classList.remove('active-expense');
+  setCategoryOptions('income');
+  txType = 'income';
+  renderPairList();
+  openModal('modal-tx');
+}
+
+$('tx-type-income').addEventListener('click', () => {
+  txType = 'income';
+  $('tx-type-income').classList.add('active-income');
+  $('tx-type-expense').classList.remove('active-expense');
+  setCategoryOptions('income');
+  $('tx-pair-wrap').style.display = 'none';
+  selectedPairId = null;
+  triggerAiHint();
+});
+
+$('tx-type-expense').addEventListener('click', () => {
+  txType = 'expense';
+  $('tx-type-expense').classList.add('active-expense');
+  $('tx-type-income').classList.remove('active-income');
+  setCategoryOptions('expense');
+  // show unpaid invoices for pairing
+  const unpaid = allInvoices.filter(i => !i.paid);
+  $('tx-pair-wrap').style.display = unpaid.length ? 'block' : 'none';
+  renderPairList();
+  triggerAiHint();
+});
+
+function renderPairList() {
+  const unpaid = allInvoices.filter(i => !i.paid);
+  const wrap = $('tx-pair-list');
+  if (!unpaid.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = unpaid.map(inv => `
+    <div class="pair-item ${selectedPairId === inv.id ? 'selected' : ''}" data-pair-id="${inv.id}">
+      <div class="pair-item-vendor">${escHtml(inv.vendor)}${inv.number ? ' – ' + escHtml(inv.number) : ''}</div>
+      <div class="pair-item-amount">${fmt(inv.amount)}</div>
+      <div class="inv-due"><span class="badge badge-unpaid">nezaplacena</span></div>
+    </div>
+  `).join('');
+
+  wrap.querySelectorAll('.pair-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const id = item.dataset.pairId;
+      selectedPairId = selectedPairId === id ? null : id;
+      // autofill amount
+      if (selectedPairId) {
+        const inv = allInvoices.find(i => i.id === selectedPairId);
+        if (inv) {
+          $('tx-amount').value = inv.amount;
+          $('tx-desc').value   = $('tx-desc').value || ('Úhrada FA ' + (inv.number || inv.vendor));
+          $('tx-party').value  = $('tx-party').value || inv.vendor;
+        }
+      }
+      renderPairList();
+    });
+  });
+}
+
+// AI hint on desc blur
+let aiTimer = null;
+$('tx-desc').addEventListener('blur', () => {
+  if ($('tx-desc').value.trim().length > 4) triggerAiHint();
+});
+
+async function triggerAiHint() {
+  const desc = $('tx-desc').value.trim();
+  if (!desc) return;
+  const box = $('ai-hint-box');
+  box.classList.add('visible');
+  $('ai-hint-text').innerHTML = '<div class="ai-loading"><div class="spinner"></div> Načítám radu…</div>';
+
+  try {
+    const cats = txType === 'income' ? INCOME_CATS : EXPENSE_CATS;
+    const prompt = `Jsi asistent pro jednoduché účetnictví neziskového spolku (z. s.) v České republice dle vyhlášky č. 325/2015 Sb. Účetní rok 2026.
+
+Transakce: "${desc}"
+Typ: ${txType === 'income' ? 'příjem' : 'výdaj'}
+Dostupné kategorie: ${cats.join(', ')}
+
+Odpověz stručně (max 3 věty): Doporučená kategorie a krátké vysvětlení proč. Pokud jde o specifický případ (dar, členský příspěvek, průběžná položka), upozorni na to.`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || 'Nepodařilo se načíst radu.';
+    $('ai-hint-text').textContent = text;
+  } catch(e) {
+    $('ai-hint-text').textContent = 'Radu se nepodařilo načíst.';
+  }
+}
+
+$('btn-tx-save').addEventListener('click', async () => {
+  const desc   = $('tx-desc').value.trim();
+  const amount = parseFloat($('tx-amount').value);
+  const date   = $('tx-date').value;
+  const cat    = $('tx-category').value;
+
+  if (!desc)       { toast('Zadej popis.'); return; }
+  if (!amount || amount <= 0) { toast('Zadej částku.'); return; }
+  if (!date)       { toast('Zadej datum.'); return; }
+
+  $('btn-tx-save').disabled = true;
+  try {
+    const txData = {
+      desc, amount, date, account: txAccount,
+      type: txType, category: cat,
+      party: $('tx-party').value.trim(),
+      pairedInvoice: selectedPairId || null,
+      createdAt: serverTimestamp(),
+    };
+    await addDoc(collection(db, 'orgs', currentUser.uid, 'transactions'), txData);
+
+    // mark invoice as paid
+    if (selectedPairId) {
+      await updateDoc(doc(db, 'orgs', currentUser.uid, 'invoices', selectedPairId), { paid: true, paidDate: date });
+    }
+
+    closeModal('modal-tx');
+    toast('Záznam uložen ✓');
+  } catch(e) {
+    toast('Chyba při ukládání.');
+  }
+  $('btn-tx-save').disabled = false;
+});
+
+/* ════════════════════════════════
+   ADD INVOICE MODAL
+════════════════════════════════ */
+$('btn-add-invoice').addEventListener('click', () => {
+  $('inv-vendor').value = '';
+  $('inv-number').value = '';
+  $('inv-amount').value = '';
+  $('inv-date').value   = today();
+  $('inv-due').value    = '';
+  $('inv-url').value    = '';
+  $('inv-desc').value   = '';
+  openModal('modal-invoice');
+});
+
+$('btn-invoice-save').addEventListener('click', async () => {
+  const vendor = $('inv-vendor').value.trim();
+  const amount = parseFloat($('inv-amount').value);
+  const dueDate = $('inv-due').value;
+
+  if (!vendor)  { toast('Zadej dodavatele.'); return; }
+  if (!amount || amount <= 0) { toast('Zadej částku.'); return; }
+  if (!dueDate) { toast('Zadej datum splatnosti.'); return; }
+
+  $('btn-invoice-save').disabled = true;
+  try {
+    await addDoc(collection(db, 'orgs', currentUser.uid, 'invoices'), {
+      vendor, amount,
+      number:  $('inv-number').value.trim(),
+      date:    $('inv-date').value,
+      dueDate,
+      url:     $('inv-url').value.trim(),
+      desc:    $('inv-desc').value.trim(),
+      paid:    false,
+      createdAt: serverTimestamp(),
+    });
+    closeModal('modal-invoice');
+    toast('Faktura uložena ✓');
+  } catch(e) {
+    toast('Chyba při ukládání.');
+  }
+  $('btn-invoice-save').disabled = false;
+});
+
+/* ════════════════════════════════
+   UTILS
+════════════════════════════════ */
+function escHtml(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

@@ -190,6 +190,19 @@
     .btn-primary:hover { opacity: .85; }
     .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
 
+    .btn-danger {
+      padding: 11px 20px;
+      background: transparent;
+      border: 1px solid var(--expense);
+      border-radius: 8px;
+      color: var(--expense);
+      font-family: var(--sans);
+      font-size: 14px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-danger:hover { background: rgba(255,94,94,.1); }
+
     .btn-secondary {
       padding: 11px 20px;
       background: transparent;
@@ -1090,6 +1103,55 @@
 </div>
 
 <!-- ══════════════════════════════════
+     MODAL: EDIT TRANSAKCE
+══════════════════════════════════ -->
+<div class="modal-overlay" id="modal-tx-edit">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Upravit záznam</div>
+      <button class="modal-close" data-close="modal-tx-edit">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="type-toggle">
+        <button class="type-btn" id="tx-edit-type-income" data-type="income">↑ Příjem</button>
+        <button class="type-btn" id="tx-edit-type-expense" data-type="expense">↓ Výdaj</button>
+      </div>
+      <div class="field-group">
+        <div class="field">
+          <label>Popis</label>
+          <input id="tx-edit-desc" type="text" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Částka (Kč)</label>
+            <input id="tx-edit-amount" type="number" min="0" />
+          </div>
+          <div class="field">
+            <label>Datum</label>
+            <input id="tx-edit-date" type="date" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Kategorie</label>
+          <select id="tx-edit-category"></select>
+        </div>
+        <div class="field">
+          <label>Protistrana</label>
+          <input id="tx-edit-party" type="text" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn-danger" id="btn-tx-delete">Smazat</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" data-close="modal-tx-edit">Zrušit</button>
+        <button class="btn-primary" id="btn-tx-update">Uložit změny</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
      MODAL: NOVÁ FAKTURA
 ══════════════════════════════════ -->
 <div class="modal-overlay" id="modal-invoice">
@@ -1146,6 +1208,66 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════
+     MODAL: EDIT FAKTURA
+══════════════════════════════════ -->
+<div class="modal-overlay" id="modal-invoice-edit">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Upravit fakturu</div>
+      <button class="modal-close" data-close="modal-invoice-edit">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
+          <div style="flex:1;">
+            <label>IČO dodavatele</label>
+            <input id="inv-edit-ico" type="text" maxlength="8" />
+          </div>
+          <button class="btn-secondary" id="btn-ares-edit" style="height:38px;padding:0 14px;font-size:13px;white-space:nowrap;">Doplnit z ARES</button>
+        </div>
+        <div class="field">
+          <label>Dodavatel</label>
+          <input id="inv-edit-vendor" type="text" />
+        </div>
+        <div class="field">
+          <label>Číslo faktury</label>
+          <input id="inv-edit-number" type="text" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Částka (Kč)</label>
+            <input id="inv-edit-amount" type="number" min="0" />
+          </div>
+          <div class="field">
+            <label>Datum vystavení</label>
+            <input id="inv-edit-date" type="date" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Datum splatnosti</label>
+          <input id="inv-edit-due" type="date" />
+        </div>
+        <div class="field">
+          <label>Odkaz na PDF (Google Drive)</label>
+          <input id="inv-edit-url" type="url" />
+        </div>
+        <div class="field">
+          <label>Popis / poznámka</label>
+          <input id="inv-edit-desc" type="text" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn-danger" id="btn-invoice-delete">Smazat</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" data-close="modal-invoice-edit">Zrušit</button>
+        <button class="btn-primary" id="btn-invoice-update">Uložit změny</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- ══════════════════════════════════
@@ -1156,7 +1278,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, addDoc,
-  query, orderBy, onSnapshot, updateDoc, serverTimestamp, where, getDocs }
+  query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1257,6 +1379,9 @@ let unsubInv    = null;
 let allInvoices = [];
 let allTx       = [];
 let docFilter   = 'all';
+let editTxId    = null;
+let editTxType  = 'income';
+let editInvId   = null;
 
 /* ════════════════════════════════
    AUTH
@@ -1491,6 +1616,40 @@ function renderLedger(account) {
   `).join('');
 }
 
+function openTxEditModal(tx) {
+  editTxId   = tx.id;
+  editTxType = tx.type;
+
+  $('tx-edit-desc').value   = tx.desc || '';
+  $('tx-edit-amount').value = tx.amount || '';
+  $('tx-edit-date').value   = tx.date || '';
+  $('tx-edit-party').value  = tx.party || '';
+
+  const incBtn = $('tx-edit-type-income');
+  const expBtn = $('tx-edit-type-expense');
+  if (tx.type === 'income') {
+    incBtn.classList.add('active-income');
+    expBtn.classList.remove('active-expense');
+  } else {
+    expBtn.classList.add('active-expense');
+    incBtn.classList.remove('active-income');
+  }
+
+  const cats = tx.type === 'income' ? INCOME_CATS : EXPENSE_CATS;
+  const sel = $('tx-edit-category');
+  sel.innerHTML = '<option value="">— vyber kategorii —</option>' +
+    cats.map(c => `<option value="${c}" ${c === tx.category ? 'selected' : ''}>${c}</option>`).join('');
+
+  openModal('modal-tx-edit');
+}
+
+document.addEventListener('click', e => {
+  const row = e.target.closest('.tx-row');
+  if (!row) return;
+  const tx = allTx.find(t => t.id === row.dataset.id);
+  if (tx) openTxEditModal(tx);
+});
+
 function renderStats() {
   const income  = allTx.filter(t => t.type === 'income').reduce((s,t) => s + t.amount, 0);
   const expense = allTx.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
@@ -1555,6 +1714,26 @@ function renderInvoices() {
     `;
   }).join('') + '</div>';
 }
+
+function openInvEditModal(inv) {
+  editInvId = inv.id;
+  $('inv-edit-ico').value    = inv.ico || '';
+  $('inv-edit-vendor').value = inv.vendor || '';
+  $('inv-edit-number').value = inv.number || '';
+  $('inv-edit-amount').value = inv.amount || '';
+  $('inv-edit-date').value   = inv.date || '';
+  $('inv-edit-due').value    = inv.dueDate || '';
+  $('inv-edit-url').value    = inv.url || '';
+  $('inv-edit-desc').value   = inv.desc || '';
+  openModal('modal-invoice-edit');
+}
+
+document.addEventListener('click', e => {
+  const card = e.target.closest('.invoice-card');
+  if (!card) return;
+  const inv = allInvoices.find(i => i.id === card.dataset.invId);
+  if (inv) openInvEditModal(inv);
+});
 
 /* ════════════════════════════════
    DOCUMENTS VIEW
@@ -1627,6 +1806,24 @@ function openTxModal() {
   renderPairList();
   openModal('modal-tx');
 }
+
+$('tx-edit-type-income').addEventListener('click', () => {
+  editTxType = 'income';
+  $('tx-edit-type-income').classList.add('active-income');
+  $('tx-edit-type-expense').classList.remove('active-expense');
+  const sel = $('tx-edit-category');
+  sel.innerHTML = '<option value="">— vyber kategorii —</option>' +
+    INCOME_CATS.map(c => `<option value="${c}">${c}</option>`).join('');
+});
+
+$('tx-edit-type-expense').addEventListener('click', () => {
+  editTxType = 'expense';
+  $('tx-edit-type-expense').classList.add('active-expense');
+  $('tx-edit-type-income').classList.remove('active-income');
+  const sel = $('tx-edit-category');
+  sel.innerHTML = '<option value="">— vyber kategorii —</option>' +
+    EXPENSE_CATS.map(c => `<option value="${c}">${c}</option>`).join('');
+});
 
 $('tx-type-income').addEventListener('click', () => {
   txType = 'income';
@@ -1754,6 +1951,36 @@ $('btn-tx-save').addEventListener('click', async () => {
   $('btn-tx-save').disabled = false;
 });
 
+$('btn-tx-update').addEventListener('click', async () => {
+  const desc   = $('tx-edit-desc').value.trim();
+  const amount = parseFloat($('tx-edit-amount').value);
+  const date   = $('tx-edit-date').value;
+  if (!desc)            { toast('Zadej popis.'); return; }
+  if (!amount || amount <= 0) { toast('Zadej částku.'); return; }
+  if (!date)            { toast('Zadej datum.'); return; }
+  $('btn-tx-update').disabled = true;
+  try {
+    await updateDoc(doc(db, 'orgs', currentUser.uid, 'transactions', editTxId), {
+      desc, amount, date,
+      type:     editTxType,
+      category: $('tx-edit-category').value,
+      party:    $('tx-edit-party').value.trim(),
+    });
+    closeModal('modal-tx-edit');
+    toast('Záznam upraven ✓');
+  } catch(e) { toast('Chyba při ukládání.'); }
+  $('btn-tx-update').disabled = false;
+});
+
+$('btn-tx-delete').addEventListener('click', async () => {
+  if (!confirm('Opravdu smazat tento záznam?')) return;
+  try {
+    await deleteDoc(doc(db, 'orgs', currentUser.uid, 'transactions', editTxId));
+    closeModal('modal-tx-edit');
+    toast('Záznam smazán.');
+  } catch(e) { toast('Chyba při mazání.'); }
+});
+
 /* ════════════════════════════════
    ADD INVOICE MODAL
 ════════════════════════════════ */
@@ -1787,6 +2014,22 @@ $('btn-ares').addEventListener('click', async () => {
   $('btn-ares').disabled = false;
 });
 
+$('btn-ares-edit').addEventListener('click', async () => {
+  const ico = $('inv-edit-ico').value.trim();
+  if (!ico || ico.length < 6) { toast('Zadej IČO.'); return; }
+  $('btn-ares-edit').textContent = '…';
+  $('btn-ares-edit').disabled = true;
+  try {
+    const res = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    $('inv-edit-vendor').value = data.obchodniJmeno || '';
+    toast('Údaje doplněny z ARES ✓');
+  } catch(e) { toast('IČO nenalezeno v ARES.'); }
+  $('btn-ares-edit').textContent = 'Doplnit z ARES';
+  $('btn-ares-edit').disabled = false;
+});
+
 $('btn-invoice-save').addEventListener('click', async () => {
   const vendor = $('inv-vendor').value.trim();
   const amount = parseFloat($('inv-amount').value);
@@ -1816,6 +2059,39 @@ $('btn-invoice-save').addEventListener('click', async () => {
     toast('Chyba při ukládání.');
   }
   $('btn-invoice-save').disabled = false;
+});
+
+$('btn-invoice-update').addEventListener('click', async () => {
+  const vendor  = $('inv-edit-vendor').value.trim();
+  const amount  = parseFloat($('inv-edit-amount').value);
+  const dueDate = $('inv-edit-due').value;
+  if (!vendor)  { toast('Zadej dodavatele.'); return; }
+  if (!amount || amount <= 0) { toast('Zadej částku.'); return; }
+  if (!dueDate) { toast('Zadej datum splatnosti.'); return; }
+  $('btn-invoice-update').disabled = true;
+  try {
+    await updateDoc(doc(db, 'orgs', currentUser.uid, 'invoices', editInvId), {
+      vendor, amount, dueDate,
+      ico:    $('inv-edit-ico').value.trim(),
+      number: $('inv-edit-number').value.trim(),
+      date:   $('inv-edit-date').value,
+      url:    $('inv-edit-url').value.trim(),
+      desc:   $('inv-edit-desc').value.trim(),
+    });
+    await saveContactIfNew(vendor, $('inv-edit-ico').value.trim());
+    closeModal('modal-invoice-edit');
+    toast('Faktura upravena ✓');
+  } catch(e) { toast('Chyba při ukládání.'); }
+  $('btn-invoice-update').disabled = false;
+});
+
+$('btn-invoice-delete').addEventListener('click', async () => {
+  if (!confirm('Opravdu smazat tuto fakturu?')) return;
+  try {
+    await deleteDoc(doc(db, 'orgs', currentUser.uid, 'invoices', editInvId));
+    closeModal('modal-invoice-edit');
+    toast('Faktura smazána.');
+  } catch(e) { toast('Chyba při mazání.'); }
 });
 
 /* ════════════════════════════════

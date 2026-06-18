@@ -1096,6 +1096,13 @@
     </div>
     <div class="modal-body">
       <div class="field-group">
+        <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
+          <div style="flex:1;">
+            <label>IČO dodavatele</label>
+            <input id="inv-ico" type="text" placeholder="12345678" maxlength="8" />
+          </div>
+          <button class="btn-secondary" id="btn-ares" style="height:38px;padding:0 14px;font-size:13px;white-space:nowrap;">Doplnit z ARES</button>
+        </div>
         <div class="field">
           <label>Dodavatel</label>
           <input id="inv-vendor" type="text" placeholder="Název dodavatele" />
@@ -1717,6 +1724,7 @@ $('btn-tx-save').addEventListener('click', async () => {
    ADD INVOICE MODAL
 ════════════════════════════════ */
 $('btn-add-invoice').addEventListener('click', () => {
+  $('inv-ico').value    = '';
   $('inv-vendor').value = '';
   $('inv-number').value = '';
   $('inv-amount').value = '';
@@ -1725,6 +1733,24 @@ $('btn-add-invoice').addEventListener('click', () => {
   $('inv-url').value    = '';
   $('inv-desc').value   = '';
   openModal('modal-invoice');
+});
+
+$('btn-ares').addEventListener('click', async () => {
+  const ico = $('inv-ico').value.trim();
+  if (!ico || ico.length < 6) { toast('Zadej IČO.'); return; }
+  $('btn-ares').textContent = '…';
+  $('btn-ares').disabled = true;
+  try {
+    const res = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    $('inv-vendor').value = data.obchodniJmeno || '';
+    toast('Údaje doplněny z ARES ✓');
+  } catch(e) {
+    toast('IČO nenalezeno v ARES.');
+  }
+  $('btn-ares').textContent = 'Doplnit z ARES';
+  $('btn-ares').disabled = false;
 });
 
 $('btn-invoice-save').addEventListener('click', async () => {
@@ -1740,6 +1766,7 @@ $('btn-invoice-save').addEventListener('click', async () => {
   try {
     await addDoc(collection(db, 'orgs', currentUser.uid, 'invoices'), {
       vendor, amount,
+      ico:     $('inv-ico').value.trim(),
       number:  $('inv-number').value.trim(),
       date:    $('inv-date').value,
       dueDate,

@@ -1692,6 +1692,7 @@ function renderContacts() {
     <div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;">
       <div style="flex:1;font-size:13px;">${escHtml(c.name)}</div>
       <div class="muted mono" style="font-size:12px;">${c.ico || '–'}</div>
+      ${c.address ? `<div class="muted" style="font-size:11px;">${escHtml(c.address)}</div>` : ''}
     </div>
   `).join('');
 }
@@ -2223,7 +2224,9 @@ $('btn-ares').addEventListener('click', async () => {
     const res = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
     if (!res.ok) throw new Error();
     const data = await res.json();
-    $('inv-vendor').value = data.obchodniJmeno || '';
+    $('inv-vendor').value  = data.obchodniJmeno || '';
+    const sid = data.sidlo;
+    if (sid) $('inv-vendor').dataset.address = [sid.nazevUlice, sid.cisloDomovni, sid.nazevObce, sid.psc].filter(Boolean).join(' ');
     toast('Údaje doplněny z ARES ✓');
   } catch(e) {
     toast('IČO nenalezeno v ARES.');
@@ -2241,7 +2244,9 @@ $('btn-ares-fav').addEventListener('click', async () => {
     const res = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
     if (!res.ok) throw new Error();
     const data = await res.json();
-    $('fav-vendor').value = data.obchodniJmeno || '';
+    $('fav-vendor').value  = data.obchodniJmeno || '';
+    const sid = data.sidlo;
+    if (sid) $('fav-vendor').dataset.address = [sid.nazevUlice, sid.cisloDomovni, sid.nazevObce, sid.psc].filter(Boolean).join(' ');
     toast('Údaje doplněny z ARES ✓');
   } catch(e) { toast('IČO nenalezeno v ARES.'); }
   $('btn-ares-fav').textContent = 'Doplnit z ARES';
@@ -2257,7 +2262,9 @@ $('btn-ares-edit').addEventListener('click', async () => {
     const res = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
     if (!res.ok) throw new Error();
     const data = await res.json();
-    $('inv-edit-vendor').value = data.obchodniJmeno || '';
+    $('inv-edit-vendor').value  = data.obchodniJmeno || '';
+    const sid = data.sidlo;
+    if (sid) $('inv-edit-vendor').dataset.address = [sid.nazevUlice, sid.cisloDomovni, sid.nazevObce, sid.psc].filter(Boolean).join(' ');
     toast('Údaje doplněny z ARES ✓');
   } catch(e) { toast('IČO nenalezeno v ARES.'); }
   $('btn-ares-edit').textContent = 'Doplnit z ARES';
@@ -2291,7 +2298,7 @@ $('btn-invoice-save').addEventListener('click', async () => {
       createdAt:  serverTimestamp(),
     });
 
-    await saveContactIfNew(vendor, $('inv-ico').value.trim());
+    await saveContactIfNew(vendor, $('inv-ico').value.trim(), $('inv-vendor').dataset.address || '');
     closeModal('modal-invoice');
     toast('Faktura uložena ✓');
   } catch(e) {
@@ -2317,7 +2324,7 @@ $('btn-invoice-update').addEventListener('click', async () => {
       url:    $('inv-edit-url').value.trim(),
       desc:   $('inv-edit-desc').value.trim(),
     });
-    await saveContactIfNew(vendor, $('inv-edit-ico').value.trim());
+    await saveContactIfNew(vendor, $('inv-edit-ico').value.trim(), $('inv-edit-vendor').dataset.address || '');
     closeModal('modal-invoice-edit');
     toast('Faktura upravena ✓');
   } catch(e) { toast('Chyba při ukládání.'); }
@@ -2399,6 +2406,7 @@ async function generateInvoicePDF(inv) {
           <div style="font-size: 10px; color: #ee220c; text-transform: uppercase; letter-spacing: .06em; font-weight: bold; margin-bottom: 6px;">${partyLabel}</div>
           <div style="font-weight: bold; font-size: 14px;">${inv.vendor || '–'}</div>
           ${inv.ico ? `<div style="font-size: 11px; color: #7a80a0; margin-top: 3px;">IČO: ${inv.ico}</div>` : ''}
+          ${inv.address ? `<div style="font-size: 11px; color: #7a80a0;">Sídlo: ${inv.address}</div>` : ''}
           ${inv.origNumber ? `<div style="font-size: 11px; color: #7a80a0;">Č. faktury dodavatele: ${inv.origNumber}</div>` : ''}
         </div>
         <div style="flex: 1; background: #f5f6fa; border-radius: 8px; padding: 14px 16px;">
@@ -2537,7 +2545,7 @@ $('btn-fav-save').addEventListener('click', async () => {
       createdAt: serverTimestamp(),
     };
     await addDoc(collection(db, 'orgs', currentUser.uid, 'invoices'), invData);
-    await saveContactIfNew(vendor, $('fav-ico').value.trim());
+    await saveContactIfNew(vendor, $('fav-ico').value.trim(), $('fav-vendor').dataset.address || '');
     await generateInvoicePDF({ ...invData });
     closeModal('modal-fav');
     toast('Faktura uložena a PDF staženo ✓');
@@ -2551,7 +2559,7 @@ $('btn-fav-save').addEventListener('click', async () => {
 /* ════════════════════════════════
    CONTACTS
 ════════════════════════════════ */
-async function saveContactIfNew(vendor, ico) {
+async function saveContactIfNew(vendor, ico, address = '') {
   if (!vendor) return;
   const contactsCol = collection(db, 'orgs', currentUser.uid, 'contacts');
   // hledej podle IČO nebo názvu
@@ -2563,6 +2571,7 @@ async function saveContactIfNew(vendor, ico) {
     await addDoc(contactsCol, {
       name: vendor,
       ico: ico || '',
+      address: address || '',
       createdAt: serverTimestamp(),
     });
   }

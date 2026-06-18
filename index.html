@@ -1268,6 +1268,21 @@ onAuthStateChanged(auth, async user => {
     return;
   }
   currentUser = user;
+  // Ověř přístup přes allowlist
+  try {
+    const allowSnap = await getDoc(doc(db, 'config', 'allowlist'));
+    if (!allowSnap.exists() || !allowSnap.data().emails.includes(user.email)) {
+      await signOut(auth);
+      showScreen('screen-login');
+      document.querySelector('.login-sub').textContent = 'Přístup odepřen.';
+      return;
+    }
+  } catch(e) {
+    await signOut(auth);
+    showScreen('screen-login');
+    document.querySelector('.login-sub').textContent = 'Přístup odepřen.';
+    return;
+  }
   const img = $('avatar-img');
   if (user.photoURL) img.src = user.photoURL;
 

@@ -1277,6 +1277,8 @@
 <!-- ══════════════════════════════════
      FIREBASE + APP LOGIC
 ══════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
@@ -1339,6 +1341,9 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
 /* ════════════════════════════════
    CATEGORIES
 ════════════════════════════════ */
+const ORG_BANK    = '348479366/0300';
+const ORG_IBAN    = 'CZ6803000000000348479366';
+const ORG_LOGO    = 'https://drive.google.com/uc?export=view&id=1mMjbxzxjxxoGzKEI5x13Inl5afl5vkO7';
 const INCOME_CATS = [
   'Prodej zboží',
   'Prodej výrobků a služeb',
@@ -2108,6 +2113,17 @@ $('btn-invoice-delete').addEventListener('click', async () => {
 /* ════════════════════════════════
    DOCUMENT NUMBERING
 ════════════════════════════════ */
+async function generateInvNumber(type) {
+  const prefix = type === 'fap' ? 'FAP' : 'FAV';
+  const year = new Date().getFullYear();
+  const invCol = collection(db, 'orgs', currentUser.uid, 'invoices');
+  const q = query(invCol, where('invType', '==', type));
+  const snap = await getDocs(q);
+  const count = snap.docs.filter(d => (d.data().invNumber || '').startsWith(`${prefix}${year}`)).length;
+  const seq = String(count + 1).padStart(3, '0');
+  return `${prefix}${year}${seq}`;
+}
+  
 async function generateDocNumber(account) {
   const prefix = account === 'cash' ? 'PD' : 'BV';
   const year = new Date().getFullYear();

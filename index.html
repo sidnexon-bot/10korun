@@ -1020,6 +1020,10 @@
     <div id="view-settings" class="view">
       <div class="view-title" style="margin-bottom:20px;">Nastavení</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;font-size:13px;line-height:2.2;" id="settings-info"></div>
+      <div style="margin-top:20px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Adresář kontaktů</div>
+        <div id="settings-contacts" style="font-size:13px;">Načítám…</div>
+      </div>
       <div style="margin-top:12px;">
         <button class="btn-secondary" id="btn-signout" style="font-size:13px;">Odhlásit se</button>
       </div>
@@ -1395,6 +1399,7 @@ function launchApp() {
   const dt = fmtDate(orgData.periodTo);
   $('dash-period').textContent = `${df} – ${dt}`;
 
+  subscribeContacts();
   subscribeTransactions();
   subscribeInvoices();
 }
@@ -1405,6 +1410,35 @@ function launchApp() {
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => showView(item.dataset.view));
 });
+
+/* ════════════════════════════════
+   CONTACTS – SUBSCRIBE
+════════════════════════════════ */
+let allContacts = [];
+
+function subscribeContacts() {
+  const col = collection(db, 'orgs', currentUser.uid, 'contacts');
+  const q = query(col, orderBy('name', 'asc'));
+  onSnapshot(q, snap => {
+    allContacts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderContacts();
+  });
+}
+
+function renderContacts() {
+  const wrap = $('settings-contacts');
+  if (!wrap) return;
+  if (!allContacts.length) {
+    wrap.innerHTML = '<span class="muted">Zatím žádné kontakty.</span>';
+    return;
+  }
+  wrap.innerHTML = allContacts.map(c => `
+    <div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;">
+      <div style="flex:1;font-size:13px;">${escHtml(c.name)}</div>
+      <div class="muted mono" style="font-size:12px;">${c.ico || '–'}</div>
+    </div>
+  `).join('');
+}
 
 /* ════════════════════════════════
    TRANSACTIONS – SUBSCRIBE
@@ -1775,6 +1809,7 @@ $('btn-invoice-save').addEventListener('click', async () => {
       paid:    false,
       createdAt: serverTimestamp(),
     });
+    await saveContactIfNew(vendor, $('inv-ico').value.trim());
     closeModal('modal-invoice');
     toast('Faktura uložena ✓');
   } catch(e) {
@@ -1782,6 +1817,26 @@ $('btn-invoice-save').addEventListener('click', async () => {
   }
   $('btn-invoice-save').disabled = false;
 });
+
+/* ════════════════════════════════
+   CONTACTS
+════════════════════════════════ */
+async function saveContactIfNew(vendor, ico) {
+  if (!vendor) return;
+  const contactsCol = collection(db, 'orgs', currentUser.uid, 'contacts');
+  // hledej podle IČO nebo názvu
+  const field = ico ? 'ico' : 'name';
+  const value = ico || vendor;
+  const q = query(contactsCol, where(field, '==', value));
+  const snap = await getDocs(q);
+  if (snap.empty) {
+    await addDoc(contactsCol, {
+      name: vendor,
+      ico: ico || '',
+      createdAt: serverTimestamp(),
+    });
+  }
+}
 
 /* ════════════════════════════════
    UTILS

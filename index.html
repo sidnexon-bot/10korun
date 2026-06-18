@@ -1118,6 +1118,10 @@
       </div>
       <div class="field-group">
         <div class="field">
+          <label>Číslo dokladu</label>
+          <input id="tx-edit-docnumber" type="text" />
+        </div>
+        <div class="field">
           <label>Popis</label>
           <input id="tx-edit-desc" type="text" />
         </div>
@@ -1607,7 +1611,7 @@ function renderLedger(account) {
       </div>
       <div class="tx-info">
         <div class="tx-desc">${escHtml(t.desc)}</div>
-        <div class="tx-meta">${fmtDate(t.date)}${t.category ? ' · ' + t.category : ''}${t.pairedInvoice ? ' · <span style="color:var(--income)">spárováno</span>' : ''}</div>
+        <div class="tx-meta">${t.docNumber ? '<span class="mono">' + t.docNumber + '</span> · ' : ''}${fmtDate(t.date)}${t.category ? ' · ' + t.category : ''}${t.pairedInvoice ? ' · <span style="color:var(--income)">spárováno</span>' : ''}</div>
       </div>
       <div class="tx-amount ${t.type === 'income' ? 'income-color' : 'expense-color'}">
         ${t.type === 'income' ? '+' : '−'}${fmt(t.amount)}
@@ -1620,6 +1624,7 @@ function openTxEditModal(tx) {
   editTxId   = tx.id;
   editTxType = tx.type;
 
+  $('tx-edit-docnumber').value = tx.docNumber || '';
   $('tx-edit-desc').value   = tx.desc || '';
   $('tx-edit-amount').value = tx.amount || '';
   $('tx-edit-date').value   = tx.date || '';
@@ -1761,6 +1766,8 @@ function renderDocuments() {
     return `
       <div class="doc-row">
         <div class="doc-type">${docType}</div>
+            <div class="mono muted" style="font-size:12px;white-space:nowrap;">${t.docNumber || '–'}</div>
+            <div class="doc-desc">${escHtml(t.desc)}</div>
         <div class="doc-desc">${escHtml(t.desc)}</div>
         <div class="doc-date">${fmtDate(t.date)}</div>
         <div class="doc-amount ${t.type === 'income' ? 'income-color' : 'expense-color'}">
@@ -1929,13 +1936,16 @@ $('btn-tx-save').addEventListener('click', async () => {
 
   $('btn-tx-save').disabled = true;
   try {
-    const txData = {
-      desc, amount, date, account: txAccount,
-      type: txType, category: cat,
-      party: $('tx-party').value.trim(),
-      pairedInvoice: selectedPairId || null,
-      createdAt: serverTimestamp(),
-    };
+   const docNumber = await generateDocNumber(txAccount);
+      const txData = {
+        desc, amount, date, account: txAccount,
+        type: txType, category: cat,
+        party: $('tx-party').value.trim(),
+        pairedInvoice: selectedPairId || null,
+        docNumber,
+        createdAt: serverTimestamp(),
+      };
+
     await addDoc(collection(db, 'orgs', currentUser.uid, 'transactions'), txData);
 
     // mark invoice as paid
@@ -1965,6 +1975,7 @@ $('btn-tx-update').addEventListener('click', async () => {
       type:     editTxType,
       category: $('tx-edit-category').value,
       party:    $('tx-edit-party').value.trim(),
+      docNumber: $('tx-edit-docnumber').value.trim(),
     });
     closeModal('modal-tx-edit');
     toast('Záznam upraven ✓');
@@ -2093,6 +2104,20 @@ $('btn-invoice-delete').addEventListener('click', async () => {
     toast('Faktura smazána.');
   } catch(e) { toast('Chyba při mazání.'); }
 });
+
+/* ════════════════════════════════
+   DOCUMENT NUMBERING
+════════════════════════════════ */
+async function generateDocNumber(account) {
+  const prefix = account === 'cash' ? 'PD' : 'BV';
+  const year = new Date().getFullYear();
+  const txCol = collection(db, 'orgs', currentUser.uid, 'transactions');
+  const q = query(txCol, where('account', '==', account));
+  const snap = await getDocs(q);
+  const count = snap.docs.filter(d => (d.data().docNumber || '').startsWith(`${prefix}${year}`)).length;
+  const seq = String(count + 1).padStart(3, '0');
+  return `${prefix}${year}${seq}`;
+}
 
 /* ════════════════════════════════
    CONTACTS

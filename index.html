@@ -2368,7 +2368,7 @@ async function generateInvoicePDF(inv) {
   console.log('QR:', qrString);
   
   const dueFormatted = (inv.dueDate || '').replace(/-/g, '').slice(2); // RRMMDD
-  const qrUrl = `https://api.paylibo.com/paylibo/generator/czech/image?compress=false&size=200&accountNumber=348479366&bankCode=0300&AM=${total.toFixed(2)}&currency=CZK&vs=${vs}&ks=${inv.ks || '0308'}`;
+  const qrUrl = `https://api.paylibo.com/paylibo/generator/czech/image?compress=false&size=200&accountNumber=348479366&bankCode=0300&amount=${total.toFixed(2)}&currency=CZK&vs=${vs}&ks=${inv.ks || '0308'}`;
 
   const typeLabel = inv.invType === 'fav' ? 'FAKTURA' : 'PŘIJATÁ FAKTURA';
   const partyLabel = inv.invType === 'fav' ? 'Odběratel' : 'Dodavatel';

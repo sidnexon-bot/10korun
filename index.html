@@ -2354,7 +2354,7 @@ async function generateInvoicePDF(inv) {
   const qrDiv = document.createElement('div');
   qrDiv.style.cssText = 'position:fixed;left:-9999px;top:0;';
   document.body.appendChild(qrDiv);
-  new QRCode(qrDiv, { text: qrString, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+  new window.QRCode(qrDiv, { text: qrString, width: 200, height: 200, correctLevel: window.QRCode.CorrectLevel.M });
   await new Promise(r => setTimeout(r, 300));
   const qrCanvas = qrDiv.querySelector('canvas');
   const qrUrl = qrCanvas ? qrCanvas.toDataURL('image/png') : '';
@@ -2498,7 +2498,7 @@ async function generateInvoicePDF(inv) {
     })
   ));
 
-  await html2pdf().set({
+  await window.html2pdf().set({
     margin: 0,
     filename: `${inv.invNumber}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },

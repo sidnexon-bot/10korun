@@ -2,53 +2,51 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#f2f2f7" />
   <title>10korun</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    -webkit-tap-highlight-color: transparent;
 
     :root {
-      --bg:       #f2f2f7;
-      --card:     #ffffff;
-      --text:     #111111;
-      --muted:    #8e8e93;
-      --border:   #e5e5ea;
-      --accent:   #EE220C;
-      --accent-light: rgba(238,34,12,.08);
-      --income:   #1a7a3a;
-      --income-bg:#d4f5e2;
-      --expense:  #c00;
-      --expense-bg:#fde8e8;
-      --warn:     #b07800;
-      --warn-bg:  #fff4dc;
-      --sans:     'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --r:        14px;
-      --sidebar-w: 220px;
+      --bg:          #f2f2f7;
+      --card:        #ffffff;
+      --text:        #111111;
+      --muted:       #8e8e93;
+      --border:      #e5e5ea;
+      --accent:      #EE220C;
+      --accent-soft: rgba(238,34,12,.08);
+      --income:      #1a7a3a;
+      --income-bg:   #d4f5e2;
+      --expense:     #c00000;
+      --expense-bg:  #fde8e8;
+      --warn:        #b07800;
+      --warn-bg:     #fff4dc;
+      --btn-bg:      #e8e8ed;
+      --btn-color:   #007aff;
+      --sidebar-w:   220px;
     }
 
     body {
-      font-family: var(--sans);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.5;
       -webkit-tap-highlight-color: transparent;
     }
 
+    input, select, textarea { font-family: inherit; font-size: 16px; }
+
     /* ── UTILITY ── */
     .hidden { display: none !important; }
-    .muted { color: var(--muted); }
-    .income-color { color: var(--income); }
-    .expense-color { color: var(--expense); }
+    .muted  { color: var(--muted); }
 
-    /* ── SCREENS ── */
+    /* ══════════════════════════════════
+       SCREENS
+    ══════════════════════════════════ */
     .screen { display: none; min-height: 100vh; }
     .screen.active { display: flex; flex-direction: column; }
 
@@ -60,544 +58,285 @@
       justify-content: center;
       background: var(--bg);
     }
-
-    .login-card {
-      text-align: center;
-      max-width: 340px;
-      width: 100%;
-      padding: 0 24px;
-    }
-
-    .login-logo {
-      font-size: 48px;
-      font-weight: 700;
-      letter-spacing: -2px;
-      color: var(--accent);
-      margin-bottom: 8px;
-    }
-
-    .login-sub {
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 40px;
-    }
-
+    .login-card { text-align: center; max-width: 320px; width: 100%; padding: 0 24px; }
+    .login-logo { font-size: 52px; font-weight: 800; letter-spacing: -3px; color: var(--accent); margin-bottom: 6px; }
+    .login-sub  { color: var(--muted); font-size: 14px; margin-bottom: 40px; }
     .btn-google {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 14px 20px;
-      background: var(--card);
-      border: 1.5px solid var(--border);
-      border-radius: 14px;
-      color: var(--text);
-      font-size: 15px;
-      font-weight: 600;
-      font-family: var(--sans);
-      cursor: pointer;
-      transition: background .15s, transform .1s;
-      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 14px 20px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      color: var(--text); font-size: 15px; font-weight: 600; font-family: inherit;
+      cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      transition: transform .1s;
     }
     .btn-google:active { transform: scale(0.97); }
 
     /* ══════════════════════════════════
        ONBOARDING
     ══════════════════════════════════ */
-    #screen-onboarding {
-      align-items: center;
-      justify-content: center;
-      padding: 32px 16px;
-    }
-
-    .onboarding-wrap {
-      width: 100%;
-      max-width: 480px;
-    }
-
+    #screen-onboarding { align-items: center; justify-content: center; padding: 32px 20px; }
+    .onboarding-wrap { width: 100%; max-width: 480px; }
     .ob-step { display: none; }
     .ob-step.active { display: block; }
-
-    .ob-header { margin-bottom: 28px; }
-
-    .ob-step-label {
-      font-size: 11px;
-      color: var(--accent);
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-
-    .ob-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; letter-spacing: -.02em; }
-    .ob-desc { color: var(--muted); font-size: 13px; }
-
-    .ob-progress {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 28px;
-    }
-    .ob-dot {
-      height: 4px;
-      flex: 1;
-      background: var(--border);
-      border-radius: 2px;
-      transition: background .3s;
-    }
+    .ob-progress { display: flex; gap: 6px; margin-bottom: 28px; }
+    .ob-dot { height: 4px; flex: 1; background: var(--border); border-radius: 2px; transition: background .3s; }
     .ob-dot.done { background: var(--accent); }
+    .ob-step-label { font-size: 12px; color: var(--accent); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+    .ob-title { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 6px; }
+    .ob-desc  { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+    .ob-nav   { display: flex; gap: 10px; }
 
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      margin-bottom: 24px;
-    }
-
-    .field label {
-      display: block;
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 5px;
-      font-weight: 500;
-    }
-
+    .field-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
     .field input, .field select {
-      width: 100%;
-      padding: 11px 14px;
-      background: var(--card);
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 15px;
-      outline: none;
+      width: 100%; padding: 12px 14px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      color: var(--text); font-family: inherit; font-size: 16px; outline: none;
       transition: border-color .15s;
     }
     .field input:focus, .field select:focus { border-color: var(--accent); }
     .field input::placeholder { color: var(--muted); }
+    .field input[readonly] { background: var(--bg); color: var(--muted); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-    .ob-nav { display: flex; gap: 10px; }
-
-    /* ── BUTTONS ── */
+    /* ══════════════════════════════════
+       BUTTONS
+    ══════════════════════════════════ */
     .btn-primary {
-      flex: 1;
-      padding: 13px 20px;
-      background: var(--accent);
-      border: none;
-      border-radius: 14px;
-      color: #fff;
-      font-family: var(--sans);
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity .15s, transform .1s;
+      flex: 1; padding: 13px 20px;
+      background: var(--accent); border: none; border-radius: 14px;
+      color: #fff; font-family: inherit; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s, transform .1s;
     }
     .btn-primary:active { transform: scale(0.97); opacity: .9; }
     .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
 
     .btn-secondary {
       padding: 13px 20px;
-      background: var(--card);
-      border: 1.5px solid var(--border);
-      border-radius: 14px;
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background .15s, transform .1s;
+      background: var(--btn-bg); border: none; border-radius: 14px;
+      color: var(--text); font-family: inherit; font-size: 15px; font-weight: 500;
+      cursor: pointer; transition: opacity .15s, transform .1s;
     }
     .btn-secondary:active { transform: scale(0.97); }
-    .btn-secondary:hover { background: var(--bg); }
 
     .btn-danger {
       padding: 13px 20px;
-      background: var(--expense-bg);
-      border: none;
-      border-radius: 14px;
-      color: var(--expense);
-      font-family: var(--sans);
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity .15s, transform .1s;
+      background: var(--expense-bg); border: none; border-radius: 14px;
+      color: var(--expense); font-family: inherit; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s, transform .1s;
     }
     .btn-danger:active { transform: scale(0.97); }
+
+    .btn-add {
+      width: 100%; padding: 10px;
+      background: var(--accent-soft); border: 1.5px dashed rgba(238,34,12,.25); border-radius: 10px;
+      color: var(--accent); font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-add:active { background: rgba(238,34,12,.13); }
 
     /* ══════════════════════════════════
        APP SHELL
     ══════════════════════════════════ */
-    #screen-app {
-      flex-direction: row;
-      min-height: 100vh;
-    }
+    #screen-app { flex-direction: column; }
 
-    /* ── SIDEBAR (desktop) ── */
+    /* ── SIDEBAR ── */
     .sidebar {
+      display: none;
       width: var(--sidebar-w);
-      background: var(--card);
-      border-right: 1px solid var(--border);
-      display: flex;
+      position: fixed; top: 0; left: 0; height: 100vh;
+      background: var(--card); border-right: 1px solid var(--border);
       flex-direction: column;
-      position: fixed;
-      top: 0;
-      left: 0;
-      height: 100vh;
+      padding: 24px 12px 20px;
       z-index: 50;
-      padding: 20px 12px;
     }
 
-    .sidebar-logo {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -1px;
-      color: var(--accent);
-      padding: 4px 8px 20px;
-    }
+    .sidebar-logo    { font-size: 24px; font-weight: 800; letter-spacing: -1px; color: var(--accent); padding: 0 8px 4px; }
+    .sidebar-subtitle{ font-size: 11px; color: var(--muted); padding: 0 8px 20px; }
 
-    .sidebar-org {
-      font-size: 11px;
-      color: var(--muted);
-      padding: 0 8px 16px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 12px;
-    }
+    .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 
-    .sidebar-nav {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--muted);
-      cursor: pointer;
+    .sidebar-nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 12px;
+      font-size: 14px; font-weight: 500; color: var(--muted);
+      background: transparent; border: none; font-family: inherit;
+      cursor: pointer; text-align: left; width: 100%;
       transition: background .15s, color .15s;
-      border: none;
-      background: transparent;
-      text-align: left;
-      width: 100%;
     }
-    .nav-item:hover { background: var(--bg); color: var(--text); }
-    .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+    .sidebar-nav-item:hover  { background: var(--bg); color: var(--text); }
+    .sidebar-nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    .sidebar-nav-item .icon  { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sidebar-nav-item .icon svg { width: 18px; height: 18px; }
 
-    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
 
-    .sidebar-bottom {
-      padding-top: 12px;
-      border-top: 1px solid var(--border);
+    .sidebar-bottom { display: flex; flex-direction: column; gap: 2px; }
+
+    .sidebar-action {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 12px;
+      font-size: 14px; font-weight: 500; color: var(--muted);
+      background: transparent; border: none; font-family: inherit;
+      cursor: pointer; text-align: left; width: 100%;
+      transition: background .15s;
     }
+    .sidebar-action:hover { background: var(--bg); }
+    .sidebar-action .icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+    .sidebar-action .icon svg { width: 16px; height: 16px; }
 
-    .sidebar-user {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 8px;
-    }
-
-    .avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      overflow: hidden;
-      flex-shrink: 0;
+    .sidebar-profile { display: flex; align-items: center; gap: 10px; padding: 8px 8px 20px; }
+    .sidebar-profile-avatar {
+      width: 34px; height: 34px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
       background: var(--bg);
     }
-    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sidebar-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .sidebar-profile-name { font-size: 13px; font-weight: 600; }
+    .sidebar-profile-sub  { font-size: 11px; color: var(--muted); }
 
-    .sidebar-user-info { flex: 1; min-width: 0; }
-    .sidebar-user-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sidebar-user-action { font-size: 11px; color: var(--accent); cursor: pointer; }
-
-    /* ── MAIN CONTENT ── */
-    .app-main {
-      flex: 1;
-      margin-left: var(--sidebar-w);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .app-header {
+    /* ── HEADER (mobile) ── */
+    header {
+      position: sticky; top: 0; z-index: 40;
       background: rgba(242,242,247,.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      padding: 20px 28px 16px;
-      position: sticky;
-      top: 0;
-      z-index: 40;
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      padding: 20px 16px 12px;
       border-bottom: 1px solid var(--border);
     }
+    .header-inner { max-width: 600px; margin: 0 auto; }
+    .header-row   { display: flex; justify-content: space-between; align-items: flex-start; }
+    header h1     { font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+    header .subtitle { font-size: 13px; color: var(--muted); margin-top: 2px; }
 
-    .app-header h1 {
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -.02em;
+    .profile-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; cursor: pointer; overflow: hidden;
     }
+    .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
 
-    .app-header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .main {
-      flex: 1;
-      padding: 24px 28px;
-      padding-bottom: 40px;
+    /* ── MAIN ── */
+    main {
+      padding: 16px 16px 120px;
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
     }
 
     /* ── VIEWS ── */
     .view { display: none; }
     .view.active { display: block; animation: fadeIn .2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
+    /* ── BOTTOM NAV ── */
+    .bottom-wrap {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     }
-
-    /* ── BOTTOM NAV (mobile) ── */
-    .bottom-nav {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(255,255,255,.92);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid var(--border);
-      padding: 8px 0 env(safe-area-inset-bottom, 8px);
-      z-index: 50;
-      display: none;
-      grid-template-columns: repeat(4, 1fr);
-    }
-
-    .bottom-nav-item {
+    .bottom {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      padding: 6px 0;
-      font-size: 10px;
-      color: var(--muted);
-      cursor: pointer;
-      transition: color .15s;
-      border: none;
-      background: transparent;
-      font-family: var(--sans);
-      font-weight: 500;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      padding: 6px 0 env(safe-area-inset-bottom, 6px);
     }
-    .bottom-nav-item .bnav-icon { font-size: 22px; }
-    .bottom-nav-item.active { color: var(--accent); }
-
-    @media (max-width: 768px) {
-      .sidebar { display: none; }
-      .app-main { margin-left: 0; }
-      .bottom-nav { display: grid; }
-      .main { padding: 16px; padding-bottom: 90px; }
-      .app-header { padding: 16px 16px 12px; }
-      .app-header h1 { font-size: 22px; }
-      .split-panel { grid-template-columns: 1fr !important; }
-      .stats-row { grid-template-columns: 1fr 1fr !important; }
+    .bottom button {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 6px 0; background: transparent; border: none; font-family: inherit;
+      color: var(--muted); font-size: 10px; font-weight: 500; cursor: pointer;
+      transition: color .15s, transform .1s;
     }
+    .bottom button .icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+    .bottom button .icon svg { width: 22px; height: 22px; fill: currentColor; }
+    .bottom button.active { color: var(--accent); }
+    .bottom button:active { transform: scale(0.92); }
 
     /* ══════════════════════════════════
        CARDS
     ══════════════════════════════════ */
     .card {
-      background: var(--card);
-      border-radius: 18px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      background: var(--card); border-radius: 18px;
+      padding: 16px; margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+
+    h3 {
+      font-size: 13px; color: var(--muted); font-weight: 600;
+      text-transform: uppercase; letter-spacing: .05em;
+      margin: 20px 0 8px;
     }
 
     /* ══════════════════════════════════
-       DASHBOARD
+       STATS
     ══════════════════════════════════ */
-    .period-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-    .period-label { font-size: 13px; color: var(--muted); }
-    .period-value { font-size: 13px; color: var(--text); font-weight: 500; }
-
     .stats-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 10px; margin-bottom: 16px;
     }
-
     .stat-card {
-      background: var(--card);
-      border-radius: 18px;
-      padding: 16px 18px;
-      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      background: var(--card); border-radius: 16px;
+      padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
     }
-
-    .stat-label {
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-
-    .stat-value {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -.02em;
-    }
+    .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin-bottom: 4px; }
+    .stat-value { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
     .stat-value.positive { color: var(--income); }
     .stat-value.negative { color: var(--expense); }
     .stat-value.neutral  { color: var(--text); }
 
-    /* ── SPLIT PANEL ── */
-    .split-panel {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
+    /* ══════════════════════════════════
+       LEDGER
+    ══════════════════════════════════ */
+    .split-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    .ledger {
-      background: var(--card);
-      border-radius: 18px;
-      overflow: hidden;
-      box-shadow: 0 1px 4px rgba(0,0,0,.05);
-    }
-
+    .ledger { background: var(--card); border-radius: 18px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
     .ledger-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
     }
-
-    .ledger-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .ledger-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
+    .ledger-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+    .ledger-dot   { width: 8px; height: 8px; border-radius: 50%; }
     .dot-cash { background: #b07800; }
     .dot-bank { background: var(--accent); }
-
-    .ledger-balance {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: -.02em;
-    }
-
-    .ledger-body { max-height: 360px; overflow-y: auto; }
+    .ledger-balance { font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+    .ledger-body    { max-height: 320px; overflow-y: auto; }
+    .ledger-footer  { padding: 10px 12px; border-top: 1px solid var(--border); }
+    .ledger-empty   { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 14px; }
 
     .tx-row {
-      display: flex;
-      align-items: center;
-      padding: 11px 16px;
-      border-bottom: 1px solid var(--border);
-      gap: 10px;
-      cursor: pointer;
-      transition: background .1s;
+      display: flex; align-items: center;
+      padding: 11px 16px; border-bottom: 1px solid var(--border);
+      gap: 10px; cursor: pointer; transition: background .1s;
     }
     .tx-row:last-child { border-bottom: none; }
-    .tx-row:hover { background: var(--bg); }
-    .tx-row:active { background: var(--border); }
+    .tx-row:active { background: var(--bg); }
 
     .tx-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      flex-shrink: 0;
+      width: 32px; height: 32px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; flex-shrink: 0; font-weight: 700;
     }
-    .tx-icon.income-bg { background: var(--income-bg); }
-    .tx-icon.expense-bg { background: var(--expense-bg); }
+    .tx-icon.income-bg  { background: var(--income-bg); color: var(--income); }
+    .tx-icon.expense-bg { background: var(--expense-bg); color: var(--expense); }
 
-    .tx-info { flex: 1; min-width: 0; }
-    .tx-desc { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tx-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
-
-    .tx-amount { font-size: 14px; font-weight: 600; white-space: nowrap; letter-spacing: -.01em; }
-
-    .ledger-footer { padding: 10px 12px; }
-
-    .btn-add {
-      width: 100%;
-      padding: 9px;
-      background: var(--accent-light);
-      border: 1.5px dashed rgba(238,34,12,.3);
-      border-radius: 10px;
-      color: var(--accent);
-      font-family: var(--sans);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .15s;
-    }
-    .btn-add:hover { background: rgba(238,34,12,.12); }
-
-    .ledger-empty {
-      padding: 32px 16px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    /* ══════════════════════════════════
-       VIEW HEADER
-    ══════════════════════════════════ */
-    .view-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-    .view-title { font-size: 17px; font-weight: 600; }
+    .tx-info    { flex: 1; min-width: 0; }
+    .tx-desc    { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tx-meta    { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .tx-amount  { font-size: 14px; font-weight: 700; white-space: nowrap; }
+    .income-color  { color: var(--income); }
+    .expense-color { color: var(--expense); }
 
     /* ══════════════════════════════════
        FAKTURY
     ══════════════════════════════════ */
-    .invoice-list { display: flex; flex-direction: column; gap: 8px; }
+    .view-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .view-title  { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
 
+    .invoice-list { display: flex; flex-direction: column; gap: 8px; }
     .invoice-card {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      cursor: pointer;
-      transition: background .1s, transform .1s;
-      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+      background: var(--card); border-radius: 16px;
+      padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+      cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+      transition: transform .1s;
     }
-    .invoice-card:hover { background: #fafafa; }
     .invoice-card:active { transform: scale(0.99); }
 
     .inv-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -605,22 +344,16 @@
     .inv-status.paid   { background: var(--income); }
     .inv-status.due    { background: var(--warn); }
 
-    .inv-info { flex: 1; min-width: 0; }
-    .inv-vendor { font-size: 14px; font-weight: 600; }
-    .inv-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
-
-    .inv-right { text-align: right; }
-    .inv-amount { font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
-    .inv-due { font-size: 11px; margin-top: 3px; }
+    .inv-info     { flex: 1; min-width: 0; }
+    .inv-vendor   { font-size: 15px; font-weight: 600; }
+    .inv-meta     { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .inv-right    { text-align: right; }
+    .inv-amount   { font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+    .inv-due      { font-size: 11px; margin-top: 3px; }
 
     .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .04em;
+      display: inline-block; padding: 2px 8px; border-radius: 6px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
     }
     .badge-unpaid { background: var(--expense-bg); color: var(--expense); }
     .badge-paid   { background: var(--income-bg);  color: var(--income); }
@@ -629,307 +362,180 @@
     /* ══════════════════════════════════
        FILTERS
     ══════════════════════════════════ */
-    .doc-filters {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-
+    .doc-filters { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
     .filter-btn {
-      padding: 6px 14px;
-      border-radius: 20px;
-      border: 1.5px solid var(--border);
-      background: var(--card);
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all .15s;
-      font-family: var(--sans);
+      padding: 6px 14px; border-radius: 20px;
+      border: 1px solid var(--border); background: var(--card);
+      color: var(--muted); font-size: 13px; font-weight: 500;
+      cursor: pointer; font-family: inherit; transition: all .15s;
     }
-    .filter-btn.active {
-      background: var(--accent-light);
-      border-color: var(--accent);
-      color: var(--accent);
-      font-weight: 600;
-    }
+    .filter-btn.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
     /* ══════════════════════════════════
        DOKLADY
     ══════════════════════════════════ */
     .doc-list { display: flex; flex-direction: column; gap: 6px; }
-
     .doc-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 11px 14px;
-      background: var(--card);
-      border-radius: 12px;
-      font-size: 13px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; background: var(--card); border-radius: 14px;
       box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
-
     .doc-type {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 3px 7px;
-      border-radius: 6px;
-      background: var(--bg);
-      color: var(--muted);
-      white-space: nowrap;
+      font-size: 10px; font-weight: 700; padding: 3px 7px;
+      border-radius: 6px; background: var(--bg); color: var(--muted); white-space: nowrap;
     }
-
-    .doc-desc { flex: 1; font-weight: 500; }
-    .doc-date { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .doc-desc   { flex: 1; font-size: 14px; font-weight: 500; }
+    .doc-date   { color: var(--muted); font-size: 12px; white-space: nowrap; }
     .doc-amount { font-size: 14px; font-weight: 700; white-space: nowrap; }
+    .doc-num    { font-size: 11px; color: var(--muted); white-space: nowrap; }
 
     /* ══════════════════════════════════
        NASTAVENÍ
     ══════════════════════════════════ */
-    .settings-card {
-      background: var(--card);
-      border-radius: 18px;
-      overflow: hidden;
-      box-shadow: 0 1px 4px rgba(0,0,0,.05);
-      margin-bottom: 16px;
+    .settings-group {
+      background: var(--card); border-radius: 16px;
+      overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+      margin-bottom: 12px;
     }
-
     .settings-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 14px;
     }
     .settings-row:last-child { border-bottom: none; }
-    .settings-row-label { color: var(--muted); font-size: 12px; }
-    .settings-row-value { font-weight: 500; }
-
-    .section-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      margin: 20px 0 8px;
-    }
+    .settings-label { color: var(--muted); font-size: 13px; margin-bottom: 1px; }
+    .settings-value { font-weight: 500; font-size: 14px; }
 
     /* ══════════════════════════════════
        MODAL
     ══════════════════════════════════ */
     .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.4);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: 200; align-items: center; justify-content: center; padding: 16px;
     }
     .modal-overlay.open { display: flex; }
 
     .modal {
-      background: var(--card);
-      border-radius: 20px;
-      width: 100%;
-      max-width: 460px;
-      max-height: 90vh;
-      overflow-y: auto;
+      background: var(--card); border-radius: 20px;
+      width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto;
       box-shadow: 0 8px 40px rgba(0,0,0,.18);
-      transform: scale(0.97);
-      transition: transform .2s;
+      transform: scale(0.96); transition: transform .2s ease;
     }
     .modal-overlay.open .modal { transform: scale(1); }
 
     .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
     }
-
-    .modal-title { font-size: 16px; font-weight: 700; }
-
+    .modal-title { font-size: 17px; font-weight: 700; }
     .modal-close {
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      background: var(--bg);
-      border-radius: 8px;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 15px;
-      font-family: var(--sans);
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      border: none; background: var(--btn-bg); border-radius: 8px;
+      color: var(--muted); cursor: pointer; font-size: 15px; font-family: inherit;
     }
-    .modal-close:hover { background: var(--border); }
-
-    .modal-body { padding: 20px; }
-
+    .modal-body   { padding: 20px; }
     .modal-footer {
-      padding: 14px 20px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
+      padding: 14px 20px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: flex-end;
     }
 
     /* ── TYPE TOGGLE ── */
-    .type-toggle {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-
+    .btn-group { display: flex; gap: 8px; margin-bottom: 16px; }
     .type-btn {
-      padding: 10px;
-      border-radius: 12px;
-      border: 1.5px solid var(--border);
-      background: var(--bg);
-      color: var(--muted);
-      font-family: var(--sans);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all .15s;
-      text-align: center;
+      flex: 1; padding: 10px; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--muted); font-family: inherit; font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: all .15s; text-align: center;
     }
-    .type-btn.active-income { background: var(--income-bg); border-color: var(--income); color: var(--income); font-weight: 600; }
+    .type-btn.active-income  { background: var(--income-bg);  border-color: var(--income);  color: var(--income);  font-weight: 600; }
     .type-btn.active-expense { background: var(--expense-bg); border-color: var(--expense); color: var(--expense); font-weight: 600; }
 
     /* ── AI HINT ── */
     .ai-hint {
-      display: none;
-      margin-top: 12px;
-      padding: 12px 14px;
-      background: rgba(238,34,12,.06);
-      border: 1.5px solid rgba(238,34,12,.2);
-      border-radius: 12px;
-      font-size: 12px;
-      line-height: 1.6;
-      color: var(--text);
+      display: none; margin-top: 12px; padding: 12px 14px;
+      background: var(--accent-soft); border: 1px solid rgba(238,34,12,.2);
+      border-radius: 12px; font-size: 13px; line-height: 1.6;
     }
     .ai-hint.visible { display: block; }
-    .ai-hint-label {
-      font-size: 10px;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: .07em;
-      margin-bottom: 5px;
-      font-weight: 700;
-    }
-
-    .ai-loading {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
+    .ai-hint-label  { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: .07em; font-weight: 700; margin-bottom: 5px; }
+    .ai-loading { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
     .spinner {
-      width: 14px;
-      height: 14px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
+      width: 14px; height: 14px;
+      border: 2px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── PAIR LIST ── */
     .pair-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
-
     .pair-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 9px 12px;
-      background: var(--bg);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      cursor: pointer;
-      transition: border-color .15s;
-      font-size: 13px;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 12px;
+      cursor: pointer; font-size: 13px; transition: border-color .15s;
     }
-    .pair-item:hover { border-color: var(--accent); }
+    .pair-item:active { border-color: var(--accent); }
     .pair-item.selected { border-color: var(--income); background: var(--income-bg); }
     .pair-item-vendor { flex: 1; font-weight: 500; }
 
     /* ── FAV ITEMS ── */
     .fav-item-row {
-      display: grid;
-      grid-template-columns: 1fr 60px 90px 28px;
-      gap: 6px;
-      align-items: center;
-      margin-bottom: 6px;
+      display: grid; grid-template-columns: 1fr 55px 85px 28px;
+      gap: 6px; align-items: center; margin-bottom: 6px;
     }
     .fav-item-row input {
-      width: 100%;
-      padding: 8px 10px;
-      background: var(--bg);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: 13px;
-      outline: none;
+      width: 100%; padding: 8px 10px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-family: inherit; font-size: 14px; outline: none;
     }
     .fav-item-row input:focus { border-color: var(--accent); }
     .btn-remove-item {
-      width: 28px; height: 28px;
-      background: var(--expense-bg);
-      border: none;
-      border-radius: 8px;
-      color: var(--expense);
-      cursor: pointer;
-      font-size: 13px;
-      display: flex; align-items: center; justify-content: center;
-      font-family: var(--sans);
+      width: 28px; height: 28px; background: var(--expense-bg); border: none;
+      border-radius: 8px; color: var(--expense); cursor: pointer;
+      font-size: 13px; display: flex; align-items: center; justify-content: center;
+      font-family: inherit;
     }
 
     /* ══════════════════════════════════
        TOAST
     ══════════════════════════════════ */
     #toast {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
+      position: fixed; bottom: 90px; left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: #111;
-      color: #fff;
-      border-radius: 20px;
-      padding: 10px 20px;
-      font-size: 13px;
-      font-weight: 500;
-      opacity: 0;
-      transition: opacity .2s, transform .2s;
-      pointer-events: none;
-      z-index: 999;
-      white-space: nowrap;
+      background: #111; color: #fff; border-radius: 20px;
+      padding: 10px 20px; font-size: 14px; font-weight: 500;
+      opacity: 0; transition: opacity .2s, transform .2s;
+      pointer-events: none; z-index: 999; white-space: nowrap;
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    @media (min-width: 769px) {
-      #toast { bottom: 24px; }
+    /* ══════════════════════════════════
+       DESKTOP
+    ══════════════════════════════════ */
+    @media (min-width: 768px) {
+      .sidebar { display: flex; }
+      header   { display: none; }
+      .bottom-wrap { display: none; }
+      #toast   { bottom: 24px; }
+      #screen-app { flex-direction: row; }
+      main {
+        margin-left: var(--sidebar-w);
+        max-width: none;
+        padding: 32px 5% 60px;
+        width: calc(100vw - var(--sidebar-w));
+      }
+      .split-panel { grid-template-columns: 1fr 1fr; }
+      .stats-row   { grid-template-columns: repeat(3, 1fr); }
     }
 
-    /* ── SCROLLBAR ── */
+    @media (max-width: 767px) {
+      .split-panel { grid-template-columns: 1fr; }
+      .stats-row   { grid-template-columns: 1fr 1fr; }
+    }
+
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-    .field select option { background: #fff; }
   </style>
 </head>
 <body>
@@ -965,61 +571,31 @@
     </div>
 
     <div class="ob-step active" id="ob-step-0">
-      <div class="ob-header">
-        <div class="ob-step-label">Krok 1 ze 3</div>
-        <div class="ob-title">Základní údaje</div>
-        <div class="ob-desc">Zadej údaje o organizaci – použijí se na dokladech.</div>
-      </div>
+      <div class="ob-step-label">Krok 1 ze 3</div>
+      <div class="ob-title">Základní údaje</div>
+      <div class="ob-desc">Zadej údaje o organizaci – použijí se na dokladech.</div>
       <div class="field-group">
-        <div class="field">
-          <label>Název organizace</label>
-          <input id="ob-name" type="text" placeholder="Vokální skupina 10men, z. s." />
-        </div>
+        <div class="field"><label>Název organizace</label><input id="ob-name" type="text" placeholder="Vokální skupina 10men, z. s." /></div>
         <div class="field-row">
-          <div class="field">
-            <label>IČO</label>
-            <input id="ob-ico" type="text" placeholder="21194297" maxlength="8" />
-          </div>
-          <div class="field">
-            <label>DIČ (nepovinné)</label>
-            <input id="ob-dic" type="text" placeholder="CZ..." />
-          </div>
+          <div class="field"><label>IČO</label><input id="ob-ico" type="text" placeholder="21194297" maxlength="8" /></div>
+          <div class="field"><label>DIČ (nepovinné)</label><input id="ob-dic" type="text" placeholder="CZ..." /></div>
         </div>
-        <div class="field">
-          <label>Adresa sídla</label>
-          <input id="ob-address" type="text" placeholder="Ulice 1, 110 00 Praha 1" />
-        </div>
+        <div class="field"><label>Adresa sídla</label><input id="ob-address" type="text" placeholder="Ulice 1, 110 00 Praha 1" /></div>
       </div>
-      <div class="ob-nav">
-        <button class="btn-primary" id="ob-next-0">Pokračovat →</button>
-      </div>
+      <div class="ob-nav"><button class="btn-primary" id="ob-next-0">Pokračovat →</button></div>
     </div>
 
     <div class="ob-step" id="ob-step-1">
-      <div class="ob-header">
-        <div class="ob-step-label">Krok 2 ze 3</div>
-        <div class="ob-title">Účetní období</div>
-        <div class="ob-desc">Otevři první účetní období. Obvykle odpovídá kalendářnímu roku.</div>
-      </div>
+      <div class="ob-step-label">Krok 2 ze 3</div>
+      <div class="ob-title">Účetní období</div>
+      <div class="ob-desc">Otevři první účetní období. Obvykle odpovídá kalendářnímu roku.</div>
       <div class="field-group">
         <div class="field-row">
-          <div class="field">
-            <label>Začátek období</label>
-            <input id="ob-period-from" type="date" />
-          </div>
-          <div class="field">
-            <label>Konec období</label>
-            <input id="ob-period-to" type="date" />
-          </div>
+          <div class="field"><label>Začátek období</label><input id="ob-period-from" type="date" /></div>
+          <div class="field"><label>Konec období</label><input id="ob-period-to" type="date" /></div>
         </div>
-        <div class="field">
-          <label>Počáteční stav pokladny (Kč)</label>
-          <input id="ob-cash-init" type="number" placeholder="0" min="0" />
-        </div>
-        <div class="field">
-          <label>Počáteční stav bankovního účtu (Kč)</label>
-          <input id="ob-bank-init" type="number" placeholder="0" min="0" />
-        </div>
+        <div class="field"><label>Počáteční stav pokladny (Kč)</label><input id="ob-cash-init" type="number" placeholder="0" min="0" /></div>
+        <div class="field"><label>Počáteční stav bankovního účtu (Kč)</label><input id="ob-bank-init" type="number" placeholder="0" min="0" /></div>
       </div>
       <div class="ob-nav">
         <button class="btn-secondary" id="ob-back-1">← Zpět</button>
@@ -1028,12 +604,10 @@
     </div>
 
     <div class="ob-step" id="ob-step-2">
-      <div class="ob-header">
-        <div class="ob-step-label">Krok 3 ze 3</div>
-        <div class="ob-title">Vše připraveno</div>
-        <div class="ob-desc">Zkontroluj nastavení a spusť 10korun.</div>
-      </div>
-      <div id="ob-summary" style="margin-bottom:24px;padding:16px;background:var(--bg);border-radius:14px;font-size:13px;line-height:2.2;"></div>
+      <div class="ob-step-label">Krok 3 ze 3</div>
+      <div class="ob-title">Vše připraveno</div>
+      <div class="ob-desc">Zkontroluj nastavení a spusť 10korun.</div>
+      <div id="ob-summary" style="margin-bottom:24px;padding:16px;background:var(--bg);border-radius:14px;font-size:14px;line-height:2.2;"></div>
       <div class="ob-nav">
         <button class="btn-secondary" id="ob-back-2">← Zpět</button>
         <button class="btn-primary" id="ob-finish">Spustit 10korun</button>
@@ -1047,146 +621,168 @@
 ══════════════════════════════════ -->
 <div id="screen-app" class="screen">
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
+  <!-- SIDEBAR (desktop) -->
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">10korun</div>
-    <div class="sidebar-org" id="sidebar-org-name"></div>
-    <nav class="sidebar-nav">
-      <button class="nav-item active" data-view="dashboard"><span class="nav-icon">📊</span> Přehled</button>
-      <button class="nav-item" data-view="invoices"><span class="nav-icon">🧾</span> Faktury</button>
-      <button class="nav-item" data-view="documents"><span class="nav-icon">📁</span> Doklady</button>
-      <button class="nav-item" data-view="settings"><span class="nav-icon">⚙️</span> Nastavení</button>
-    </nav>
-    <div class="sidebar-bottom">
-      <div class="sidebar-user">
-        <div class="avatar"><img id="avatar-img" src="" alt="" /></div>
-        <div class="sidebar-user-info">
-          <div class="sidebar-user-name" id="sidebar-user-name"></div>
-          <div class="sidebar-user-action" id="btn-signout">Odhlásit se</div>
-        </div>
+    <div class="sidebar-subtitle" id="sidebar-org-name"></div>
+
+    <div class="sidebar-profile">
+      <div class="sidebar-profile-avatar"><img id="avatar-img-desk" src="" alt="" /></div>
+      <div>
+        <div class="sidebar-profile-name" id="sidebar-user-name"></div>
+        <div class="sidebar-profile-sub">Správce</div>
       </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="sidebar-nav-item active" data-view="dashboard">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span>
+        Přehled
+      </button>
+      <button class="sidebar-nav-item" data-view="invoices">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg></span>
+        Faktury
+      </button>
+      <button class="sidebar-nav-item" data-view="documents">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+        Doklady
+      </button>
+      <button class="sidebar-nav-item" data-view="settings">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        Nastavení
+      </button>
+    </nav>
+
+    <hr class="sidebar-divider">
+
+    <div class="sidebar-bottom">
+      <button class="sidebar-action" id="btn-signout-desk" style="color:#ff3b30">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></span>
+        Odhlásit se
+      </button>
     </div>
   </aside>
 
+  <!-- HEADER (mobile) -->
+  <header>
+    <div class="header-inner">
+      <div class="header-row">
+        <div>
+          <h1 id="mobile-header-title">Přehled</h1>
+          <div class="subtitle" id="mobile-header-sub"></div>
+        </div>
+        <div class="profile-btn" id="profile-btn">
+          <img id="avatar-img-mob" src="" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+        </div>
+      </div>
+    </div>
+  </header>
+
   <!-- MAIN -->
-  <div class="app-main">
-    <div class="app-header">
-      <div class="app-header-row">
-        <h1 id="app-header-title">Přehled</h1>
-        <span id="app-header-period" style="font-size:12px;color:var(--muted);font-weight:400;"></span>
+  <main id="main">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="view-dashboard" class="view active">
+      <h3>Účetní období <span id="dash-period" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text);"></span></h3>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">Příjmy</div><div class="stat-value positive" id="stat-income">0 Kč</div></div>
+        <div class="stat-card"><div class="stat-label">Výdaje</div><div class="stat-value negative" id="stat-expense">0 Kč</div></div>
+        <div class="stat-card"><div class="stat-label">Výsledek</div><div class="stat-value neutral" id="stat-result">0 Kč</div></div>
+      </div>
+
+      <div class="split-panel">
+        <div class="ledger">
+          <div class="ledger-header">
+            <div class="ledger-title"><div class="ledger-dot dot-cash"></div> Pokladna</div>
+            <div class="ledger-balance" id="balance-cash">0 Kč</div>
+          </div>
+          <div class="ledger-body" id="txlist-cash"><div class="ledger-empty">Žádné záznamy</div></div>
+          <div class="ledger-footer"><button class="btn-add" data-account="cash">+ Nový záznam</button></div>
+        </div>
+
+        <div class="ledger">
+          <div class="ledger-header">
+            <div class="ledger-title"><div class="ledger-dot dot-bank"></div> Bankovní účet</div>
+            <div class="ledger-balance" id="balance-bank">0 Kč</div>
+          </div>
+          <div class="ledger-body" id="txlist-bank"><div class="ledger-empty">Žádné záznamy</div></div>
+          <div class="ledger-footer"><button class="btn-add" data-account="bank">+ Nový záznam</button></div>
+        </div>
       </div>
     </div>
 
-    <div class="main">
-
-      <!-- ── DASHBOARD ── -->
-      <div id="view-dashboard" class="view active">
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-label">Příjmy</div>
-            <div class="stat-value positive" id="stat-income">0 Kč</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Výdaje</div>
-            <div class="stat-value negative" id="stat-expense">0 Kč</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Výsledek</div>
-            <div class="stat-value neutral" id="stat-result">0 Kč</div>
-          </div>
-        </div>
-
-        <div class="split-panel">
-          <div class="ledger" id="ledger-cash">
-            <div class="ledger-header">
-              <div class="ledger-title"><div class="ledger-dot dot-cash"></div> Pokladna</div>
-              <div class="ledger-balance" id="balance-cash">0 Kč</div>
-            </div>
-            <div class="ledger-body" id="txlist-cash">
-              <div class="ledger-empty">Žádné záznamy</div>
-            </div>
-            <div class="ledger-footer">
-              <button class="btn-add" data-account="cash">+ Nový záznam</button>
-            </div>
-          </div>
-
-          <div class="ledger" id="ledger-bank">
-            <div class="ledger-header">
-              <div class="ledger-title"><div class="ledger-dot dot-bank"></div> Bankovní účet</div>
-              <div class="ledger-balance" id="balance-bank">0 Kč</div>
-            </div>
-            <div class="ledger-body" id="txlist-bank">
-              <div class="ledger-empty">Žádné záznamy</div>
-            </div>
-            <div class="ledger-footer">
-              <button class="btn-add" data-account="bank">+ Nový záznam</button>
-            </div>
-          </div>
+    <!-- ── FAKTURY ── -->
+    <div id="view-invoices" class="view">
+      <div class="view-header">
+        <div class="view-title">Faktury</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-secondary" id="btn-add-fap" style="padding:9px 14px;font-size:14px;">+ Přijatá</button>
+          <button class="btn-primary"   id="btn-add-fav" style="padding:9px 14px;font-size:14px;flex:none;">+ Vystavená</button>
         </div>
       </div>
-
-      <!-- ── FAKTURY ── -->
-      <div id="view-invoices" class="view">
-        <div class="view-header">
-          <div class="view-title">Faktury</div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn-secondary" id="btn-add-fap" style="font-size:13px;padding:9px 14px;">+ Přijatá</button>
-            <button class="btn-primary" id="btn-add-fav" style="font-size:13px;padding:9px 14px;flex:none;">+ Vystavená</button>
-          </div>
-        </div>
-        <div class="doc-filters" id="inv-type-filters">
-          <button class="filter-btn active" data-inv-filter="all">Vše</button>
-          <button class="filter-btn" data-inv-filter="fap">Přijaté (FAP)</button>
-          <button class="filter-btn" data-inv-filter="fav">Vystavené (FAV)</button>
-        </div>
-        <div id="invoice-list-wrap">
-          <div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">Žádné faktury</div>
-        </div>
+      <div class="doc-filters">
+        <button class="filter-btn active" data-inv-filter="all">Vše</button>
+        <button class="filter-btn" data-inv-filter="fap">Přijaté (FAP)</button>
+        <button class="filter-btn" data-inv-filter="fav">Vystavené (FAV)</button>
       </div>
-
-      <!-- ── DOKLADY ── -->
-      <div id="view-documents" class="view">
-        <div class="view-header">
-          <div class="view-title">Doklady</div>
-        </div>
-        <div class="doc-filters">
-          <button class="filter-btn active" data-filter="all">Vše</button>
-          <button class="filter-btn" data-filter="PPD">PPD</button>
-          <button class="filter-btn" data-filter="VPD">VPD</button>
-          <button class="filter-btn" data-filter="BANK">Bankovní</button>
-        </div>
-        <div id="doc-list-wrap">
-          <div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">Žádné doklady</div>
-        </div>
-      </div>
-
-      <!-- ── NASTAVENÍ ── -->
-      <div id="view-settings" class="view">
-        <div class="section-title">Organizace</div>
-        <div class="settings-card" id="settings-info"></div>
-        <div class="section-title">Adresář kontaktů</div>
-        <div class="settings-card" id="settings-contacts" style="padding:14px 16px;font-size:13px;">Načítám…</div>
-        <div style="margin-top:16px;">
-          <button class="btn-danger" id="btn-signout-settings" style="width:auto;">Odhlásit se</button>
-        </div>
-      </div>
-
+      <div id="invoice-list-wrap"><div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné faktury</div></div>
     </div>
-  </div>
+
+    <!-- ── DOKLADY ── -->
+    <div id="view-documents" class="view">
+      <div class="view-header"><div class="view-title">Doklady</div></div>
+      <div class="doc-filters">
+        <button class="filter-btn active" data-filter="all">Vše</button>
+        <button class="filter-btn" data-filter="PPD">PPD</button>
+        <button class="filter-btn" data-filter="VPD">VPD</button>
+        <button class="filter-btn" data-filter="BANK">Bankovní</button>
+      </div>
+      <div id="doc-list-wrap"><div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné doklady</div></div>
+    </div>
+
+    <!-- ── NASTAVENÍ ── -->
+    <div id="view-settings" class="view">
+      <div class="view-title" style="margin-bottom:16px;">Nastavení</div>
+      <h3>Organizace</h3>
+      <div class="settings-group" id="settings-info"></div>
+      <h3>Adresář kontaktů</h3>
+      <div class="settings-group" id="settings-contacts"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Načítám…</div></div>
+      <div style="margin-top:20px;">
+        <button class="btn-danger" id="btn-signout-mob" style="width:auto;">Odhlásit se</button>
+      </div>
+    </div>
+
+  </main>
 
   <!-- BOTTOM NAV (mobile) -->
-  <nav class="bottom-nav">
-    <button class="bottom-nav-item active" data-view="dashboard"><span class="bnav-icon">📊</span>Přehled</button>
-    <button class="bottom-nav-item" data-view="invoices"><span class="bnav-icon">🧾</span>Faktury</button>
-    <button class="bottom-nav-item" data-view="documents"><span class="bnav-icon">📁</span>Doklady</button>
-    <button class="bottom-nav-item" data-view="settings"><span class="bnav-icon">⚙️</span>Nastavení</button>
+  <nav class="bottom-wrap">
+    <div class="bottom">
+      <button class="active" data-view="dashboard">
+        <span class="icon"><svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span>
+        <small>Přehled</small>
+      </button>
+      <button data-view="invoices">
+        <span class="icon"><svg viewBox="0 0 24 24"><path d="M6 2H18a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm1 5h8M7 11h8M7 15h5"/></svg></span>
+        <small>Faktury</small>
+      </button>
+      <button data-view="documents">
+        <span class="icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+        <small>Doklady</small>
+      </button>
+      <button data-view="settings">
+        <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <small>Nastavení</small>
+      </button>
+    </div>
   </nav>
 
 </div>
 
 <!-- ══════════════════════════════════
-     MODAL: NOVÁ TRANSAKCE
+     MODALY
 ══════════════════════════════════ -->
+
+<!-- NOVÁ TRANSAKCE -->
 <div class="modal-overlay" id="modal-tx">
   <div class="modal">
     <div class="modal-header">
@@ -1194,33 +790,18 @@
       <button class="modal-close" data-close="modal-tx">✕</button>
     </div>
     <div class="modal-body">
-      <div class="type-toggle">
+      <div class="btn-group">
         <button class="type-btn active-income" id="tx-type-income">↑ Příjem</button>
         <button class="type-btn" id="tx-type-expense">↓ Výdaj</button>
       </div>
       <div class="field-group">
-        <div class="field">
-          <label>Popis</label>
-          <input id="tx-desc" type="text" placeholder="Např. Odměna za vystoupení" />
-        </div>
+        <div class="field"><label>Popis</label><input id="tx-desc" type="text" placeholder="Např. Odměna za vystoupení" /></div>
         <div class="field-row">
-          <div class="field">
-            <label>Částka (Kč)</label>
-            <input id="tx-amount" type="number" min="0" placeholder="0" />
-          </div>
-          <div class="field">
-            <label>Datum</label>
-            <input id="tx-date" type="date" />
-          </div>
+          <div class="field"><label>Částka (Kč)</label><input id="tx-amount" type="number" min="0" placeholder="0" /></div>
+          <div class="field"><label>Datum</label><input id="tx-date" type="date" /></div>
         </div>
-        <div class="field">
-          <label>Kategorie</label>
-          <select id="tx-category"><option value="">— vyber —</option></select>
-        </div>
-        <div class="field">
-          <label>Protistrana (nepovinné)</label>
-          <input id="tx-party" type="text" placeholder="Název organizace nebo osoby" />
-        </div>
+        <div class="field"><label>Kategorie</label><select id="tx-category"><option value="">— vyber —</option></select></div>
+        <div class="field"><label>Protistrana (nepovinné)</label><input id="tx-party" type="text" placeholder="Název organizace nebo osoby" /></div>
         <div class="field" id="tx-pair-wrap" style="display:none;">
           <label>Spárovat s fakturou (nepovinné)</label>
           <div class="pair-list" id="tx-pair-list"></div>
@@ -1238,9 +819,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     MODAL: EDIT TRANSAKCE
-══════════════════════════════════ -->
+<!-- EDIT TRANSAKCE -->
 <div class="modal-overlay" id="modal-tx-edit">
   <div class="modal">
     <div class="modal-header">
@@ -1248,42 +827,24 @@
       <button class="modal-close" data-close="modal-tx-edit">✕</button>
     </div>
     <div class="modal-body">
-      <div class="type-toggle">
+      <div class="btn-group">
         <button class="type-btn" id="tx-edit-type-income">↑ Příjem</button>
         <button class="type-btn" id="tx-edit-type-expense">↓ Výdaj</button>
       </div>
       <div class="field-group">
-        <div class="field">
-          <label>Číslo dokladu</label>
-          <input id="tx-edit-docnumber" type="text" />
-        </div>
-        <div class="field">
-          <label>Popis</label>
-          <input id="tx-edit-desc" type="text" />
-        </div>
+        <div class="field"><label>Číslo dokladu</label><input id="tx-edit-docnumber" type="text" /></div>
+        <div class="field"><label>Popis</label><input id="tx-edit-desc" type="text" /></div>
         <div class="field-row">
-          <div class="field">
-            <label>Částka (Kč)</label>
-            <input id="tx-edit-amount" type="number" min="0" />
-          </div>
-          <div class="field">
-            <label>Datum</label>
-            <input id="tx-edit-date" type="date" />
-          </div>
+          <div class="field"><label>Částka (Kč)</label><input id="tx-edit-amount" type="number" min="0" /></div>
+          <div class="field"><label>Datum</label><input id="tx-edit-date" type="date" /></div>
         </div>
-        <div class="field">
-          <label>Kategorie</label>
-          <select id="tx-edit-category"></select>
-        </div>
-        <div class="field">
-          <label>Protistrana</label>
-          <input id="tx-edit-party" type="text" />
-        </div>
+        <div class="field"><label>Kategorie</label><select id="tx-edit-category"></select></div>
+        <div class="field"><label>Protistrana</label><input id="tx-edit-party" type="text" /></div>
       </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
       <button class="btn-danger" id="btn-tx-delete">Smazat</button>
-      <div style="display:flex;gap:10px;">
+      <div style="display:flex;gap:8px;">
         <button class="btn-secondary" data-close="modal-tx-edit">Zrušit</button>
         <button class="btn-primary" id="btn-tx-update">Uložit změny</button>
       </div>
@@ -1291,9 +852,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     MODAL: NOVÁ PŘIJATÁ FAKTURA
-══════════════════════════════════ -->
+<!-- NOVÁ PŘIJATÁ FAKTURA -->
 <div class="modal-overlay" id="modal-invoice">
   <div class="modal">
     <div class="modal-header">
@@ -1303,56 +862,23 @@
     <div class="modal-body">
       <div class="field-group">
         <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
-          <div style="flex:1;">
-            <label>IČO dodavatele</label>
-            <input id="inv-ico" type="text" placeholder="12345678" maxlength="8" />
-          </div>
-          <button class="btn-secondary" id="btn-ares" style="height:44px;padding:0 14px;font-size:13px;white-space:nowrap;">Doplnit z ARES</button>
+          <div style="flex:1;"><label>IČO dodavatele</label><input id="inv-ico" type="text" placeholder="12345678" maxlength="8" /></div>
+          <button class="btn-secondary" id="btn-ares" style="height:46px;padding:0 14px;font-size:14px;white-space:nowrap;">Doplnit z ARES</button>
         </div>
-        <div class="field">
-          <label>Dodavatel</label>
-          <input id="inv-vendor" type="text" placeholder="Název dodavatele" />
-        </div>
-        <div class="field">
-          <label>Interní číslo</label>
-          <input id="inv-number" type="text" readonly style="background:var(--bg);color:var(--muted);" placeholder="Generuje se automaticky" />
-        </div>
-        <div class="field">
-          <label>Číslo faktury dodavatele</label>
-          <input id="inv-orig-number" type="text" placeholder="Číslo z faktury dodavatele" />
-        </div>
+        <div class="field"><label>Dodavatel</label><input id="inv-vendor" type="text" placeholder="Název dodavatele" /></div>
+        <div class="field"><label>Interní číslo</label><input id="inv-number" type="text" readonly placeholder="Generuje se automaticky" /></div>
+        <div class="field"><label>Číslo faktury dodavatele</label><input id="inv-orig-number" type="text" placeholder="Číslo z faktury dodavatele" /></div>
         <div class="field-row">
-          <div class="field">
-            <label>Částka (Kč)</label>
-            <input id="inv-amount" type="number" min="0" placeholder="0" />
-          </div>
-          <div class="field">
-            <label>Datum vystavení</label>
-            <input id="inv-date" type="date" />
-          </div>
+          <div class="field"><label>Částka (Kč)</label><input id="inv-amount" type="number" min="0" placeholder="0" /></div>
+          <div class="field"><label>Datum vystavení</label><input id="inv-date" type="date" /></div>
         </div>
-        <div class="field">
-          <label>Datum splatnosti</label>
-          <input id="inv-due" type="date" />
-        </div>
+        <div class="field"><label>Datum splatnosti</label><input id="inv-due" type="date" /></div>
         <div class="field-row">
-          <div class="field">
-            <label>Variabilní symbol</label>
-            <input id="inv-vs" type="text" placeholder="VS" />
-          </div>
-          <div class="field">
-            <label>Konstantní symbol</label>
-            <input id="inv-ks" type="text" placeholder="0308" />
-          </div>
+          <div class="field"><label>Variabilní symbol</label><input id="inv-vs" type="text" /></div>
+          <div class="field"><label>Konstantní symbol</label><input id="inv-ks" type="text" placeholder="0308" /></div>
         </div>
-        <div class="field">
-          <label>Odkaz na PDF (Google Drive)</label>
-          <input id="inv-url" type="url" placeholder="https://drive.google.com/..." />
-        </div>
-        <div class="field">
-          <label>Popis / poznámka</label>
-          <input id="inv-desc" type="text" placeholder="Např. FA za nahrávání CD" />
-        </div>
+        <div class="field"><label>Odkaz na PDF (Google Drive)</label><input id="inv-url" type="url" placeholder="https://drive.google.com/..." /></div>
+        <div class="field"><label>Popis / poznámka</label><input id="inv-desc" type="text" placeholder="Např. FA za nahrávání CD" /></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1362,9 +888,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     MODAL: EDIT FAKTURA
-══════════════════════════════════ -->
+<!-- EDIT FAKTURA -->
 <div class="modal-overlay" id="modal-invoice-edit">
   <div class="modal">
     <div class="modal-header">
@@ -1374,11 +898,8 @@
     <div class="modal-body">
       <div class="field-group">
         <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
-          <div style="flex:1;">
-            <label>IČO dodavatele</label>
-            <input id="inv-edit-ico" type="text" maxlength="8" />
-          </div>
-          <button class="btn-secondary" id="btn-ares-edit" style="height:44px;padding:0 14px;font-size:13px;white-space:nowrap;">Doplnit z ARES</button>
+          <div style="flex:1;"><label>IČO dodavatele</label><input id="inv-edit-ico" type="text" maxlength="8" /></div>
+          <button class="btn-secondary" id="btn-ares-edit" style="height:46px;padding:0 14px;font-size:14px;white-space:nowrap;">Doplnit z ARES</button>
         </div>
         <div class="field"><label>Dodavatel</label><input id="inv-edit-vendor" type="text" /></div>
         <div class="field"><label>Číslo faktury dodavatele</label><input id="inv-edit-number" type="text" /></div>
@@ -1393,7 +914,7 @@
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
       <button class="btn-danger" id="btn-invoice-delete">Smazat</button>
-      <div style="display:flex;gap:10px;">
+      <div style="display:flex;gap:8px;">
         <button class="btn-secondary" data-close="modal-invoice-edit">Zrušit</button>
         <button class="btn-primary" id="btn-invoice-update">Uložit změny</button>
       </div>
@@ -1401,9 +922,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     MODAL: NOVÁ VYSTAVENÁ FAKTURA
-══════════════════════════════════ -->
+<!-- NOVÁ VYSTAVENÁ FAKTURA -->
 <div class="modal-overlay" id="modal-fav">
   <div class="modal" style="max-width:540px;">
     <div class="modal-header">
@@ -1412,16 +931,10 @@
     </div>
     <div class="modal-body">
       <div class="field-group">
-        <div class="field">
-          <label>Interní číslo</label>
-          <input id="fav-number" type="text" readonly style="background:var(--bg);color:var(--muted);" placeholder="Generuje se automaticky" />
-        </div>
+        <div class="field"><label>Interní číslo</label><input id="fav-number" type="text" readonly placeholder="Generuje se automaticky" /></div>
         <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
-          <div style="flex:1;">
-            <label>IČO odběratele</label>
-            <input id="fav-ico" type="text" placeholder="12345678" maxlength="8" />
-          </div>
-          <button class="btn-secondary" id="btn-ares-fav" style="height:44px;padding:0 14px;font-size:13px;white-space:nowrap;">Doplnit z ARES</button>
+          <div style="flex:1;"><label>IČO odběratele</label><input id="fav-ico" type="text" placeholder="12345678" maxlength="8" /></div>
+          <button class="btn-secondary" id="btn-ares-fav" style="height:46px;padding:0 14px;font-size:14px;white-space:nowrap;">Doplnit z ARES</button>
         </div>
         <div class="field"><label>Odběratel</label><input id="fav-vendor" type="text" placeholder="Název odběratele" /></div>
         <div class="field-row">
@@ -1436,7 +949,7 @@
         <div class="field">
           <label>Položky</label>
           <div id="fav-items-wrap"></div>
-          <button class="btn-secondary" id="btn-fav-add-item" style="margin-top:8px;font-size:12px;padding:8px 14px;width:auto;">+ Přidat položku</button>
+          <button class="btn-secondary" id="btn-fav-add-item" style="margin-top:8px;font-size:13px;padding:8px 14px;width:auto;">+ Přidat položku</button>
         </div>
       </div>
     </div>
@@ -1447,16 +960,14 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     MODAL: PDF PREVIEW
-══════════════════════════════════ -->
+<!-- PDF PREVIEW -->
 <div class="modal-overlay" id="modal-pdf-preview">
   <div class="modal" style="max-width:860px;width:95vw;max-height:90vh;display:flex;flex-direction:column;">
     <div class="modal-header">
       <div class="modal-title" id="pdf-preview-title">Náhled faktury</div>
       <button class="modal-close" data-close="modal-pdf-preview">✕</button>
     </div>
-    <div style="flex:1;overflow:hidden;padding:0;">
+    <div style="flex:1;overflow:hidden;">
       <iframe id="pdf-preview-frame" style="width:100%;height:70vh;border:none;background:#fff;"></iframe>
     </div>
     <div class="modal-footer">
@@ -1470,7 +981,7 @@
 <div id="toast"></div>
 
 <!-- ══════════════════════════════════
-     FIREBASE + APP LOGIC
+     FIREBASE + LOGIC
 ══════════════════════════════════ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -1494,940 +1005,553 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-/* ════════════════════════════════
-   HELPERS
-════════════════════════════════ */
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n).toLocaleString('cs-CZ') + ' Kč';
 const fmtDate = d => d ? new Date(d).toLocaleDateString('cs-CZ') : '';
 const today = () => new Date().toISOString().slice(0,10);
 
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  $(id).classList.add('active');
-}
-
-const VIEW_TITLES = { dashboard: 'Přehled', invoices: 'Faktury', documents: 'Doklady', settings: 'Nastavení' };
-
-function showView(id) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-item, .bottom-nav-item').forEach(n => n.classList.remove('active'));
-  $('view-' + id).classList.add('active');
-  document.querySelectorAll(`[data-view="${id}"]`).forEach(el => el.classList.add('active'));
-  $('app-header-title').textContent = VIEW_TITLES[id] || id;
-}
-
-function toast(msg, duration = 2800) {
-  const t = $('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
-}
-
-function openModal(id) { $(id).classList.add('open'); }
-function closeModal(id) { $(id).classList.remove('open'); }
-
-document.querySelectorAll('[data-close]').forEach(btn => {
-  btn.addEventListener('click', () => closeModal(btn.dataset.close));
-});
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) closeModal(o.id); });
-});
-
-/* ════════════════════════════════
-   CATEGORIES
-════════════════════════════════ */
-const INCOME_CATS = [
-  'Prodej zboží','Prodej výrobků a služeb','Příjmy z veřejných sbírek',
-  'Přijaté peněžní dary mimo veřejné sbírky','Přijaté členské příspěvky',
-  'Dotace a příspěvky z veřejných rozpočtů','Ostatní','Průběžné položky','Kurzové rozdíly',
-];
-const EXPENSE_CATS = [
-  'Dlouhodobý nehmotný a hmotný majetek','Materiál','Zboží','Služby','Mzdy',
-  'Pojistné za zaměstnance a zaměstnavatele','Ostatní osobní výdaje',
-  'Ostatní','Průběžné položky','Kurzové rozdíly',
-];
-
-function setCategoryOptions(type, selId = 'tx-category') {
-  const sel = $(selId);
-  const cats = type === 'income' ? INCOME_CATS : EXPENSE_CATS;
-  sel.innerHTML = '<option value="">— vyber kategorii —</option>' +
-    cats.map(c => `<option value="${c}">${c}</option>`).join('');
-}
-
-/* ════════════════════════════════
-   CONSTANTS
-════════════════════════════════ */
 const ORG_BANK = '348479366/0300';
 const ORG_IBAN = 'CZ6803000000000348479366';
 const ORG_LOGO = 'https://sidnexon-bot.github.io/10korun/logo.png';
 
-/* ════════════════════════════════
-   STATE
-════════════════════════════════ */
-let currentUser    = null;
-let orgData        = null;
-let txAccount      = 'cash';
-let txType         = 'income';
-let selectedPairId = null;
-let unsubTx        = null;
-let unsubInv       = null;
-let allInvoices    = [];
-let allTx          = [];
-let docFilter      = 'all';
-let favItems       = [{ desc: '', qty: 1, price: 0 }];
-let currentPdfBlob = null;
-let invFilter      = 'all';
-let editTxId       = null;
-let editTxType     = 'income';
-let editInvId      = null;
-let allContacts    = [];
+const INCOME_CATS = ['Prodej zboží','Prodej výrobků a služeb','Příjmy z veřejných sbírek','Přijaté peněžní dary mimo veřejné sbírky','Přijaté členské příspěvky','Dotace a příspěvky z veřejných rozpočtů','Ostatní','Průběžné položky','Kurzové rozdíly'];
+const EXPENSE_CATS = ['Dlouhodobý nehmotný a hmotný majetek','Materiál','Zboží','Služby','Mzdy','Pojistné za zaměstnance a zaměstnavatele','Ostatní osobní výdaje','Ostatní','Průběžné položky','Kurzové rozdíly'];
 
-/* ════════════════════════════════
-   AUTH
-════════════════════════════════ */
-$('btn-google-login').addEventListener('click', async () => {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch(e) { toast('Přihlášení se nezdařilo.'); }
+const VIEW_TITLES = { dashboard:'Přehled', invoices:'Faktury', documents:'Doklady', settings:'Nastavení' };
+
+let currentUser=null, orgData=null, txAccount='cash', txType='income';
+let selectedPairId=null, unsubTx=null, unsubInv=null;
+let allInvoices=[], allTx=[], allContacts=[];
+let docFilter='all', invFilter='all';
+let favItems=[{desc:'',qty:1,price:0}];
+let currentPdfBlob=null, editTxId=null, editTxType='income', editInvId=null;
+
+/* ── HELPERS ── */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('[data-view]').forEach(n=>n.classList.remove('active'));
+  $('view-'+id).classList.add('active');
+  document.querySelectorAll(`[data-view="${id}"]`).forEach(el=>el.classList.add('active'));
+  $('mobile-header-title').textContent = VIEW_TITLES[id]||id;
+}
+
+function toast(msg,dur=2800){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+function openModal(id){$(id).classList.add('open');}
+function closeModal(id){$(id).classList.remove('open');}
+
+document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.close)));
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
+document.querySelectorAll('[data-view]').forEach(item=>item.addEventListener('click',()=>showView(item.dataset.view)));
+
+function setCatOptions(type,selId='tx-category'){
+  const sel=$(selId), cats=type==='income'?INCOME_CATS:EXPENSE_CATS;
+  sel.innerHTML='<option value="">— vyber kategorii —</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+/* ── AUTH ── */
+$('btn-google-login').addEventListener('click',async()=>{
+  try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){toast('Přihlášení se nezdařilo.');}
+});
+['btn-signout-desk','btn-signout-mob'].forEach(id=>{
+  const el=$(id); if(el) el.addEventListener('click',()=>signOut(auth));
 });
 
-$('btn-signout').addEventListener('click', async () => { await signOut(auth); });
-$('btn-signout-settings').addEventListener('click', async () => { await signOut(auth); });
+onAuthStateChanged(auth,async user=>{
+  if(!user){currentUser=null;showScreen('screen-login');return;}
+  currentUser=user;
+  ['avatar-img-desk','avatar-img-mob'].forEach(id=>{const el=$(id);if(el&&user.photoURL)el.src=user.photoURL;});
+  $('sidebar-user-name').textContent=user.displayName||user.email;
 
-onAuthStateChanged(auth, async user => {
-  if (!user) { currentUser = null; showScreen('screen-login'); return; }
-  currentUser = user;
-  const img = $('avatar-img');
-  if (user.photoURL) img.src = user.photoURL;
-  $('sidebar-user-name').textContent = user.displayName || user.email;
-
-  try {
-    const allowSnap = await getDoc(doc(db, 'config', 'allowlist'));
-    if (!allowSnap.exists() || !allowSnap.data().emails.includes(user.email)) {
-      await signOut(auth);
-      showScreen('screen-login');
-      document.querySelector('.login-sub').textContent = 'Přístup odepřen.';
-      return;
+  try{
+    const snap=await getDoc(doc(db,'config','allowlist'));
+    if(!snap.exists()||!snap.data().emails.includes(user.email)){
+      await signOut(auth); showScreen('screen-login');
+      document.querySelector('.login-sub').textContent='Přístup odepřen.'; return;
     }
-  } catch(e) {
-    await signOut(auth);
-    showScreen('screen-login');
-    document.querySelector('.login-sub').textContent = 'Přístup odepřen.';
-    return;
-  }
+  }catch(e){await signOut(auth);showScreen('screen-login');return;}
 
-  const orgRef = doc(db, 'orgs', user.uid);
-  const orgSnap = await getDoc(orgRef);
-  if (!orgSnap.exists()) {
-    showScreen('screen-onboarding');
-    initOnboarding();
-  } else {
-    orgData = orgSnap.data();
-    launchApp();
-  }
+  const orgSnap=await getDoc(doc(db,'orgs',user.uid));
+  if(!orgSnap.exists()){showScreen('screen-onboarding');initOnboarding();}
+  else{orgData=orgSnap.data();launchApp();}
 });
 
-/* ════════════════════════════════
-   ONBOARDING
-════════════════════════════════ */
-let obStep = 0;
-
-function initOnboarding() {
-  obStep = 0; showObStep(0);
-  $('ob-period-from').value = `${new Date().getFullYear()}-01-01`;
-  $('ob-period-to').value   = `${new Date().getFullYear()}-12-31`;
+/* ── ONBOARDING ── */
+let obStep=0;
+function initOnboarding(){
+  obStep=0;showObStep(0);
+  $('ob-period-from').value=`${new Date().getFullYear()}-01-01`;
+  $('ob-period-to').value=`${new Date().getFullYear()}-12-31`;
 }
-
-function showObStep(n) {
-  document.querySelectorAll('.ob-step').forEach((s,i) => s.classList.toggle('active', i === n));
-  document.querySelectorAll('.ob-dot').forEach((d,i) => d.classList.toggle('done', i <= n));
-  obStep = n;
+function showObStep(n){
+  document.querySelectorAll('.ob-step').forEach((s,i)=>s.classList.toggle('active',i===n));
+  document.querySelectorAll('.ob-dot').forEach((d,i)=>d.classList.toggle('done',i<=n));
+  obStep=n;
 }
-
-$('ob-next-0').addEventListener('click', () => {
-  if (!$('ob-name').value.trim()) { toast('Zadej název organizace.'); return; }
-  if (!$('ob-ico').value.trim())  { toast('Zadej IČO.'); return; }
+$('ob-next-0').addEventListener('click',()=>{
+  if(!$('ob-name').value.trim()){toast('Zadej název organizace.');return;}
+  if(!$('ob-ico').value.trim()){toast('Zadej IČO.');return;}
   showObStep(1);
 });
-$('ob-back-1').addEventListener('click', () => showObStep(0));
-$('ob-next-1').addEventListener('click', () => {
-  if (!$('ob-period-from').value || !$('ob-period-to').value) { toast('Zadej účetní období.'); return; }
-  $('ob-summary').innerHTML = `
+$('ob-back-1').addEventListener('click',()=>showObStep(0));
+$('ob-next-1').addEventListener('click',()=>{
+  if(!$('ob-period-from').value||!$('ob-period-to').value){toast('Zadej účetní období.');return;}
+  $('ob-summary').innerHTML=`
     <span style="color:var(--muted)">Organizace:</span> <strong>${$('ob-name').value}</strong><br>
     <span style="color:var(--muted)">IČO:</span> ${$('ob-ico').value}<br>
-    <span style="color:var(--muted)">Adresa:</span> ${$('ob-address').value || '–'}<br>
+    <span style="color:var(--muted)">Adresa:</span> ${$('ob-address').value||'–'}<br>
     <span style="color:var(--muted)">Účetní období:</span> ${fmtDate($('ob-period-from').value)} – ${fmtDate($('ob-period-to').value)}<br>
-    <span style="color:var(--muted)">Pokladna:</span> ${fmt($('ob-cash-init').value || 0)}<br>
-    <span style="color:var(--muted)">Bankovní účet:</span> ${fmt($('ob-bank-init').value || 0)}
+    <span style="color:var(--muted)">Pokladna:</span> ${fmt($('ob-cash-init').value||0)}<br>
+    <span style="color:var(--muted)">Banka:</span> ${fmt($('ob-bank-init').value||0)}
   `;
   showObStep(2);
 });
-$('ob-back-2').addEventListener('click', () => showObStep(1));
-$('ob-finish').addEventListener('click', async () => {
-  $('ob-finish').disabled = true;
-  const data = {
-    name: $('ob-name').value.trim(), ico: $('ob-ico').value.trim(),
-    dic: $('ob-dic').value.trim(), address: $('ob-address').value.trim(),
-    periodFrom: $('ob-period-from').value, periodTo: $('ob-period-to').value,
-    cashInit: parseFloat($('ob-cash-init').value) || 0,
-    bankInit: parseFloat($('ob-bank-init').value) || 0,
-    createdAt: serverTimestamp(),
+$('ob-back-2').addEventListener('click',()=>showObStep(1));
+$('ob-finish').addEventListener('click',async()=>{
+  $('ob-finish').disabled=true;
+  const data={
+    name:$('ob-name').value.trim(),ico:$('ob-ico').value.trim(),
+    dic:$('ob-dic').value.trim(),address:$('ob-address').value.trim(),
+    periodFrom:$('ob-period-from').value,periodTo:$('ob-period-to').value,
+    cashInit:parseFloat($('ob-cash-init').value)||0,
+    bankInit:parseFloat($('ob-bank-init').value)||0,
+    createdAt:serverTimestamp(),
   };
-  try {
-    await setDoc(doc(db, 'orgs', currentUser.uid), data);
-    orgData = data; launchApp();
-  } catch(e) { toast('Chyba při ukládání.'); $('ob-finish').disabled = false; }
+  try{await setDoc(doc(db,'orgs',currentUser.uid),data);orgData=data;launchApp();}
+  catch(e){toast('Chyba při ukládání.');$('ob-finish').disabled=false;}
 });
 
-/* ════════════════════════════════
-   APP LAUNCH
-════════════════════════════════ */
-function launchApp() {
+/* ── LAUNCH ── */
+function launchApp(){
   showScreen('screen-app');
+  $('sidebar').style.display='';
   showView('dashboard');
-  $('sidebar-org-name').textContent = orgData.name || '';
-  $('app-header-period').textContent = `${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}`;
-  $('settings-info').innerHTML = `
-    <div class="settings-row"><span class="settings-row-label">Organizace</span><span class="settings-row-value">${orgData.name}</span></div>
-    <div class="settings-row"><span class="settings-row-label">IČO</span><span class="settings-row-value">${orgData.ico}</span></div>
-    <div class="settings-row"><span class="settings-row-label">Adresa</span><span class="settings-row-value">${orgData.address || '–'}</span></div>
-    <div class="settings-row"><span class="settings-row-label">Účetní období</span><span class="settings-row-value">${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}</span></div>
+  $('sidebar-org-name').textContent=orgData.name||'';
+  $('mobile-header-sub').textContent=`${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}`;
+  $('dash-period').textContent=`${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}`;
+  $('settings-info').innerHTML=`
+    <div class="settings-row"><span class="settings-label">Organizace</span><span class="settings-value">${orgData.name}</span></div>
+    <div class="settings-row"><span class="settings-label">IČO</span><span class="settings-value">${orgData.ico}</span></div>
+    <div class="settings-row"><span class="settings-label">Adresa</span><span class="settings-value">${orgData.address||'–'}</span></div>
+    <div class="settings-row"><span class="settings-label">Účetní období</span><span class="settings-value">${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}</span></div>
   `;
-  subscribeContacts();
-  subscribeTransactions();
-  subscribeInvoices();
+  subscribeContacts();subscribeTransactions();subscribeInvoices();
 }
 
-/* ════════════════════════════════
-   NAVIGATION
-════════════════════════════════ */
-document.querySelectorAll('[data-view]').forEach(item => {
-  item.addEventListener('click', () => showView(item.dataset.view));
-});
+/* ── CONTACTS ── */
+function subscribeContacts(){
+  const q=query(collection(db,'orgs',currentUser.uid,'contacts'),orderBy('name','asc'));
+  onSnapshot(q,snap=>{allContacts=snap.docs.map(d=>({id:d.id,...d.data()}));renderContacts();});
+}
+function renderContacts(){
+  const wrap=$('settings-contacts');if(!wrap)return;
+  if(!allContacts.length){wrap.innerHTML='<div style="padding:14px 16px;color:var(--muted);font-size:14px;">Zatím žádné kontakty.</div>';return;}
+  wrap.innerHTML=allContacts.map((c,i)=>`
+    <div class="settings-row" ${i===allContacts.length-1?'style="border-bottom:none"':''}>
+      <span style="font-size:14px;font-weight:500;">${escHtml(c.name)}</span>
+      <span style="font-size:12px;color:var(--muted);">${c.ico||'–'}${c.address?' · '+escHtml(c.address):''}</span>
+    </div>`).join('');
+}
+async function saveContactIfNew(vendor,ico,address=''){
+  if(!vendor)return;
+  const col=collection(db,'orgs',currentUser.uid,'contacts');
+  const field=ico?'ico':'name', value=ico||vendor;
+  const snap=await getDocs(query(col,where(field,'==',value)));
+  if(snap.empty)await addDoc(col,{name:vendor,ico:ico||'',address:address||'',createdAt:serverTimestamp()});
+}
 
-/* ════════════════════════════════
-   CONTACTS
-════════════════════════════════ */
-function subscribeContacts() {
-  const col = collection(db, 'orgs', currentUser.uid, 'contacts');
-  const q = query(col, orderBy('name', 'asc'));
-  onSnapshot(q, snap => {
-    allContacts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderContacts();
+/* ── TRANSACTIONS ── */
+function subscribeTransactions(){
+  if(unsubTx)unsubTx();
+  const q=query(collection(db,'orgs',currentUser.uid,'transactions'),orderBy('date','desc'));
+  unsubTx=onSnapshot(q,snap=>{
+    allTx=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderLedger('cash');renderLedger('bank');renderStats();renderDocuments();
   });
 }
 
-function renderContacts() {
-  const wrap = $('settings-contacts');
-  if (!wrap) return;
-  if (!allContacts.length) { wrap.innerHTML = '<div style="padding:14px 16px;color:var(--muted);font-size:13px;">Zatím žádné kontakty.</div>'; return; }
-  wrap.innerHTML = allContacts.map((c, i) => `
-    <div class="settings-row" style="${i === allContacts.length-1 ? 'border-bottom:none' : ''}">
-      <span style="font-size:13px;font-weight:500;">${escHtml(c.name)}</span>
-      <span style="font-size:12px;color:var(--muted);">${c.ico || '–'}${c.address ? ' · ' + escHtml(c.address) : ''}</span>
-    </div>
-  `).join('');
-}
-
-async function saveContactIfNew(vendor, ico, address = '') {
-  if (!vendor) return;
-  const contactsCol = collection(db, 'orgs', currentUser.uid, 'contacts');
-  const field = ico ? 'ico' : 'name';
-  const value = ico || vendor;
-  const q = query(contactsCol, where(field, '==', value));
-  const snap = await getDocs(q);
-  if (snap.empty) {
-    await addDoc(contactsCol, { name: vendor, ico: ico || '', address: address || '', createdAt: serverTimestamp() });
-  }
-}
-
-/* ════════════════════════════════
-   TRANSACTIONS
-════════════════════════════════ */
-function subscribeTransactions() {
-  if (unsubTx) unsubTx();
-  const txCol = collection(db, 'orgs', currentUser.uid, 'transactions');
-  const q = query(txCol, orderBy('date', 'desc'));
-  unsubTx = onSnapshot(q, snap => {
-    allTx = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderLedger('cash'); renderLedger('bank');
-    renderStats(); renderDocuments();
-  });
-}
-
-function renderLedger(account) {
-  const list = allTx.filter(t => t.account === account);
-  const init = account === 'cash' ? (orgData.cashInit||0) : (orgData.bankInit||0);
-  const balance = list.reduce((sum, t) => sum + (t.type === 'income' ? t.amount : -t.amount), init);
-  $('balance-' + account).textContent = fmt(balance);
-  $('balance-' + account).style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
-
-  const wrap = $('txlist-' + account);
-  if (!list.length) { wrap.innerHTML = '<div class="ledger-empty">Žádné záznamy</div>'; return; }
-
-  wrap.innerHTML = list.slice(0,30).map(t => `
+function renderLedger(account){
+  const list=allTx.filter(t=>t.account===account);
+  const init=account==='cash'?(orgData.cashInit||0):(orgData.bankInit||0);
+  const bal=list.reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),init);
+  $('balance-'+account).textContent=fmt(bal);
+  $('balance-'+account).style.color=bal>=0?'var(--income)':'var(--expense)';
+  const wrap=$('txlist-'+account);
+  if(!list.length){wrap.innerHTML='<div class="ledger-empty">Žádné záznamy</div>';return;}
+  wrap.innerHTML=list.slice(0,30).map(t=>`
     <div class="tx-row" data-id="${t.id}">
-      <div class="tx-icon ${t.type === 'income' ? 'income-bg' : 'expense-bg'}">${t.type === 'income' ? '↑' : '↓'}</div>
+      <div class="tx-icon ${t.type==='income'?'income-bg':'expense-bg'}">${t.type==='income'?'↑':'↓'}</div>
       <div class="tx-info">
         <div class="tx-desc">${escHtml(t.desc)}</div>
-        <div class="tx-meta">${t.docNumber ? t.docNumber + ' · ' : ''}${fmtDate(t.date)}${t.category ? ' · ' + t.category : ''}${t.pairedInvoice ? ' · ✓ spárováno' : ''}</div>
+        <div class="tx-meta">${t.docNumber?t.docNumber+' · ':''}${fmtDate(t.date)}${t.category?' · '+t.category:''}${t.pairedInvoice?' · ✓':''}</div>
       </div>
-      <div class="tx-amount ${t.type === 'income' ? 'income-color' : 'expense-color'}">${t.type === 'income' ? '+' : '−'}${fmt(t.amount)}</div>
-    </div>
-  `).join('');
+      <div class="tx-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div>
+    </div>`).join('');
 }
 
-function renderStats() {
-  const income  = allTx.filter(t => t.type === 'income').reduce((s,t) => s + t.amount, 0);
-  const expense = allTx.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
-  const result  = income - expense;
-  $('stat-income').textContent  = fmt(income);
-  $('stat-expense').textContent = fmt(expense);
-  $('stat-result').textContent  = fmt(result);
-  $('stat-result').className    = 'stat-value ' + (result >= 0 ? 'positive' : 'negative');
+function renderStats(){
+  const inc=allTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=allTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const res=inc-exp;
+  $('stat-income').textContent=fmt(inc);$('stat-expense').textContent=fmt(exp);
+  $('stat-result').textContent=fmt(res);
+  $('stat-result').className='stat-value '+(res>=0?'positive':'negative');
 }
 
-function openTxEditModal(tx) {
-  editTxId = tx.id; editTxType = tx.type;
-  $('tx-edit-docnumber').value = tx.docNumber || '';
-  $('tx-edit-desc').value   = tx.desc || '';
-  $('tx-edit-amount').value = tx.amount || '';
-  $('tx-edit-date').value   = tx.date || '';
-  $('tx-edit-party').value  = tx.party || '';
-  const incBtn = $('tx-edit-type-income'), expBtn = $('tx-edit-type-expense');
-  if (tx.type === 'income') { incBtn.classList.add('active-income'); expBtn.classList.remove('active-expense'); }
-  else { expBtn.classList.add('active-expense'); incBtn.classList.remove('active-income'); }
-  const cats = tx.type === 'income' ? INCOME_CATS : EXPENSE_CATS;
-  $('tx-edit-category').innerHTML = '<option value="">— vyber —</option>' +
-    cats.map(c => `<option value="${c}" ${c === tx.category ? 'selected' : ''}>${c}</option>`).join('');
+function openTxEditModal(tx){
+  editTxId=tx.id;editTxType=tx.type;
+  $('tx-edit-docnumber').value=tx.docNumber||'';
+  $('tx-edit-desc').value=tx.desc||'';$('tx-edit-amount').value=tx.amount||'';
+  $('tx-edit-date').value=tx.date||'';$('tx-edit-party').value=tx.party||'';
+  const iB=$('tx-edit-type-income'),eB=$('tx-edit-type-expense');
+  if(tx.type==='income'){iB.classList.add('active-income');eB.classList.remove('active-expense');}
+  else{eB.classList.add('active-expense');iB.classList.remove('active-income');}
+  $('tx-edit-category').innerHTML='<option value="">— vyber —</option>'+(tx.type==='income'?INCOME_CATS:EXPENSE_CATS).map(c=>`<option value="${c}"${c===tx.category?' selected':''}>${c}</option>`).join('');
   openModal('modal-tx-edit');
 }
+document.addEventListener('click',e=>{const r=e.target.closest('.tx-row');if(!r)return;const t=allTx.find(t=>t.id===r.dataset.id);if(t)openTxEditModal(t);});
 
-document.addEventListener('click', e => {
-  const row = e.target.closest('.tx-row');
-  if (!row) return;
-  const tx = allTx.find(t => t.id === row.dataset.id);
-  if (tx) openTxEditModal(tx);
+$('tx-edit-type-income').addEventListener('click',()=>{editTxType='income';$('tx-edit-type-income').classList.add('active-income');$('tx-edit-type-expense').classList.remove('active-expense');setCatOptions('income','tx-edit-category');});
+$('tx-edit-type-expense').addEventListener('click',()=>{editTxType='expense';$('tx-edit-type-expense').classList.add('active-expense');$('tx-edit-type-income').classList.remove('active-income');setCatOptions('expense','tx-edit-category');});
+
+$('btn-tx-update').addEventListener('click',async()=>{
+  const desc=$('tx-edit-desc').value.trim(),amount=parseFloat($('tx-edit-amount').value),date=$('tx-edit-date').value;
+  if(!desc){toast('Zadej popis.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!date){toast('Zadej datum.');return;}
+  $('btn-tx-update').disabled=true;
+  try{await updateDoc(doc(db,'orgs',currentUser.uid,'transactions',editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),docNumber:$('tx-edit-docnumber').value.trim()});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
+  catch(e){toast('Chyba při ukládání.');}
+  $('btn-tx-update').disabled=false;
+});
+$('btn-tx-delete').addEventListener('click',async()=>{
+  if(!confirm('Opravdu smazat?'))return;
+  try{await deleteDoc(doc(db,'orgs',currentUser.uid,'transactions',editTxId));closeModal('modal-tx-edit');toast('Záznam smazán.');}
+  catch(e){toast('Chyba.');}
 });
 
-$('tx-edit-type-income').addEventListener('click', () => {
-  editTxType = 'income';
-  $('tx-edit-type-income').classList.add('active-income');
-  $('tx-edit-type-expense').classList.remove('active-expense');
-  setCategoryOptions('income', 'tx-edit-category');
-});
-$('tx-edit-type-expense').addEventListener('click', () => {
-  editTxType = 'expense';
-  $('tx-edit-type-expense').classList.add('active-expense');
-  $('tx-edit-type-income').classList.remove('active-income');
-  setCategoryOptions('expense', 'tx-edit-category');
-});
-
-$('btn-tx-update').addEventListener('click', async () => {
-  const desc = $('tx-edit-desc').value.trim(), amount = parseFloat($('tx-edit-amount').value), date = $('tx-edit-date').value;
-  if (!desc) { toast('Zadej popis.'); return; }
-  if (!amount || amount <= 0) { toast('Zadej částku.'); return; }
-  if (!date) { toast('Zadej datum.'); return; }
-  $('btn-tx-update').disabled = true;
-  try {
-    await updateDoc(doc(db, 'orgs', currentUser.uid, 'transactions', editTxId), {
-      desc, amount, date, type: editTxType,
-      category: $('tx-edit-category').value,
-      party: $('tx-edit-party').value.trim(),
-      docNumber: $('tx-edit-docnumber').value.trim(),
-    });
-    closeModal('modal-tx-edit'); toast('Záznam upraven ✓');
-  } catch(e) { toast('Chyba při ukládání.'); }
-  $('btn-tx-update').disabled = false;
-});
-
-$('btn-tx-delete').addEventListener('click', async () => {
-  if (!confirm('Opravdu smazat tento záznam?')) return;
-  try {
-    await deleteDoc(doc(db, 'orgs', currentUser.uid, 'transactions', editTxId));
-    closeModal('modal-tx-edit'); toast('Záznam smazán.');
-  } catch(e) { toast('Chyba při mazání.'); }
-});
-
-/* ════════════════════════════════
-   INVOICES
-════════════════════════════════ */
-function subscribeInvoices() {
-  if (unsubInv) unsubInv();
-  const invCol = collection(db, 'orgs', currentUser.uid, 'invoices');
-  const q = query(invCol, orderBy('dueDate', 'asc'));
-  unsubInv = onSnapshot(q, snap => {
-    allInvoices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderInvoices();
-  });
+/* ── INVOICES ── */
+function subscribeInvoices(){
+  if(unsubInv)unsubInv();
+  const q=query(collection(db,'orgs',currentUser.uid,'invoices'),orderBy('dueDate','asc'));
+  unsubInv=onSnapshot(q,snap=>{allInvoices=snap.docs.map(d=>({id:d.id,...d.data()}));renderInvoices();});
 }
-
-function invoiceStatus(inv) {
-  if (inv.paid) return 'paid';
-  const now = new Date(); now.setHours(0,0,0,0);
-  const due = new Date(inv.dueDate);
-  if (due < now) return 'overdue';
-  const soon = new Date(now); soon.setDate(soon.getDate() + 7);
-  if (due <= soon) return 'due';
-  return 'unpaid';
+function invoiceStatus(inv){
+  if(inv.paid)return'paid';
+  const now=new Date();now.setHours(0,0,0,0);const due=new Date(inv.dueDate);
+  if(due<now)return'overdue';
+  const soon=new Date(now);soon.setDate(soon.getDate()+7);
+  if(due<=soon)return'due';return'unpaid';
 }
-
-function renderInvoices() {
-  const wrap = $('invoice-list-wrap');
-  let list = invFilter === 'all' ? allInvoices : allInvoices.filter(i => i.invType === invFilter);
-  if (!list.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">Žádné faktury</div>'; return; }
-  const statusLabel = { paid: 'Uhrazena', unpaid: 'Nezaplacena', due: 'Brzy splatná', overdue: 'Po splatnosti' };
-  const badgeClass  = { paid: 'badge-paid', unpaid: 'badge-unpaid', due: 'badge-due', overdue: 'badge-unpaid' };
-  const dotClass    = { paid: 'paid', unpaid: 'unpaid', due: 'due', overdue: 'unpaid' };
-  wrap.innerHTML = '<div class="invoice-list">' + list.map(inv => {
-    const st = invoiceStatus(inv);
-    return `
-      <div class="invoice-card" data-inv-id="${inv.id}">
-        <div class="inv-status ${dotClass[st]}"></div>
-        <div class="inv-info">
-          <div class="inv-vendor">${escHtml(inv.vendor)} <span class="badge" style="background:var(--bg);color:var(--muted);font-size:9px;">${inv.invType === 'fav' ? 'FAV' : 'FAP'}</span></div>
-          <div class="inv-meta">${inv.invNumber ? inv.invNumber + ' · ' : ''}${fmtDate(inv.date)}${inv.desc ? ' · ' + escHtml(inv.desc) : ''}</div>
-        </div>
-        <div class="inv-right">
-          <div class="inv-amount">${fmt(inv.amount)}</div>
-          <div class="inv-due"><span class="badge ${badgeClass[st]}">${statusLabel[st]}</span></div>
-          <div style="display:flex;gap:8px;margin-top:4px;justify-content:flex-end;">
-            ${inv.url ? `<a href="${escHtml(inv.url)}" target="_blank" style="color:var(--accent);font-size:11px;font-weight:600;">PDF ↗</a>` : ''}
-            ${inv.invType === 'fav' ? `<a href="#" class="btn-pdf-fav" data-inv-id="${inv.id}" style="color:var(--accent);font-size:11px;font-weight:600;">Stáhnout PDF</a>` : ''}
-          </div>
+function renderInvoices(){
+  const wrap=$('invoice-list-wrap');
+  const list=invFilter==='all'?allInvoices:allInvoices.filter(i=>i.invType===invFilter);
+  if(!list.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné faktury</div>';return;}
+  const sL={paid:'Uhrazena',unpaid:'Nezaplacena',due:'Brzy splatná',overdue:'Po splatnosti'};
+  const bC={paid:'badge-paid',unpaid:'badge-unpaid',due:'badge-due',overdue:'badge-unpaid'};
+  const dC={paid:'paid',unpaid:'unpaid',due:'due',overdue:'unpaid'};
+  wrap.innerHTML='<div class="invoice-list">'+list.map(inv=>{
+    const st=invoiceStatus(inv);
+    return`<div class="invoice-card" data-inv-id="${inv.id}">
+      <div class="inv-status ${dC[st]}"></div>
+      <div class="inv-info">
+        <div class="inv-vendor">${escHtml(inv.vendor)} <span class="badge" style="background:var(--bg);color:var(--muted);font-size:9px;">${inv.invType==='fav'?'FAV':'FAP'}</span></div>
+        <div class="inv-meta">${inv.invNumber?inv.invNumber+' · ':''}${fmtDate(inv.date)}${inv.desc?' · '+escHtml(inv.desc):''}</div>
+      </div>
+      <div class="inv-right">
+        <div class="inv-amount">${fmt(inv.amount)}</div>
+        <div class="inv-due"><span class="badge ${bC[st]}">${sL[st]}</span></div>
+        <div style="display:flex;gap:8px;margin-top:4px;justify-content:flex-end;">
+          ${inv.url?`<a href="${escHtml(inv.url)}" target="_blank" style="color:var(--accent);font-size:11px;font-weight:600;text-decoration:none;">PDF ↗</a>`:''}
+          ${inv.invType==='fav'?`<a href="#" class="btn-pdf-fav" data-inv-id="${inv.id}" style="color:var(--accent);font-size:11px;font-weight:600;text-decoration:none;">Stáhnout PDF</a>`:''}
         </div>
       </div>
-    `;
-  }).join('') + '</div>';
-
-  document.querySelectorAll('.btn-pdf-fav').forEach(btn => {
-    btn.addEventListener('click', async e => {
-      e.stopPropagation(); e.preventDefault();
-      const inv = allInvoices.find(i => i.id === btn.dataset.invId);
-      if (inv) await generateInvoicePDF(inv);
-    });
-  });
+    </div>`;
+  }).join('')+'</div>';
+  document.querySelectorAll('.btn-pdf-fav').forEach(btn=>btn.addEventListener('click',async e=>{e.stopPropagation();e.preventDefault();const inv=allInvoices.find(i=>i.id===btn.dataset.invId);if(inv)await generateInvoicePDF(inv);}));
 }
-
-document.addEventListener('click', e => {
-  const card = e.target.closest('.invoice-card');
-  if (!card || e.target.closest('a')) return;
-  const inv = allInvoices.find(i => i.id === card.dataset.invId);
-  if (inv) openInvEditModal(inv);
-});
-
-function openInvEditModal(inv) {
-  editInvId = inv.id;
-  $('inv-edit-ico').value    = inv.ico || '';
-  $('inv-edit-vendor').value = inv.vendor || '';
-  $('inv-edit-number').value = inv.origNumber || inv.number || '';
-  $('inv-edit-amount').value = inv.amount || '';
-  $('inv-edit-date').value   = inv.date || '';
-  $('inv-edit-due').value    = inv.dueDate || '';
-  $('inv-edit-url').value    = inv.url || '';
-  $('inv-edit-desc').value   = inv.desc || '';
+document.addEventListener('click',e=>{const c=e.target.closest('.invoice-card');if(!c||e.target.closest('a'))return;const inv=allInvoices.find(i=>i.id===c.dataset.invId);if(inv)openInvEditModal(inv);});
+function openInvEditModal(inv){
+  editInvId=inv.id;
+  $('inv-edit-ico').value=inv.ico||'';$('inv-edit-vendor').value=inv.vendor||'';
+  $('inv-edit-number').value=inv.origNumber||inv.number||'';$('inv-edit-amount').value=inv.amount||'';
+  $('inv-edit-date').value=inv.date||'';$('inv-edit-due').value=inv.dueDate||'';
+  $('inv-edit-url').value=inv.url||'';$('inv-edit-desc').value=inv.desc||'';
   openModal('modal-invoice-edit');
 }
+document.querySelectorAll('[data-inv-filter]').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('[data-inv-filter]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');invFilter=btn.dataset.invFilter;renderInvoices();
+}));
 
-document.querySelectorAll('[data-inv-filter]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('[data-inv-filter]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    invFilter = btn.dataset.invFilter;
-    renderInvoices();
-  });
-});
-
-/* ════════════════════════════════
-   DOCUMENTS VIEW
-════════════════════════════════ */
-function renderDocuments() {
-  const wrap = $('doc-list-wrap');
-  let list = [...allTx];
-  if (docFilter !== 'all') {
-    list = list.filter(t => {
-      if (docFilter === 'PPD') return t.account === 'cash' && t.type === 'income';
-      if (docFilter === 'VPD') return t.account === 'cash' && t.type === 'expense';
-      if (docFilter === 'BANK') return t.account === 'bank';
-      return true;
-    });
-  }
-  list.sort((a,b) => (b.date||'').localeCompare(a.date||''));
-  if (!list.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:40px 0;">Žádné doklady</div>'; return; }
-  wrap.innerHTML = '<div class="doc-list">' + list.map(t => {
-    const docType = t.account === 'bank' ? 'BANK' : (t.type === 'income' ? 'PPD' : 'VPD');
-    return `
-      <div class="doc-row">
-        <div class="doc-type">${docType}</div>
-        <div style="font-size:11px;color:var(--muted);white-space:nowrap;">${t.docNumber || '–'}</div>
-        <div class="doc-desc">${escHtml(t.desc)}</div>
-        <div class="doc-date">${fmtDate(t.date)}</div>
-        <div class="doc-amount ${t.type === 'income' ? 'income-color' : 'expense-color'}">${t.type === 'income' ? '+' : '−'}${fmt(t.amount)}</div>
-      </div>
-    `;
-  }).join('') + '</div>';
+/* ── DOCUMENTS ── */
+function renderDocuments(){
+  const wrap=$('doc-list-wrap');
+  let list=[...allTx];
+  if(docFilter!=='all')list=list.filter(t=>{if(docFilter==='PPD')return t.account==='cash'&&t.type==='income';if(docFilter==='VPD')return t.account==='cash'&&t.type==='expense';if(docFilter==='BANK')return t.account==='bank';return true;});
+  list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  if(!list.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné doklady</div>';return;}
+  wrap.innerHTML='<div class="doc-list">'+list.map(t=>{
+    const dt=t.account==='bank'?'BANK':(t.type==='income'?'PPD':'VPD');
+    return`<div class="doc-row"><div class="doc-type">${dt}</div><div class="doc-num">${t.docNumber||'–'}</div><div class="doc-desc">${escHtml(t.desc)}</div><div class="doc-date">${fmtDate(t.date)}</div><div class="doc-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div></div>`;
+  }).join('')+'</div>';
 }
+document.querySelectorAll('.filter-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');docFilter=btn.dataset.filter;renderDocuments();
+}));
 
-document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    docFilter = btn.dataset.filter;
-    renderDocuments();
-  });
-});
-
-/* ════════════════════════════════
-   ADD TRANSACTION MODAL
-════════════════════════════════ */
-document.querySelectorAll('.btn-add').forEach(btn => {
-  btn.addEventListener('click', () => {
-    txAccount = btn.dataset.account; txType = 'income'; selectedPairId = null;
-    openTxModal();
-  });
-});
-
-function openTxModal() {
-  $('modal-tx-title').textContent = txAccount === 'cash' ? 'Nový záznam – Pokladna' : 'Nový záznam – Banka';
-  $('tx-desc').value = ''; $('tx-amount').value = '';
-  $('tx-date').value = today(); $('tx-party').value = '';
+/* ── ADD TX MODAL ── */
+document.querySelectorAll('.btn-add').forEach(btn=>btn.addEventListener('click',()=>{txAccount=btn.dataset.account;txType='income';selectedPairId=null;openTxModal();}));
+function openTxModal(){
+  $('modal-tx-title').textContent=txAccount==='cash'?'Nový záznam – Pokladna':'Nový záznam – Banka';
+  $('tx-desc').value='';$('tx-amount').value='';$('tx-date').value=today();$('tx-party').value='';
   $('ai-hint-box').classList.remove('visible');
-  $('tx-type-income').classList.add('active-income');
-  $('tx-type-expense').classList.remove('active-expense');
-  setCategoryOptions('income'); txType = 'income';
-  renderPairList(); openModal('modal-tx');
+  $('tx-type-income').classList.add('active-income');$('tx-type-expense').classList.remove('active-expense');
+  setCatOptions('income');txType='income';renderPairList();openModal('modal-tx');
 }
+$('tx-type-income').addEventListener('click',()=>{txType='income';$('tx-type-income').classList.add('active-income');$('tx-type-expense').classList.remove('active-expense');setCatOptions('income');$('tx-pair-wrap').style.display='none';selectedPairId=null;triggerAiHint();});
+$('tx-type-expense').addEventListener('click',()=>{txType='expense';$('tx-type-expense').classList.add('active-expense');$('tx-type-income').classList.remove('active-income');setCatOptions('expense');const u=allInvoices.filter(i=>!i.paid);$('tx-pair-wrap').style.display=u.length?'block':'none';renderPairList();triggerAiHint();});
 
-$('tx-type-income').addEventListener('click', () => {
-  txType = 'income';
-  $('tx-type-income').classList.add('active-income');
-  $('tx-type-expense').classList.remove('active-expense');
-  setCategoryOptions('income');
-  $('tx-pair-wrap').style.display = 'none';
-  selectedPairId = null; triggerAiHint();
-});
-$('tx-type-expense').addEventListener('click', () => {
-  txType = 'expense';
-  $('tx-type-expense').classList.add('active-expense');
-  $('tx-type-income').classList.remove('active-income');
-  setCategoryOptions('expense');
-  const unpaid = allInvoices.filter(i => !i.paid);
-  $('tx-pair-wrap').style.display = unpaid.length ? 'block' : 'none';
-  renderPairList(); triggerAiHint();
-});
-
-function renderPairList() {
-  const unpaid = allInvoices.filter(i => !i.paid);
-  const wrap = $('tx-pair-list');
-  if (!unpaid.length) { wrap.innerHTML = ''; return; }
-  wrap.innerHTML = unpaid.map(inv => `
-    <div class="pair-item ${selectedPairId === inv.id ? 'selected' : ''}" data-pair-id="${inv.id}">
-      <div class="pair-item-vendor">${escHtml(inv.vendor)}${inv.invNumber ? ' – ' + inv.invNumber : ''}</div>
-      <div>${fmt(inv.amount)}</div>
-      <span class="badge badge-unpaid">nezaplacena</span>
-    </div>
-  `).join('');
-  wrap.querySelectorAll('.pair-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const id = item.dataset.pairId;
-      selectedPairId = selectedPairId === id ? null : id;
-      if (selectedPairId) {
-        const inv = allInvoices.find(i => i.id === selectedPairId);
-        if (inv) {
-          $('tx-amount').value = inv.amount;
-          $('tx-desc').value   = $('tx-desc').value || ('Úhrada FA ' + (inv.invNumber || inv.vendor));
-          $('tx-party').value  = $('tx-party').value || inv.vendor;
-        }
-      }
-      renderPairList();
-    });
-  });
+function renderPairList(){
+  const unpaid=allInvoices.filter(i=>!i.paid),wrap=$('tx-pair-list');
+  if(!unpaid.length){wrap.innerHTML='';return;}
+  wrap.innerHTML=unpaid.map(inv=>`<div class="pair-item${selectedPairId===inv.id?' selected':''}" data-pair-id="${inv.id}"><div class="pair-item-vendor">${escHtml(inv.vendor)}${inv.invNumber?' – '+inv.invNumber:''}</div><div>${fmt(inv.amount)}</div><span class="badge badge-unpaid">nezaplacena</span></div>`).join('');
+  wrap.querySelectorAll('.pair-item').forEach(item=>item.addEventListener('click',()=>{
+    const id=item.dataset.pairId;selectedPairId=selectedPairId===id?null:id;
+    if(selectedPairId){const inv=allInvoices.find(i=>i.id===selectedPairId);if(inv){$('tx-amount').value=inv.amount;$('tx-desc').value=$('tx-desc').value||'Úhrada FA '+(inv.invNumber||inv.vendor);$('tx-party').value=$('tx-party').value||inv.vendor;}}
+    renderPairList();
+  }));
 }
-
-$('tx-desc').addEventListener('blur', () => {
-  if ($('tx-desc').value.trim().length > 4) triggerAiHint();
-});
-
-async function triggerAiHint() {
-  const desc = $('tx-desc').value.trim();
-  if (!desc) return;
-  const box = $('ai-hint-box');
-  box.classList.add('visible');
-  $('ai-hint-text').innerHTML = '<div class="ai-loading"><div class="spinner"></div> Načítám radu…</div>';
-  try {
-    const cats = txType === 'income' ? INCOME_CATS : EXPENSE_CATS;
-    const prompt = `Jsi asistent pro jednoduché účetnictví neziskového spolku (z. s.) v České republice dle vyhlášky č. 325/2015 Sb. Účetní rok 2026.\n\nTransakce: "${desc}"\nTyp: ${txType === 'income' ? 'příjem' : 'výdaj'}\nDostupné kategorie: ${cats.join(', ')}\n\nOdpověz stručně (max 3 věty): Doporučená kategorie a krátké vysvětlení proč.`;
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
-    });
-    const data = await res.json();
-    $('ai-hint-text').textContent = data.content?.find(b => b.type === 'text')?.text || 'Nepodařilo se načíst radu.';
-  } catch(e) { $('ai-hint-text').textContent = 'Radu se nepodařilo načíst.'; }
+$('tx-desc').addEventListener('blur',()=>{if($('tx-desc').value.trim().length>4)triggerAiHint();});
+async function triggerAiHint(){
+  const desc=$('tx-desc').value.trim();if(!desc)return;
+  const box=$('ai-hint-box');box.classList.add('visible');
+  $('ai-hint-text').innerHTML='<div class="ai-loading"><div class="spinner"></div> Načítám radu…</div>';
+  try{
+    const cats=txType==='income'?INCOME_CATS:EXPENSE_CATS;
+    const prompt=`Jsi asistent pro jednoduché účetnictví neziskového spolku (z. s.) v České republice dle vyhlášky č. 325/2015 Sb. Účetní rok 2026.\n\nTransakce: "${desc}"\nTyp: ${txType==='income'?'příjem':'výdaj'}\nDostupné kategorie: ${cats.join(', ')}\n\nOdpověz stručně (max 3 věty): Doporučená kategorie a krátké vysvětlení proč.`;
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    $('ai-hint-text').textContent=data.content?.find(b=>b.type==='text')?.text||'Nepodařilo se načíst radu.';
+  }catch(e){$('ai-hint-text').textContent='Radu se nepodařilo načíst.';}
 }
-
-$('btn-tx-save').addEventListener('click', async () => {
-  const desc = $('tx-desc').value.trim(), amount = parseFloat($('tx-amount').value), date = $('tx-date').value;
-  if (!desc) { toast('Zadej popis.'); return; }
-  if (!amount || amount <= 0) { toast('Zadej částku.'); return; }
-  if (!date) { toast('Zadej datum.'); return; }
-  $('btn-tx-save').disabled = true;
-  try {
-    const docNumber = await generateDocNumber(txAccount);
-    await addDoc(collection(db, 'orgs', currentUser.uid, 'transactions'), {
-      desc, amount, date, account: txAccount, type: txType,
-      category: $('tx-category').value,
-      party: $('tx-party').value.trim(),
-      pairedInvoice: selectedPairId || null,
-      docNumber, createdAt: serverTimestamp(),
-    });
-    if (selectedPairId) {
-      await updateDoc(doc(db, 'orgs', currentUser.uid, 'invoices', selectedPairId), { paid: true, paidDate: date });
-    }
-    closeModal('modal-tx'); toast('Záznam uložen ✓');
-  } catch(e) { toast('Chyba při ukládání.'); }
-  $('btn-tx-save').disabled = false;
+$('btn-tx-save').addEventListener('click',async()=>{
+  const desc=$('tx-desc').value.trim(),amount=parseFloat($('tx-amount').value),date=$('tx-date').value;
+  if(!desc){toast('Zadej popis.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!date){toast('Zadej datum.');return;}
+  $('btn-tx-save').disabled=true;
+  try{
+    const docNumber=await generateDocNumber(txAccount);
+    await addDoc(collection(db,'orgs',currentUser.uid,'transactions'),{desc,amount,date,account:txAccount,type:txType,category:$('tx-category').value,party:$('tx-party').value.trim(),pairedInvoice:selectedPairId||null,docNumber,createdAt:serverTimestamp()});
+    if(selectedPairId)await updateDoc(doc(db,'orgs',currentUser.uid,'invoices',selectedPairId),{paid:true,paidDate:date});
+    closeModal('modal-tx');toast('Záznam uložen ✓');
+  }catch(e){toast('Chyba při ukládání.');}
+  $('btn-tx-save').disabled=false;
 });
 
-/* ════════════════════════════════
-   INVOICE MODALS
-════════════════════════════════ */
-$('btn-add-fap').addEventListener('click', async () => {
-  $('inv-ico').value = ''; $('inv-vendor').value = '';
-  $('inv-number').value = await generateInvNumber('fap');
-  $('inv-orig-number').value = ''; $('inv-amount').value = '';
-  $('inv-date').value = today(); $('inv-due').value = '';
-  $('inv-url').value = ''; $('inv-desc').value = '';
-  $('inv-vs').value = ''; $('inv-ks').value = '';
+/* ── INVOICE MODALS ── */
+$('btn-add-fap').addEventListener('click',async()=>{
+  $('inv-ico').value='';$('inv-vendor').value='';$('inv-number').value=await generateInvNumber('fap');
+  $('inv-orig-number').value='';$('inv-amount').value='';$('inv-date').value=today();
+  $('inv-due').value='';$('inv-url').value='';$('inv-desc').value='';$('inv-vs').value='';$('inv-ks').value='';
   openModal('modal-invoice');
 });
-
-$('btn-add-fav').addEventListener('click', async () => {
-  favItems = [{ desc: 'Umělecké vystoupení', qty: 1, price: 0 }];
-  const num = await generateInvNumber('fav');
-  $('fav-number').value = num; $('fav-ico').value = ''; $('fav-vendor').value = '';
-  $('fav-date').value = today(); $('fav-due').value = '';
-  $('fav-vs').value = num.replace(/\D/g,''); $('fav-ks').value = ''; $('fav-desc').value = '';
-  renderFavItems(); openModal('modal-fav');
+$('btn-add-fav').addEventListener('click',async()=>{
+  favItems=[{desc:'Umělecké vystoupení',qty:1,price:0}];
+  const num=await generateInvNumber('fav');
+  $('fav-number').value=num;$('fav-ico').value='';$('fav-vendor').value='';
+  $('fav-date').value=today();$('fav-due').value='';$('fav-vs').value=num.replace(/\D/g,'');$('fav-ks').value='';$('fav-desc').value='';
+  renderFavItems();openModal('modal-fav');
 });
 
-$('btn-ares').addEventListener('click', async () => {
-  const ico = $('inv-ico').value.trim();
-  if (!ico || ico.length < 6) { toast('Zadej IČO.'); return; }
-  $('btn-ares').textContent = '…'; $('btn-ares').disabled = true;
-  try {
-    const res = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    $('inv-vendor').value = data.obchodniJmeno || '';
-    const sid = data.sidlo;
-    if (sid) $('inv-vendor').dataset.address = [sid.nazevUlice, sid.cisloDomovni, sid.nazevObce, sid.psc].filter(Boolean).join(' ');
-    toast('Údaje doplněny z ARES ✓');
-  } catch(e) { toast('IČO nenalezeno v ARES.'); }
-  $('btn-ares').textContent = 'Doplnit z ARES'; $('btn-ares').disabled = false;
-});
+async function aresLookup(ico,nameEl,addrEl){
+  const res=await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
+  if(!res.ok)throw new Error();
+  const data=await res.json();
+  nameEl.value=data.obchodniJmeno||'';
+  const sid=data.sidlo;
+  if(sid)nameEl.dataset.address=[sid.nazevUlice,sid.cisloDomovni,sid.nazevObce,sid.psc].filter(Boolean).join(' ');
+}
 
-$('btn-ares-fav').addEventListener('click', async () => {
-  const ico = $('fav-ico').value.trim();
-  if (!ico || ico.length < 6) { toast('Zadej IČO.'); return; }
-  $('btn-ares-fav').textContent = '…'; $('btn-ares-fav').disabled = true;
-  try {
-    const res = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    $('fav-vendor').value = data.obchodniJmeno || '';
-    const sid = data.sidlo;
-    if (sid) $('fav-vendor').dataset.address = [sid.nazevUlice, sid.cisloDomovni, sid.nazevObce, sid.psc].filter(Boolean).join(' ');
-    toast('Údaje doplněny z ARES ✓');
-  } catch(e) { toast('IČO nenalezeno v ARES.'); }
-  $('btn-ares-fav').textContent = 'Doplnit z ARES'; $('btn-ares-fav').disabled = false;
-});
-
-$('btn-ares-edit').addEventListener('click', async () => {
-  const ico = $('inv-edit-ico').value.trim();
-  if (!ico || ico.length < 6) { toast('Zadej IČO.'); return; }
-  $('btn-ares-edit').textContent = '…'; $('btn-ares-edit').disabled = true;
-  try {
-    const res = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    $('inv-edit-vendor').value = data.obchodniJmeno || '';
-    const sid = data.sidlo;
-    if (sid) $('inv-edit-vendor').dataset.address = [sid.nazevUlice, sid.cisloDomovni, sid.nazevObce, sid.psc].filter(Boolean).join(' ');
-    toast('Údaje doplněny z ARES ✓');
-  } catch(e) { toast('IČO nenalezeno v ARES.'); }
-  $('btn-ares-edit').textContent = 'Doplnit z ARES'; $('btn-ares-edit').disabled = false;
-});
-
-$('btn-invoice-save').addEventListener('click', async () => {
-  const vendor = $('inv-vendor').value.trim(), amount = parseFloat($('inv-amount').value), dueDate = $('inv-due').value;
-  if (!vendor) { toast('Zadej dodavatele.'); return; }
-  if (!amount || amount <= 0) { toast('Zadej částku.'); return; }
-  if (!dueDate) { toast('Zadej datum splatnosti.'); return; }
-  $('btn-invoice-save').disabled = true;
-  try {
-    await addDoc(collection(db, 'orgs', currentUser.uid, 'invoices'), {
-      invType: 'fap', invNumber: $('inv-number').value.trim(),
-      vendor, amount, ico: $('inv-ico').value.trim(),
-      origNumber: $('inv-orig-number').value.trim(),
-      date: $('inv-date').value, dueDate,
-      vs: $('inv-vs').value.trim(), ks: $('inv-ks').value.trim(),
-      url: $('inv-url').value.trim(), desc: $('inv-desc').value.trim(),
-      paid: false, createdAt: serverTimestamp(),
-    });
-    await saveContactIfNew(vendor, $('inv-ico').value.trim(), $('inv-vendor').dataset.address || '');
-    closeModal('modal-invoice'); toast('Faktura uložena ✓');
-  } catch(e) { toast('Chyba při ukládání.'); }
-  $('btn-invoice-save').disabled = false;
-});
-
-$('btn-invoice-update').addEventListener('click', async () => {
-  const vendor = $('inv-edit-vendor').value.trim(), amount = parseFloat($('inv-edit-amount').value), dueDate = $('inv-edit-due').value;
-  if (!vendor) { toast('Zadej dodavatele.'); return; }
-  if (!amount || amount <= 0) { toast('Zadej částku.'); return; }
-  if (!dueDate) { toast('Zadej datum splatnosti.'); return; }
-  $('btn-invoice-update').disabled = true;
-  try {
-    await updateDoc(doc(db, 'orgs', currentUser.uid, 'invoices', editInvId), {
-      vendor, amount, dueDate, ico: $('inv-edit-ico').value.trim(),
-      number: $('inv-edit-number').value.trim(), date: $('inv-edit-date').value,
-      url: $('inv-edit-url').value.trim(), desc: $('inv-edit-desc').value.trim(),
-    });
-    await saveContactIfNew(vendor, $('inv-edit-ico').value.trim(), $('inv-edit-vendor').dataset.address || '');
-    closeModal('modal-invoice-edit'); toast('Faktura upravena ✓');
-  } catch(e) { toast('Chyba při ukládání.'); }
-  $('btn-invoice-update').disabled = false;
-});
-
-$('btn-invoice-delete').addEventListener('click', async () => {
-  if (!confirm('Opravdu smazat tuto fakturu?')) return;
-  try {
-    await deleteDoc(doc(db, 'orgs', currentUser.uid, 'invoices', editInvId));
-    closeModal('modal-invoice-edit'); toast('Faktura smazána.');
-  } catch(e) { toast('Chyba při mazání.'); }
-});
-
-/* ════════════════════════════════
-   FAV ITEMS
-════════════════════════════════ */
-function renderFavItems() {
-  const wrap = $('fav-items-wrap');
-  wrap.innerHTML = favItems.map((item, i) => `
-    <div class="fav-item-row">
-      <input type="text" placeholder="Popis položky" value="${escHtml(item.desc)}" data-item="${i}" data-field="desc" />
-      <input type="number" placeholder="Ks" value="${item.qty}" min="1" data-item="${i}" data-field="qty" />
-      <input type="number" placeholder="Cena Kč" value="${item.price || ''}" min="0" data-item="${i}" data-field="price" />
-      <button class="btn-remove-item" data-remove="${i}">✕</button>
-    </div>
-  `).join('');
-  wrap.querySelectorAll('input').forEach(inp => {
-    inp.addEventListener('input', () => {
-      const i = parseInt(inp.dataset.item), f = inp.dataset.field;
-      favItems[i][f] = f === 'desc' ? inp.value : (parseFloat(inp.value) || 0);
-    });
+[['btn-ares','inv-ico','inv-vendor'],['btn-ares-edit','inv-edit-ico','inv-edit-vendor'],['btn-ares-fav','fav-ico','fav-vendor']].forEach(([btnId,icoId,nameId])=>{
+  const btn=$(btnId);if(!btn)return;
+  btn.addEventListener('click',async()=>{
+    const ico=$(icoId).value.trim();if(!ico||ico.length<6){toast('Zadej IČO.');return;}
+    const orig=btn.textContent;btn.textContent='…';btn.disabled=true;
+    try{await aresLookup(ico,$(nameId));toast('Údaje doplněny z ARES ✓');}
+    catch(e){toast('IČO nenalezeno v ARES.');}
+    btn.textContent=orig;btn.disabled=false;
   });
-  wrap.querySelectorAll('[data-remove]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (favItems.length === 1) { toast('Musí být alespoň jedna položka.'); return; }
-      favItems.splice(parseInt(btn.dataset.remove), 1); renderFavItems();
-    });
-  });
-}
-
-$('btn-fav-add-item').addEventListener('click', () => {
-  favItems.push({ desc: '', qty: 1, price: 0 }); renderFavItems();
 });
 
-$('btn-fav-save').addEventListener('click', async () => {
-  const vendor = $('fav-vendor').value.trim(), dueDate = $('fav-due').value;
-  const total  = favItems.reduce((s, i) => s + (i.qty||1) * (i.price||0), 0);
-  if (!vendor)    { toast('Zadej odběratele.'); return; }
-  if (!dueDate)   { toast('Zadej datum splatnosti.'); return; }
-  if (total <= 0) { toast('Zadej ceny položek.'); return; }
-  $('btn-fav-save').disabled = true;
-  try {
-    const invData = {
-      invType: 'fav', invNumber: $('fav-number').value,
-      vendor, ico: $('fav-ico').value.trim(),
-      address: $('fav-vendor').dataset.address || '',
-      date: $('fav-date').value, dueDate,
-      vs: $('fav-vs').value.trim(), ks: $('fav-ks').value.trim(),
-      desc: $('fav-desc').value.trim(), items: favItems,
-      amount: total, paid: false, createdAt: serverTimestamp(),
-    };
-    await addDoc(collection(db, 'orgs', currentUser.uid, 'invoices'), invData);
-    await saveContactIfNew(vendor, $('fav-ico').value.trim(), $('fav-vendor').dataset.address || '');
-    await generateInvoicePDF({ ...invData });
-    closeModal('modal-fav'); toast('Faktura uložena a PDF připraveno ✓');
-  } catch(e) { console.error(e); toast('Chyba při ukládání.'); }
-  $('btn-fav-save').disabled = false;
+$('btn-invoice-save').addEventListener('click',async()=>{
+  const vendor=$('inv-vendor').value.trim(),amount=parseFloat($('inv-amount').value),dueDate=$('inv-due').value;
+  if(!vendor){toast('Zadej dodavatele.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}
+  $('btn-invoice-save').disabled=true;
+  try{
+    await addDoc(collection(db,'orgs',currentUser.uid,'invoices'),{invType:'fap',invNumber:$('inv-number').value.trim(),vendor,amount,ico:$('inv-ico').value.trim(),origNumber:$('inv-orig-number').value.trim(),date:$('inv-date').value,dueDate,vs:$('inv-vs').value.trim(),ks:$('inv-ks').value.trim(),url:$('inv-url').value.trim(),desc:$('inv-desc').value.trim(),paid:false,createdAt:serverTimestamp()});
+    await saveContactIfNew(vendor,$('inv-ico').value.trim(),$('inv-vendor').dataset.address||'');
+    closeModal('modal-invoice');toast('Faktura uložena ✓');
+  }catch(e){toast('Chyba při ukládání.');}
+  $('btn-invoice-save').disabled=false;
+});
+$('btn-invoice-update').addEventListener('click',async()=>{
+  const vendor=$('inv-edit-vendor').value.trim(),amount=parseFloat($('inv-edit-amount').value),dueDate=$('inv-edit-due').value;
+  if(!vendor){toast('Zadej dodavatele.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}
+  $('btn-invoice-update').disabled=true;
+  try{
+    await updateDoc(doc(db,'orgs',currentUser.uid,'invoices',editInvId),{vendor,amount,dueDate,ico:$('inv-edit-ico').value.trim(),number:$('inv-edit-number').value.trim(),date:$('inv-edit-date').value,url:$('inv-edit-url').value.trim(),desc:$('inv-edit-desc').value.trim()});
+    await saveContactIfNew(vendor,$('inv-edit-ico').value.trim(),$('inv-edit-vendor').dataset.address||'');
+    closeModal('modal-invoice-edit');toast('Faktura upravena ✓');
+  }catch(e){toast('Chyba.');}
+  $('btn-invoice-update').disabled=false;
+});
+$('btn-invoice-delete').addEventListener('click',async()=>{
+  if(!confirm('Opravdu smazat?'))return;
+  try{await deleteDoc(doc(db,'orgs',currentUser.uid,'invoices',editInvId));closeModal('modal-invoice-edit');toast('Faktura smazána.');}
+  catch(e){toast('Chyba.');}
 });
 
-/* ════════════════════════════════
-   DOCUMENT NUMBERING
-════════════════════════════════ */
-async function generateInvNumber(type) {
-  const prefix = type === 'fap' ? 'FAP' : 'FAV';
-  const year = new Date().getFullYear();
-  const invCol = collection(db, 'orgs', currentUser.uid, 'invoices');
-  const q = query(invCol, where('invType', '==', type));
-  const snap = await getDocs(q);
-  const count = snap.docs.filter(d => (d.data().invNumber || '').startsWith(`${prefix}${year}`)).length;
-  return `${prefix}${year}${String(count + 1).padStart(3, '0')}`;
+/* ── FAV ITEMS ── */
+function renderFavItems(){
+  const wrap=$('fav-items-wrap');
+  wrap.innerHTML=favItems.map((item,i)=>`<div class="fav-item-row"><input type="text" placeholder="Popis položky" value="${escHtml(item.desc)}" data-item="${i}" data-field="desc"><input type="number" placeholder="Ks" value="${item.qty}" min="1" data-item="${i}" data-field="qty"><input type="number" placeholder="Cena Kč" value="${item.price||''}" min="0" data-item="${i}" data-field="price"><button class="btn-remove-item" data-remove="${i}">✕</button></div>`).join('');
+  wrap.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{const i=parseInt(inp.dataset.item),f=inp.dataset.field;favItems[i][f]=f==='desc'?inp.value:(parseFloat(inp.value)||0);}));
+  wrap.querySelectorAll('[data-remove]').forEach(btn=>btn.addEventListener('click',()=>{if(favItems.length===1){toast('Musí být alespoň jedna položka.');return;}favItems.splice(parseInt(btn.dataset.remove),1);renderFavItems();}));
+}
+$('btn-fav-add-item').addEventListener('click',()=>{favItems.push({desc:'',qty:1,price:0});renderFavItems();});
+$('btn-fav-save').addEventListener('click',async()=>{
+  const vendor=$('fav-vendor').value.trim(),dueDate=$('fav-due').value;
+  const total=favItems.reduce((s,i)=>s+(i.qty||1)*(i.price||0),0);
+  if(!vendor){toast('Zadej odběratele.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}if(total<=0){toast('Zadej ceny položek.');return;}
+  $('btn-fav-save').disabled=true;
+  try{
+    const invData={invType:'fav',invNumber:$('fav-number').value,vendor,ico:$('fav-ico').value.trim(),address:$('fav-vendor').dataset.address||'',date:$('fav-date').value,dueDate,vs:$('fav-vs').value.trim(),ks:$('fav-ks').value.trim(),desc:$('fav-desc').value.trim(),items:favItems,amount:total,paid:false,createdAt:serverTimestamp()};
+    await addDoc(collection(db,'orgs',currentUser.uid,'invoices'),invData);
+    await saveContactIfNew(vendor,$('fav-ico').value.trim(),$('fav-vendor').dataset.address||'');
+    await generateInvoicePDF({...invData});
+    closeModal('modal-fav');toast('Faktura uložena ✓');
+  }catch(e){console.error(e);toast('Chyba při ukládání.');}
+  $('btn-fav-save').disabled=false;
+});
+
+/* ── NUMBERING ── */
+async function generateInvNumber(type){
+  const prefix=type==='fap'?'FAP':'FAV',year=new Date().getFullYear();
+  const snap=await getDocs(query(collection(db,'orgs',currentUser.uid,'invoices'),where('invType','==',type)));
+  const count=snap.docs.filter(d=>(d.data().invNumber||'').startsWith(`${prefix}${year}`)).length;
+  return`${prefix}${year}${String(count+1).padStart(3,'0')}`;
+}
+async function generateDocNumber(account){
+  const prefix=account==='cash'?'PD':'BV',year=new Date().getFullYear();
+  const snap=await getDocs(query(collection(db,'orgs',currentUser.uid,'transactions'),where('account','==',account)));
+  const count=snap.docs.filter(d=>(d.data().docNumber||'').startsWith(`${prefix}${year}`)).length;
+  return`${prefix}${year}${String(count+1).padStart(3,'0')}`;
 }
 
-async function generateDocNumber(account) {
-  const prefix = account === 'cash' ? 'PD' : 'BV';
-  const year = new Date().getFullYear();
-  const txCol = collection(db, 'orgs', currentUser.uid, 'transactions');
-  const q = query(txCol, where('account', '==', account));
-  const snap = await getDocs(q);
-  const count = snap.docs.filter(d => (d.data().docNumber || '').startsWith(`${prefix}${year}`)).length;
-  return `${prefix}${year}${String(count + 1).padStart(3, '0')}`;
-}
-
-/* ════════════════════════════════
-   PDF GENERATION
-════════════════════════════════ */
-async function generateInvoicePDF(inv) {
-  const items = inv.items || [{ desc: inv.desc || '', qty: 1, price: inv.amount }];
-  const total = items.reduce((s, i) => s + (i.qty || 1) * (i.price || 0), 0);
-  const vs = inv.vs || inv.invNumber.replace(/\D/g, '');
-  const qrUrl = `https://api.paylibo.com/paylibo/generator/czech/image?compress=false&size=200&accountNumber=348479366&bankCode=0300&amount=${total.toFixed(2)}&currency=CZK&vs=${vs}&ks=${inv.ks || '0308'}`;
-  const typeLabel = inv.invType === 'fav' ? 'FAKTURA' : 'PŘIJATÁ FAKTURA';
-  const partyLabel = inv.invType === 'fav' ? 'Odběratel' : 'Dodavatel';
-
-  const html = `
-    <div style="font-family: Arial, sans-serif; font-size: 13px; color: #1a1a2e; width: 794px; padding: 0; margin: 0; background: #fff;">
-      <div style="background: #ee220c; height: 4px; width: 100%;"></div>
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 24px 40px 16px;">
-        <img src="${ORG_LOGO}" style="height: 48px; object-fit: contain;" crossorigin="anonymous" />
-        <div style="text-align: right; font-size: 11px; color: #7a80a0; line-height: 1.8;">
-          <div style="font-weight: bold; font-size: 13px; color: #1a1a2e;">${orgData.name}</div>
-          <div>IČO: ${orgData.ico}</div>
-          ${orgData.address ? `<div>${orgData.address}</div>` : ''}
-          <div>${ORG_BANK}</div>
-          <div>${ORG_IBAN}</div>
-        </div>
-      </div>
-      <div style="height: 1px; background: #ee220c; margin: 0 40px;"></div>
-      <div style="padding: 20px 40px 0;">
-        <div style="font-size: 22px; font-weight: bold; color: #1a1a2e;">${typeLabel}</div>
-        <div style="font-size: 12px; color: #7a80a0; margin-top: 4px;">${inv.invNumber}</div>
-      </div>
-      <div style="margin: 16px 40px; background: #f5f6fa; border-radius: 8px; padding: 14px 20px; display: flex; gap: 0;">
-        <div style="flex: 1;"><div style="font-size: 10px; color: #7a80a0; text-transform: uppercase; letter-spacing: .05em;">Datum vystavení</div><div style="font-weight: bold; margin-top: 2px;">${fmtDate(inv.date)}</div></div>
-        <div style="flex: 1;"><div style="font-size: 10px; color: #7a80a0; text-transform: uppercase; letter-spacing: .05em;">Datum splatnosti</div><div style="font-weight: bold; margin-top: 2px;">${fmtDate(inv.dueDate)}</div></div>
-        <div style="flex: 1;"><div style="font-size: 10px; color: #7a80a0; text-transform: uppercase; letter-spacing: .05em;">Variabilní symbol</div><div style="font-weight: bold; margin-top: 2px; font-family: monospace;">${vs}</div></div>
-        <div style="flex: 1;"><div style="font-size: 10px; color: #7a80a0; text-transform: uppercase; letter-spacing: .05em;">Konstantní symbol</div><div style="font-weight: bold; margin-top: 2px; font-family: monospace;">${inv.ks || '0308'}</div></div>
-        <div style="flex: 1;"><div style="font-size: 10px; color: #7a80a0; text-transform: uppercase; letter-spacing: .05em;">Forma úhrady</div><div style="font-weight: bold; margin-top: 2px;">Bankovní převod</div></div>
-      </div>
-      <div style="display: flex; gap: 16px; margin: 0 40px 20px;">
-        <div style="flex: 1; background: #f5f6fa; border-radius: 8px; padding: 14px 16px;">
-          <div style="font-size: 10px; color: #ee220c; text-transform: uppercase; letter-spacing: .06em; font-weight: bold; margin-bottom: 6px;">${partyLabel}</div>
-          <div style="font-weight: bold; font-size: 14px;">${inv.vendor || '–'}</div>
-          ${inv.ico ? `<div style="font-size: 11px; color: #7a80a0; margin-top: 3px;">IČO: ${inv.ico}</div>` : ''}
-          ${inv.address ? `<div style="font-size: 11px; color: #7a80a0;">Sídlo: ${inv.address}</div>` : ''}
-          ${inv.origNumber ? `<div style="font-size: 11px; color: #7a80a0;">Č. faktury dodavatele: ${inv.origNumber}</div>` : ''}
-        </div>
-        <div style="flex: 1; background: #f5f6fa; border-radius: 8px; padding: 14px 16px;">
-          <div style="font-size: 10px; color: #ee220c; text-transform: uppercase; letter-spacing: .06em; font-weight: bold; margin-bottom: 6px;">${inv.invType === 'fav' ? 'Dodavatel' : 'Příjemce'}</div>
-          <div style="font-weight: bold; font-size: 14px;">${orgData.name}</div>
-          <div style="font-size: 11px; color: #7a80a0; margin-top: 3px;">IČO: ${orgData.ico}</div>
-          ${orgData.address ? `<div style="font-size: 11px; color: #7a80a0;">${orgData.address}</div>` : ''}
-        </div>
-      </div>
-      <div style="margin: 0 40px;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-          <thead>
-            <tr style="background: #ee220c; color: #fff;">
-              <th style="text-align: left; padding: 8px 12px; border-radius: 6px 0 0 0;">Popis</th>
-              <th style="text-align: center; padding: 8px 12px; width: 60px;">Ks</th>
-              <th style="text-align: right; padding: 8px 12px; width: 100px;">Cena/ks</th>
-              <th style="text-align: right; padding: 8px 12px; width: 100px; border-radius: 0 6px 0 0;">Celkem</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items.map((item, i) => `
-              <tr style="background: ${i % 2 === 0 ? '#fff' : '#f9fafc'};">
-                <td style="padding: 9px 12px; border-bottom: 1px solid #eee;">${item.desc || ''}</td>
-                <td style="padding: 9px 12px; text-align: center; border-bottom: 1px solid #eee;">${item.qty || 1}</td>
-                <td style="padding: 9px 12px; text-align: right; border-bottom: 1px solid #eee;">${fmt(item.price || 0)}</td>
-                <td style="padding: 9px 12px; text-align: right; border-bottom: 1px solid #eee; font-weight: bold;">${fmt((item.qty || 1) * (item.price || 0))}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
-          <div style="background: #ee220c; color: #fff; border-radius: 8px; padding: 12px 20px; text-align: right; min-width: 200px;">
-            <div style="font-size: 11px; opacity: .8;">Celkem k úhradě</div>
-            <div style="font-size: 22px; font-weight: bold; margin-top: 2px;">${fmt(total)}</div>
-            <div style="font-size: 10px; opacity: .7; margin-top: 2px;">Faktura je vystavena bez DPH</div>
-          </div>
-        </div>
-      </div>
-      <div style="display: flex; align-items: center; gap: 20px; margin: 24px 40px 0; padding: 16px; background: #f5f6fa; border-radius: 8px;">
-        <img src="${qrUrl}" style="width: 80px; height: 80px;" />
-        <div style="font-size: 11px; color: #7a80a0; line-height: 2;">
-          <div><strong style="color: #1a1a2e;">Číslo účtu:</strong> ${ORG_BANK}</div>
-          <div><strong style="color: #1a1a2e;">IBAN:</strong> ${ORG_IBAN}</div>
-          <div><strong style="color: #1a1a2e;">Variabilní symbol:</strong> ${vs}</div>
-          <div><strong style="color: #1a1a2e;">Částka:</strong> ${fmt(total)}</div>
-        </div>
-      </div>
-      <div style="display: flex; justify-content: flex-end; margin: 16px 40px 0;">
-        <img src="https://sidnexon-bot.github.io/10korun/razitko.png" style="height: 80px; object-fit: contain;" />
-      </div>
-      <div style="margin-top: 32px; background: #ee220c; padding: 10px 40px; text-align: center; font-size: 10px; color: rgba(255,255,255,.8);">
-        Vystaveno v aplikaci 10korun – účetním systému skupiny 10men
+/* ── PDF ── */
+async function generateInvoicePDF(inv){
+  const items=inv.items||[{desc:inv.desc||'',qty:1,price:inv.amount}];
+  const total=items.reduce((s,i)=>s+(i.qty||1)*(i.price||0),0);
+  const vs=inv.vs||inv.invNumber.replace(/\D/g,'');
+  const qrUrl=`https://api.paylibo.com/paylibo/generator/czech/image?compress=false&size=200&accountNumber=348479366&bankCode=0300&amount=${total.toFixed(2)}&currency=CZK&vs=${vs}&ks=${inv.ks||'0308'}`;
+  const typeLabel=inv.invType==='fav'?'FAKTURA':'PŘIJATÁ FAKTURA';
+  const partyLabel=inv.invType==='fav'?'Odběratel':'Dodavatel';
+  const html=`<div style="font-family:Arial,sans-serif;font-size:13px;color:#1a1a2e;width:794px;padding:0;margin:0;background:#fff;">
+    <div style="background:#ee220c;height:4px;width:100%;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:24px 40px 16px;">
+      <img src="${ORG_LOGO}" style="height:48px;object-fit:contain;" crossorigin="anonymous"/>
+      <div style="text-align:right;font-size:11px;color:#7a80a0;line-height:1.8;">
+        <div style="font-weight:bold;font-size:13px;color:#1a1a2e;">${orgData.name}</div>
+        <div>IČO: ${orgData.ico}</div>${orgData.address?`<div>${orgData.address}</div>`:''}
+        <div>${ORG_BANK}</div><div>${ORG_IBAN}</div>
       </div>
     </div>
-  `;
+    <div style="height:1px;background:#ee220c;margin:0 40px;"></div>
+    <div style="padding:20px 40px 0;">
+      <div style="font-size:22px;font-weight:bold;color:#1a1a2e;">${typeLabel}</div>
+      <div style="font-size:12px;color:#7a80a0;margin-top:4px;">${inv.invNumber}</div>
+    </div>
+    <div style="margin:16px 40px;background:#f5f6fa;border-radius:8px;padding:14px 20px;display:flex;gap:0;">
+      <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Datum vystavení</div><div style="font-weight:bold;margin-top:2px;">${fmtDate(inv.date)}</div></div>
+      <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Datum splatnosti</div><div style="font-weight:bold;margin-top:2px;">${fmtDate(inv.dueDate)}</div></div>
+      <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Variabilní symbol</div><div style="font-weight:bold;margin-top:2px;font-family:monospace;">${vs}</div></div>
+      <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Konstantní symbol</div><div style="font-weight:bold;margin-top:2px;font-family:monospace;">${inv.ks||'0308'}</div></div>
+      <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Forma úhrady</div><div style="font-weight:bold;margin-top:2px;">Bankovní převod</div></div>
+    </div>
+    <div style="display:flex;gap:16px;margin:0 40px 20px;">
+      <div style="flex:1;background:#f5f6fa;border-radius:8px;padding:14px 16px;">
+        <div style="font-size:10px;color:#ee220c;text-transform:uppercase;letter-spacing:.06em;font-weight:bold;margin-bottom:6px;">${partyLabel}</div>
+        <div style="font-weight:bold;font-size:14px;">${inv.vendor||'–'}</div>
+        ${inv.ico?`<div style="font-size:11px;color:#7a80a0;margin-top:3px;">IČO: ${inv.ico}</div>`:''}
+        ${inv.address?`<div style="font-size:11px;color:#7a80a0;">Sídlo: ${inv.address}</div>`:''}
+        ${inv.origNumber?`<div style="font-size:11px;color:#7a80a0;">Č. faktury dodavatele: ${inv.origNumber}</div>`:''}
+      </div>
+      <div style="flex:1;background:#f5f6fa;border-radius:8px;padding:14px 16px;">
+        <div style="font-size:10px;color:#ee220c;text-transform:uppercase;letter-spacing:.06em;font-weight:bold;margin-bottom:6px;">${inv.invType==='fav'?'Dodavatel':'Příjemce'}</div>
+        <div style="font-weight:bold;font-size:14px;">${orgData.name}</div>
+        <div style="font-size:11px;color:#7a80a0;margin-top:3px;">IČO: ${orgData.ico}</div>
+        ${orgData.address?`<div style="font-size:11px;color:#7a80a0;">${orgData.address}</div>`:''}
+      </div>
+    </div>
+    <div style="margin:0 40px;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:#ee220c;color:#fff;">
+          <th style="text-align:left;padding:8px 12px;border-radius:6px 0 0 0;">Popis</th>
+          <th style="text-align:center;padding:8px 12px;width:60px;">Ks</th>
+          <th style="text-align:right;padding:8px 12px;width:100px;">Cena/ks</th>
+          <th style="text-align:right;padding:8px 12px;width:100px;border-radius:0 6px 0 0;">Celkem</th>
+        </tr></thead>
+        <tbody>${items.map((item,i)=>`<tr style="background:${i%2===0?'#fff':'#f9fafc'};"><td style="padding:9px 12px;border-bottom:1px solid #eee;">${item.desc||''}</td><td style="padding:9px 12px;text-align:center;border-bottom:1px solid #eee;">${item.qty||1}</td><td style="padding:9px 12px;text-align:right;border-bottom:1px solid #eee;">${fmt(item.price||0)}</td><td style="padding:9px 12px;text-align:right;border-bottom:1px solid #eee;font-weight:bold;">${fmt((item.qty||1)*(item.price||0))}</td></tr>`).join('')}</tbody>
+      </table>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+        <div style="background:#ee220c;color:#fff;border-radius:8px;padding:12px 20px;text-align:right;min-width:200px;">
+          <div style="font-size:11px;opacity:.8;">Celkem k úhradě</div>
+          <div style="font-size:22px;font-weight:bold;margin-top:2px;">${fmt(total)}</div>
+          <div style="font-size:10px;opacity:.7;margin-top:2px;">Faktura je vystavena bez DPH</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;margin:24px 40px 0;padding:16px;background:#f5f6fa;border-radius:8px;">
+      <img src="${qrUrl}" style="width:80px;height:80px;"/>
+      <div style="font-size:11px;color:#7a80a0;line-height:2;">
+        <div><strong style="color:#1a1a2e;">Číslo účtu:</strong> ${ORG_BANK}</div>
+        <div><strong style="color:#1a1a2e;">IBAN:</strong> ${ORG_IBAN}</div>
+        <div><strong style="color:#1a1a2e;">Variabilní symbol:</strong> ${vs}</div>
+        <div><strong style="color:#1a1a2e;">Částka:</strong> ${fmt(total)}</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin:16px 40px 0;">
+      <img src="https://sidnexon-bot.github.io/10korun/razitko.png" style="height:80px;object-fit:contain;"/>
+    </div>
+    <div style="margin-top:32px;background:#ee220c;padding:10px 40px;text-align:center;font-size:10px;color:rgba(255,255,255,.8);">
+      Vystaveno v aplikaci 10korun – účetním systému skupiny 10men
+    </div>
+  </div>`;
 
-  const wrap = $('pdf-template');
-  wrap.style.display = 'block';
-  wrap.innerHTML = html;
-
-  await Promise.all([...wrap.querySelectorAll('img')].map(img =>
-    new Promise(res => { if (img.complete) res(); else { img.onload = res; img.onerror = res; } })
-  ));
-
-  const blob = await window.html2pdf().set({
-    margin: 0,
-    filename: `${inv.invNumber}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 4, useCORS: true, allowTaint: false },
-    jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
-  }).from(wrap.firstElementChild).outputPdf('blob');
-
-  wrap.style.display = 'none';
-  wrap.innerHTML = '';
-
-  currentPdfBlob = blob;
-  const blobUrl = URL.createObjectURL(blob);
-  $('pdf-preview-frame').src = blobUrl;
-  $('pdf-preview-title').textContent = `Náhled – ${inv.invNumber}`;
+  const wrap=$('pdf-template');wrap.style.display='block';wrap.innerHTML=html;
+  await Promise.all([...wrap.querySelectorAll('img')].map(img=>new Promise(res=>{if(img.complete)res();else{img.onload=res;img.onerror=res;}})));
+  const blob=await window.html2pdf().set({margin:0,filename:`${inv.invNumber}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:4,useCORS:true,allowTaint:false},jsPDF:{unit:'px',format:[794,1123],orientation:'portrait'}}).from(wrap.firstElementChild).outputPdf('blob');
+  wrap.style.display='none';wrap.innerHTML='';
+  currentPdfBlob=blob;
+  $('pdf-preview-frame').src=URL.createObjectURL(blob);
+  $('pdf-preview-title').textContent=`Náhled – ${inv.invNumber}`;
   openModal('modal-pdf-preview');
 }
 
-$('btn-pdf-download').addEventListener('click', () => {
-  if (!currentPdfBlob) return;
-  const title = $('pdf-preview-title').textContent.replace('Náhled – ', '');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(currentPdfBlob);
-  a.download = `${title}.pdf`;
-  a.click();
+$('btn-pdf-download').addEventListener('click',()=>{
+  if(!currentPdfBlob)return;
+  const title=$('pdf-preview-title').textContent.replace('Náhled – ','');
+  const a=document.createElement('a');a.href=URL.createObjectURL(currentPdfBlob);a.download=`${title}.pdf`;a.click();
 });
 
-/* ════════════════════════════════
-   UTILS
-════════════════════════════════ */
-function escHtml(str) {
-  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+function escHtml(str){return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 </script>
 </body>
 </html>

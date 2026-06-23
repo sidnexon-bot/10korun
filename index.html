@@ -2372,7 +2372,7 @@ async function generateInvoicePDF(inv) {
   const qrDiv = document.createElement('div');
   qrDiv.style.cssText = 'position:fixed;left:-9999px;top:0;';
   document.body.appendChild(qrDiv);
-  new window.QRCode(qrDiv, { text: qrString, width: 200, height: 200, correctLevel: 0 });
+  new window.QRCode(qrDiv, { text: qrString, width: 256, height: 256, correctLevel: 1 });
   await new Promise(r => setTimeout(r, 300));
   const qrCanvas = qrDiv.querySelector('canvas');
   const qrUrl = qrCanvas ? qrCanvas.toDataURL('image/png') : '';
@@ -2481,7 +2481,7 @@ async function generateInvoicePDF(inv) {
 
       <!-- QR platba -->
       <div style="display: flex; align-items: center; gap: 20px; margin: 24px 40px 0; padding: 16px; background: #f5f6fa; border-radius: 8px;">
-        ${qrUrl ? `<img src="${qrUrl}" style="width: 80px; height: 80px;" />` : ''}
+        ${qrUrl ? `<img src="${qrUrl}" style="width: 120px; height: 120px;" />` : ''}
         <div style="font-size: 11px; color: #7a80a0; line-height: 2;">
           <div><strong style="color: #1a1a2e;">Číslo účtu:</strong> ${ORG_BANK}</div>
           <div><strong style="color: #1a1a2e;">IBAN:</strong> ${ORG_IBAN}</div>

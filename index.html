@@ -2371,7 +2371,7 @@ async function generateInvoicePDF(inv) {
   const qrDiv = document.createElement('div');
   qrDiv.style.cssText = 'position:fixed;left:-9999px;top:0;';
   document.body.appendChild(qrDiv);
-  new window.QRCode(qrDiv, { text: qrString, width: 200, height: 200, correctLevel: window.QRCode.CorrectLevel.M });
+  new window.QRCode(qrDiv, { text: qrString, width: 200, height: 200, correctLevel: 0 });
   await new Promise(r => setTimeout(r, 300));
   const qrCanvas = qrDiv.querySelector('canvas');
   const qrUrl = qrCanvas ? qrCanvas.toDataURL('image/png') : '';

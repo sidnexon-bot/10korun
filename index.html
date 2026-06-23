@@ -2531,6 +2531,7 @@ async function generateInvoicePDF(inv) {
   $('pdf-preview-frame').src = blobUrl;
   $('pdf-preview-title').textContent = `Náhled – ${inv.invNumber}`;
   openModal('modal-pdf-preview');
+  }
 
 /* ════════════════════════════════
    DOCUMENT NUMBERING

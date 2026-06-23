@@ -2365,7 +2365,7 @@ async function generateInvoicePDF(inv) {
   const items = inv.items || [{ desc: inv.desc || '', qty: 1, price: inv.amount }];
   const total = items.reduce((s, i) => s + (i.qty || 1) * (i.price || 0), 0);
   const vs = inv.vs || inv.invNumber.replace(/\D/g, '');
-  const qrString = `SPD*1.0*ACC:${ORG_IBAN}*AM:${total.toFixed(2)}*CC:CZK*X-VS:${vs}`;
+  const qrString = `SPD*1.0*ACC:${ORG_IBAN}+BCODE0300*AM:${total.toFixed(2)}*CC:CZK*X-VS:${vs}*X-KS:${inv.ks || '0308'}`;
   console.log('QR:', qrString);
   
   // vygeneruj QR lokálně

@@ -2347,7 +2347,7 @@ async function generateInvoicePDF(inv) {
   const items = inv.items || [{ desc: inv.desc || '', qty: 1, price: inv.amount }];
   const total = items.reduce((s, i) => s + (i.qty || 1) * (i.price || 0), 0);
   const vs = inv.vs || inv.invNumber.replace(/\D/g, '');
-  const qrString = `SPD*1.0*ACC:${ORG_IBAN}*AM:${total}*CC:CZK*X-VS:${vs}*MSG:${inv.invNumber}`;
+  const qrString = `SPD*1.0*ACC:${ORG_IBAN}*AM:${total.toFixed(2)}*CC:CZK*X-VS:${vs}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(qrString)}`;
   const typeLabel = inv.invType === 'fav' ? 'FAKTURA' : 'PŘIJATÁ FAKTURA';
   const partyLabel = inv.invType === 'fav' ? 'Odběratel' : 'Dodavatel';

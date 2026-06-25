@@ -626,6 +626,11 @@
     <div class="sidebar-logo">10korun</div>
     <div class="sidebar-subtitle" id="sidebar-org-name"></div>
 
+  <div style="padding:0 8px 16px;">
+      <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Účetní období</div>
+      <div id="period-selector-wrap" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
+    
     <div class="sidebar-profile">
       <div class="sidebar-profile-avatar"><img id="avatar-img-desk" src="" alt="" /></div>
       <div>
@@ -669,7 +674,7 @@
       <div class="header-row">
         <div>
           <h1 id="mobile-header-title">Přehled</h1>
-          <div class="subtitle" id="mobile-header-sub"></div>
+          <div class="subtitle" id="mobile-header-sub" style="cursor:pointer;" id="period-selector"></div>
         </div>
         <div class="profile-btn" id="profile-btn">
           <img id="avatar-img-mob" src="" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
@@ -747,6 +752,16 @@
       <div class="settings-group" id="settings-info"></div>
       <h3>Adresář kontaktů</h3>
       <div class="settings-group" id="settings-contacts"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Načítám…</div></div>
+
+      <h3>Účetní období</h3>
+      <div class="settings-group">
+        <div class="settings-row">
+          <span class="settings-label">Aktivní rok</span>
+          <span class="settings-value" id="period-selector">–</span>
+        </div>
+      </div>
+      <button class="btn-secondary" id="btn-new-period" style="width:auto;margin-bottom:16px;">+ Otevřít nový rok</button>      
+      
       <div style="margin-top:20px;">
         <button class="btn-danger" id="btn-signout-mob" style="width:auto;">Odhlásit se</button>
       </div>
@@ -1020,6 +1035,7 @@ const EXPENSE_CATS = ['Dlouhodobý nehmotný a hmotný majetek','Materiál','Zbo
 const VIEW_TITLES = { dashboard:'Přehled', invoices:'Faktury', documents:'Doklady', settings:'Nastavení' };
 
 let currentUser=null, orgData=null, txAccount='cash', txType='income';
+let activePeriod=new Date().getFullYear().toString();
 let selectedPairId=null, unsubTx=null, unsubInv=null;
 let allInvoices=[], allTx=[], allContacts=[];
 let docFilter='all', invFilter='all';
@@ -1052,6 +1068,32 @@ document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('cli
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
 document.querySelectorAll('[data-view]').forEach(item=>item.addEventListener('click',()=>showView(item.dataset.view)));
 
+/* ── PERIOD HELPERS ── */
+function txCol()  { return collection(db,'orgs',currentUser.uid,'periods',activePeriod,'transactions'); }
+function invCol() { return collection(db,'orgs',currentUser.uid,'periods',activePeriod,'invoices'); }
+function txDoc(id)  { return doc(db,'orgs',currentUser.uid,'periods',activePeriod,'transactions',id); }
+function invDoc(id) { return doc(db,'orgs',currentUser.uid,'periods',activePeriod,'invoices',id); }
+
+async function loadPeriods() {
+  const snap = await getDocs(collection(db,'orgs',currentUser.uid,'periods'));
+  return snap.docs.map(d=>d.id).sort();
+}
+
+async function switchPeriod(year) {
+  activePeriod = year.toString();
+  if(unsubTx)  unsubTx();
+  if(unsubInv) unsubInv();
+  updatePeriodUI();
+  subscribeTransactions();
+  subscribeInvoices();
+}
+
+function updatePeriodUI() {
+  $('period-selector').textContent = activePeriod;
+  $('dash-period').textContent = activePeriod;
+  $('mobile-header-sub').textContent = activePeriod;
+}
+  
 function setCatOptions(type,selId='tx-category'){
   const sel=$(selId), cats=type==='income'?INCOME_CATS:EXPENSE_CATS;
   sel.innerHTML='<option value="">— vyber kategorii —</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
@@ -1135,8 +1177,9 @@ function launchApp(){
   $('sidebar').style.display='';
   showView('dashboard');
   $('sidebar-org-name').textContent=orgData.name||'';
-  $('mobile-header-sub').textContent=`${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}`;
-  $('dash-period').textContent=`${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}`;
+  activePeriod = new Date().getFullYear().toString();
+    updatePeriodUI();
+    renderPeriodSelector();
   $('settings-info').innerHTML=`
     <div class="settings-row"><span class="settings-label">Organizace</span><span class="settings-value">${orgData.name}</span></div>
     <div class="settings-row"><span class="settings-label">IČO</span><span class="settings-value">${orgData.ico}</span></div>
@@ -1146,6 +1189,19 @@ function launchApp(){
   subscribeContacts();subscribeTransactions();subscribeInvoices();
 }
 
+/* ── PERIOD SELECTOR ── */
+async function renderPeriodSelector() {
+  const periods = await loadPeriods();
+  // přidej aktuální rok pokud ještě neexistuje
+  if(!periods.includes(activePeriod)) periods.push(activePeriod);
+  const wrap = $('period-selector-wrap');
+  if(!wrap) return;
+  wrap.innerHTML = periods.sort().map(y => `
+    <button class="filter-btn ${y===activePeriod?'active':''}" data-year="${y}">${y}</button>
+  `).join('');
+  wrap.querySelectorAll('[data-year]').forEach(btn=>btn.addEventListener('click',()=>switchPeriod(btn.dataset.year)));
+}
+  
 /* ── CONTACTS ── */
 function subscribeContacts(){
   const q=query(collection(db,'orgs',currentUser.uid,'contacts'),orderBy('name','asc'));
@@ -1171,7 +1227,7 @@ async function saveContactIfNew(vendor,ico,address=''){
 /* ── TRANSACTIONS ── */
 function subscribeTransactions(){
   if(unsubTx)unsubTx();
-  const q=query(collection(db,'orgs',currentUser.uid,'transactions'),orderBy('date','desc'));
+  const q=query(txCol(),orderBy('date','desc'));
   unsubTx=onSnapshot(q,snap=>{
     allTx=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderLedger('cash');renderLedger('bank');renderStats();renderDocuments();
@@ -1226,20 +1282,20 @@ $('btn-tx-update').addEventListener('click',async()=>{
   const desc=$('tx-edit-desc').value.trim(),amount=parseFloat($('tx-edit-amount').value),date=$('tx-edit-date').value;
   if(!desc){toast('Zadej popis.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!date){toast('Zadej datum.');return;}
   $('btn-tx-update').disabled=true;
-  try{await updateDoc(doc(db,'orgs',currentUser.uid,'transactions',editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),docNumber:$('tx-edit-docnumber').value.trim()});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
+  try{await updateDoc(txDoc(editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),docNumber:$('tx-edit-docnumber').value.trim()});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
   catch(e){toast('Chyba při ukládání.');}
   $('btn-tx-update').disabled=false;
 });
 $('btn-tx-delete').addEventListener('click',async()=>{
   if(!confirm('Opravdu smazat?'))return;
-  try{await deleteDoc(doc(db,'orgs',currentUser.uid,'transactions',editTxId));closeModal('modal-tx-edit');toast('Záznam smazán.');}
+  try{await deleteDoc(txDoc(editTxId));closeModal('modal-tx-edit');toast('Záznam smazán.');}
   catch(e){toast('Chyba.');}
 });
 
 /* ── INVOICES ── */
 function subscribeInvoices(){
   if(unsubInv)unsubInv();
-  const q=query(collection(db,'orgs',currentUser.uid,'invoices'),orderBy('dueDate','asc'));
+  const q=query(invCol(),orderBy('dueDate','asc'));
   unsubInv=onSnapshot(q,snap=>{allInvoices=snap.docs.map(d=>({id:d.id,...d.data()}));renderInvoices();});
 }
 function invoiceStatus(inv){
@@ -1348,8 +1404,8 @@ $('btn-tx-save').addEventListener('click',async()=>{
   $('btn-tx-save').disabled=true;
   try{
     const docNumber=await generateDocNumber(txAccount);
-    await addDoc(collection(db,'orgs',currentUser.uid,'transactions'),{desc,amount,date,account:txAccount,type:txType,category:$('tx-category').value,party:$('tx-party').value.trim(),pairedInvoice:selectedPairId||null,docNumber,createdAt:serverTimestamp()});
-    if(selectedPairId)await updateDoc(doc(db,'orgs',currentUser.uid,'invoices',selectedPairId),{paid:true,paidDate:date});
+    await addDoc(txCol(),{desc,amount,date,account:txAccount,type:txType,category:$('tx-category').value,party:$('tx-party').value.trim(),pairedInvoice:selectedPairId||null,docNumber,createdAt:serverTimestamp()});
+    if(selectedPairId)await updateDoc(invDoc(selectedPairId),{paid:true,paidDate:date});
     closeModal('modal-tx');toast('Záznam uložen ✓');
   }catch(e){toast('Chyba při ukládání.');}
   $('btn-tx-save').disabled=false;
@@ -1395,7 +1451,7 @@ $('btn-invoice-save').addEventListener('click',async()=>{
   if(!vendor){toast('Zadej dodavatele.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}
   $('btn-invoice-save').disabled=true;
   try{
-    await addDoc(collection(db,'orgs',currentUser.uid,'invoices'),{invType:'fap',invNumber:$('inv-number').value.trim(),vendor,amount,ico:$('inv-ico').value.trim(),origNumber:$('inv-orig-number').value.trim(),date:$('inv-date').value,dueDate,vs:$('inv-vs').value.trim(),ks:$('inv-ks').value.trim(),url:$('inv-url').value.trim(),desc:$('inv-desc').value.trim(),paid:false,createdAt:serverTimestamp()});
+    await addDoc(invCol(),{invType:'fap',invNumber:$('inv-number').value.trim(),vendor,amount,ico:$('inv-ico').value.trim(),origNumber:$('inv-orig-number').value.trim(),date:$('inv-date').value,dueDate,vs:$('inv-vs').value.trim(),ks:$('inv-ks').value.trim(),url:$('inv-url').value.trim(),desc:$('inv-desc').value.trim(),paid:false,createdAt:serverTimestamp()});
     await saveContactIfNew(vendor,$('inv-ico').value.trim(),$('inv-vendor').dataset.address||'');
     closeModal('modal-invoice');toast('Faktura uložena ✓');
   }catch(e){toast('Chyba při ukládání.');}
@@ -1406,7 +1462,7 @@ $('btn-invoice-update').addEventListener('click',async()=>{
   if(!vendor){toast('Zadej dodavatele.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}
   $('btn-invoice-update').disabled=true;
   try{
-    await updateDoc(doc(db,'orgs',currentUser.uid,'invoices',editInvId),{vendor,amount,dueDate,ico:$('inv-edit-ico').value.trim(),number:$('inv-edit-number').value.trim(),date:$('inv-edit-date').value,url:$('inv-edit-url').value.trim(),desc:$('inv-edit-desc').value.trim()});
+    await updateDoc(invDoc(editInvId),{vendor,amount,dueDate,ico:$('inv-edit-ico').value.trim(),number:$('inv-edit-number').value.trim(),date:$('inv-edit-date').value,url:$('inv-edit-url').value.trim(),desc:$('inv-edit-desc').value.trim()});
     await saveContactIfNew(vendor,$('inv-edit-ico').value.trim(),$('inv-edit-vendor').dataset.address||'');
     closeModal('modal-invoice-edit');toast('Faktura upravena ✓');
   }catch(e){toast('Chyba.');}
@@ -1414,7 +1470,7 @@ $('btn-invoice-update').addEventListener('click',async()=>{
 });
 $('btn-invoice-delete').addEventListener('click',async()=>{
   if(!confirm('Opravdu smazat?'))return;
-  try{await deleteDoc(doc(db,'orgs',currentUser.uid,'invoices',editInvId));closeModal('modal-invoice-edit');toast('Faktura smazána.');}
+  try{await deleteDoc(invDoc(editInvId));closeModal('modal-invoice-edit');toast('Faktura smazána.');}
   catch(e){toast('Chyba.');}
 });
 
@@ -1433,7 +1489,7 @@ $('btn-fav-save').addEventListener('click',async()=>{
   $('btn-fav-save').disabled=true;
   try{
     const invData={invType:'fav',invNumber:$('fav-number').value,vendor,ico:$('fav-ico').value.trim(),address:$('fav-vendor').dataset.address||'',date:$('fav-date').value,dueDate,vs:$('fav-vs').value.trim(),ks:$('fav-ks').value.trim(),desc:$('fav-desc').value.trim(),items:favItems,amount:total,paid:false,createdAt:serverTimestamp()};
-    await addDoc(collection(db,'orgs',currentUser.uid,'invoices'),invData);
+    await addDoc(invCol(),invData);
     await saveContactIfNew(vendor,$('fav-ico').value.trim(),$('fav-vendor').dataset.address||'');
     await generateInvoicePDF({...invData});
     closeModal('modal-fav');toast('Faktura uložena ✓');
@@ -1443,14 +1499,14 @@ $('btn-fav-save').addEventListener('click',async()=>{
 
 /* ── NUMBERING ── */
 async function generateInvNumber(type){
-  const prefix=type==='fap'?'FAP':'FAV',year=new Date().getFullYear();
-  const snap=await getDocs(query(collection(db,'orgs',currentUser.uid,'invoices'),where('invType','==',type)));
+  const prefix=type==='fap'?'FAP':'FAV',year=activePeriod;
+  const snap=await getDocs(query(invCol(),where('invType','==',type)));
   const count=snap.docs.filter(d=>(d.data().invNumber||'').startsWith(`${prefix}${year}`)).length;
   return`${prefix}${year}${String(count+1).padStart(3,'0')}`;
 }
 async function generateDocNumber(account){
-  const prefix=account==='cash'?'PD':'BV',year=new Date().getFullYear();
-  const snap=await getDocs(query(collection(db,'orgs',currentUser.uid,'transactions'),where('account','==',account)));
+  const prefix=account==='cash'?'PD':'BV',year=activePeriod;
+  const snap=await getDocs(query(txCol(),where('account','==',account)));
   const count=snap.docs.filter(d=>(d.data().docNumber||'').startsWith(`${prefix}${year}`)).length;
   return`${prefix}${year}${String(count+1).padStart(3,'0')}`;
 }
@@ -1550,6 +1606,24 @@ $('btn-pdf-download').addEventListener('click',()=>{
   const title=$('pdf-preview-title').textContent.replace('Náhled – ','');
   const a=document.createElement('a');a.href=URL.createObjectURL(currentPdfBlob);a.download=`${title}.pdf`;a.click();
 });
+
+$('btn-new-period').addEventListener('click',async()=>{
+  const nextYear = (parseInt(activePeriod)+1).toString();
+  if(!confirm(`Otevřít účetní období ${nextYear}?`))return;
+  // zjisti konečné stavy aktuálního roku
+  const cashBal = allTx.filter(t=>t.account==='cash').reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),orgData.cashInit||0);
+  const bankBal = allTx.filter(t=>t.account==='bank').reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),orgData.bankInit||0);
+  // ulož metadata nového období
+  await setDoc(doc(db,'orgs',currentUser.uid,'periods',nextYear),{
+    year: nextYear,
+    cashInit: cashBal,
+    bankInit: bankBal,
+    openedAt: serverTimestamp(),
+  });
+  toast(`Období ${nextYear} otevřeno ✓`);
+  await switchPeriod(nextYear);
+  renderPeriodSelector();
+});  
 
 function escHtml(str){return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 </script>

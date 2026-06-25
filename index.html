@@ -1594,11 +1594,12 @@ async function generateInvoicePDF(inv){
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin:16px 40px 0;">
-      <img src="https://sidnexon-bot.github.io/10korun/razitko.png" style="height:80px;object-fit:contain;"/>
-    </div>
-    <div style="margin-top:32px;background:#ee220c;padding:10px 40px;text-align:center;font-size:10px;color:rgba(255,255,255,.8);">
-      Vystaveno v aplikaci 10korun – účetním systému skupiny 10men
-    </div>
+        <img src="https://sidnexon-bot.github.io/10korun/razitko.png" style="height:80px;object-fit:contain;"/>
+      </div>
+      <div style="height:180px;"></div>
+      <div style="background:#ee220c;padding:10px 40px;text-align:center;font-size:10px;color:rgba(255,255,255,.8);">
+        Vystaveno v aplikaci 10korun – účetním systému skupiny 10men
+      </div>
   </div>`;
 
   const wrap=$('pdf-template');wrap.style.display='block';wrap.innerHTML=html;
@@ -1700,7 +1701,8 @@ async function generateReceiptPDF(tx) {
         <div>IČO: ${orgData.ico}</div>
       </div>
 
-      <div style="margin-top:24px;background:#ee220c;padding:10px 40px;text-align:center;font-size:10px;color:rgba(255,255,255,.8);">
+      <div style="height:280px;"></div>
+      <div style="background:#ee220c;padding:10px 40px;text-align:center;font-size:10px;color:rgba(255,255,255,.8);">
         Vystaveno v aplikaci 10korun – účetním systému skupiny 10men
       </div>
     </div>

@@ -380,6 +380,7 @@
       padding: 11px 14px; background: var(--card); border-radius: 14px;
       box-shadow: 0 1px 3px rgba(0,0,0,.04);
     }
+    .doc-row .btn-pdf-receipt { margin-left: auto; flex-shrink: 0; }
     .doc-type {
       font-size: 10px; font-weight: 700; padding: 3px 7px;
       border-radius: 6px; background: var(--bg); color: var(--muted); white-space: nowrap;
@@ -1355,9 +1356,18 @@ function renderDocuments(){
   if(!list.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné doklady</div>';return;}
   wrap.innerHTML='<div class="doc-list">'+list.map(t=>{
     const dt=t.account==='bank'?'BANK':(t.type==='income'?'PPD':'VPD');
-    return`<div class="doc-row"><div class="doc-type">${dt}</div><div class="doc-num">${t.docNumber||'–'}</div><div class="doc-desc">${escHtml(t.desc)}</div><div class="doc-date">${fmtDate(t.date)}</div><div class="doc-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div></div>`;
+    const showPdf = t.account === 'cash';
+    return`<div class="doc-row"><div class="doc-type">${dt}</div><div class="doc-num">${t.docNumber||'–'}</div><div class="doc-desc">${escHtml(t.desc)}</div><div class="doc-date">${fmtDate(t.date)}</div><div class="doc-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div>${showPdf?`<button class="btn-pdf-receipt" data-tx-id="${t.id}" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;">PDF</button>`:''}</div>`;
   }).join('')+'</div>';
 }
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn-pdf-receipt');
+  if(!btn) return;
+  const tx = allTx.find(t => t.id === btn.dataset.txId);
+  if(tx) generateReceiptPDF(tx);
+});
+  
 document.querySelectorAll('.filter-btn').forEach(btn=>btn.addEventListener('click',()=>{
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');docFilter=btn.dataset.filter;renderDocuments();
@@ -1624,6 +1634,102 @@ $('btn-new-period').addEventListener('click',async()=>{
   await switchPeriod(nextYear);
   renderPeriodSelector();
 });  
+
+/* ── RECEIPT PDF ── */
+async function generateReceiptPDF(tx) {
+  const isIncome = tx.type === 'income';
+  const typeLabel = isIncome ? 'PŘÍJMOVÝ POKLADNÍ DOKLAD' : 'VÝDAJOVÝ POKLADNÍ DOKLAD';
+  const partyLabel = isIncome ? 'Přijato od' : 'Vydáno komu';
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;font-size:13px;color:#1a1a2e;width:794px;padding:0;margin:0;background:#fff;">
+      <div style="background:#ee220c;height:4px;width:100%;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:24px 40px 16px;">
+        <img src="${ORG_LOGO}" style="height:48px;object-fit:contain;" crossorigin="anonymous"/>
+        <div style="text-align:right;font-size:11px;color:#7a80a0;line-height:1.8;">
+          <div style="font-weight:bold;font-size:13px;color:#1a1a2e;">${orgData.name}</div>
+          <div>IČO: ${orgData.ico}</div>
+          ${orgData.address?`<div>${orgData.address}</div>`:''}
+        </div>
+      </div>
+      <div style="height:1px;background:#ee220c;margin:0 40px;"></div>
+
+      <div style="padding:20px 40px 0;">
+        <div style="font-size:22px;font-weight:bold;color:#1a1a2e;">${typeLabel}</div>
+        <div style="font-size:12px;color:#7a80a0;margin-top:4px;">${tx.docNumber||'–'}</div>
+      </div>
+
+      <div style="margin:24px 40px;background:#f5f6fa;border-radius:8px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <tr style="border-bottom:1px solid #e5e5ea;">
+            <td style="padding:12px 16px;color:#7a80a0;width:40%;">${partyLabel}</td>
+            <td style="padding:12px 16px;font-weight:600;">${tx.party||'–'}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e5e5ea;">
+            <td style="padding:12px 16px;color:#7a80a0;">Účel platby</td>
+            <td style="padding:12px 16px;font-weight:600;">${tx.desc||'–'}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e5e5ea;">
+            <td style="padding:12px 16px;color:#7a80a0;">Kategorie</td>
+            <td style="padding:12px 16px;">${tx.category||'–'}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e5e5ea;">
+            <td style="padding:12px 16px;color:#7a80a0;">Datum</td>
+            <td style="padding:12px 16px;">${fmtDate(tx.date)}</td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;color:#7a80a0;">Číslo dokladu</td>
+            <td style="padding:12px 16px;font-family:monospace;">${tx.docNumber||'–'}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="margin:0 40px;display:flex;justify-content:flex-end;">
+        <div style="background:#ee220c;color:#fff;border-radius:8px;padding:14px 24px;text-align:right;min-width:200px;">
+          <div style="font-size:11px;opacity:.8;">${isIncome?'Přijatá částka':'Vydaná částka'}</div>
+          <div style="font-size:28px;font-weight:bold;margin-top:2px;">${fmt(tx.amount)}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin:24px 40px 0;">
+        <img src="https://sidnexon-bot.github.io/10korun/razitko.png" style="height:80px;object-fit:contain;"/>
+      </div>
+
+      <div style="margin:0 40px;margin-top:16px;padding-top:16px;border-top:1px solid #e5e5ea;font-size:11px;color:#7a80a0;display:flex;justify-content:space-between;">
+        <div>Vystavil: ${orgData.name}</div>
+        <div>IČO: ${orgData.ico}</div>
+      </div>
+
+      <div style="margin-top:24px;background:#ee220c;padding:10px 40px;text-align:center;font-size:10px;color:rgba(255,255,255,.8);">
+        Vystaveno v aplikaci 10korun – účetním systému skupiny 10men
+      </div>
+    </div>
+  `;
+
+  const wrap = $('pdf-template');
+  wrap.style.display = 'block';
+  wrap.innerHTML = html;
+
+  await Promise.all([...wrap.querySelectorAll('img')].map(img =>
+    new Promise(res => { if(img.complete) res(); else { img.onload=res; img.onerror=res; } })
+  ));
+
+  const blob = await window.html2pdf().set({
+    margin: 0,
+    filename: `${tx.docNumber||'doklad'}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 4, useCORS: true, allowTaint: false },
+    jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
+  }).from(wrap.firstElementChild).outputPdf('blob');
+
+  wrap.style.display = 'none';
+  wrap.innerHTML = '';
+
+  currentPdfBlob = blob;
+  $('pdf-preview-frame').src = URL.createObjectURL(blob);
+  $('pdf-preview-title').textContent = `${tx.docNumber||'Doklad'} – ${isIncome?'PPD':'VPD'}`;
+  openModal('modal-pdf-preview');
+}
 
 function escHtml(str){return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 </script>

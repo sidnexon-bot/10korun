@@ -983,8 +983,8 @@
       <div class="field-group">
         <div class="field"><label>Číslo dokladu</label><input id="tx-edit-docnumber" type="text" /></div>
         <div class="field"><label>Popis</label><input id="tx-edit-desc" type="text" /></div>
-        <div class="field"><label>Částka (Kč)</label><input id="tx-amount" type="number" min="0" placeholder="0" /></div>
-        <div class="field"><label>Datum</label><input id="tx-date" type="date" /></div>
+        <div class="field"><label>Částka (Kč)</label><input id="tx-edit-amount" type="number" min="0" /></div>
+        <div class="field"><label>Datum</label><input id="tx-edit-date" type="date" /></div>
         <div class="field"><label>Kategorie</label><select id="tx-edit-category"></select></div>
         <div class="field"><label>Protistrana</label><input id="tx-edit-party" type="text" /></div>
       </div>
@@ -1022,10 +1022,8 @@
         <div class="field"><label>Částka (Kč)</label><input id="inv-amount" type="number" min="0" placeholder="0" /></div>
         <div class="field"><label>Datum vystavení</label><input id="inv-date" type="date" /></div>
         <div class="field"><label>Datum splatnosti</label><input id="inv-due" type="date" /></div>
-        <div class="field-row">
-          <div class="field"><label>Variabilní symbol</label><input id="inv-vs" type="text" /></div>
-          <div class="field"><label>Konstantní symbol</label><input id="inv-ks" type="text" placeholder="0308" /></div>
-        </div>
+        <div class="field"><label>Variabilní symbol</label><input id="inv-vs" type="text" /></div>
+        <div class="field"><label>Konstantní symbol</label><input id="inv-ks" type="text" placeholder="0308" /></div>
         <div class="field"><label>Odkaz na PDF (Google Drive)</label><input id="inv-url" type="url" placeholder="https://drive.google.com/..." /></div>
         <div class="field"><label>Popis / poznámka</label><input id="inv-desc" type="text" placeholder="Např. FA za nahrávání CD" /></div>
       </div>
@@ -1052,8 +1050,8 @@
         </div>
         <div class="field"><label>Dodavatel</label><input id="inv-edit-vendor" type="text" /></div>
         <div class="field"><label>Číslo faktury dodavatele</label><input id="inv-edit-number" type="text" /></div>
-        <div class="field"><label>Částka (Kč)</label><input id="inv-amount" type="number" min="0" placeholder="0" /></div>
-        <div class="field"><label>Datum vystavení</label><input id="inv-date" type="date" /></div>
+        <div class="field"><label>Částka (Kč)</label><input id="inv-edit-amount" type="number" min="0" /></div>
+        <div class="field"><label>Datum vystavení</label><input id="inv-edit-date" type="date" /></div>
         <div class="field"><label>Datum splatnosti</label><input id="inv-edit-due" type="date" /></div>
         <div class="field"><label>Odkaz na PDF (Google Drive)</label><input id="inv-edit-url" type="url" /></div>
         <div class="field"><label>Popis / poznámka</label><input id="inv-edit-desc" type="text" /></div>
@@ -1088,13 +1086,10 @@
           <input id="fav-vendor" type="text" placeholder="Název odběratele nebo vyberte z adresáře" autocomplete="off" />
           <div class="autocomplete-dropdown" id="fav-vendor-dropdown"></div>
         </div>
-        <div class="field-row">
         <div class="field"><label>Datum vystavení</label><input id="fav-date" type="date" /></div>
         <div class="field"><label>Datum splatnosti</label><input id="fav-due" type="date" /></div>
-        <div class="field-row">
-          <div class="field"><label>Variabilní symbol</label><input id="fav-vs" type="text" /></div>
-          <div class="field"><label>Konstantní symbol</label><input id="fav-ks" type="text" placeholder="0308" /></div>
-        </div>
+        <div class="field"><label>Variabilní symbol</label><input id="fav-vs" type="text" /></div>
+        <div class="field"><label>Konstantní symbol</label><input id="fav-ks" type="text" placeholder="0308" /></div>
         <div class="field"><label>Poznámka / popis</label><input id="fav-desc" type="text" placeholder="Např. Umělecké vystoupení" /></div>
         <div class="field">
           <label>Položky</label>

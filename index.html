@@ -527,6 +527,33 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── AUTOCOMPLETE ── */
+    .autocomplete-wrap { position: relative; }
+    .autocomplete-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.12);
+      z-index: 300;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .autocomplete-dropdown.open { display: block; }
+    .autocomplete-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background .1s;
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover { background: var(--bg); }
+    .autocomplete-item-name { font-size: 14px; font-weight: 500; }
+    .autocomplete-item-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    
     /* ── PAIR LIST ── */
     .pair-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
     .pair-item {
@@ -963,7 +990,11 @@
           <div style="flex:1;"><label>IČO dodavatele</label><input id="inv-ico" type="text" placeholder="12345678" maxlength="8" /></div>
           <button class="btn-secondary" id="btn-ares" style="height:46px;padding:0 14px;font-size:14px;white-space:nowrap;">Doplnit z ARES</button>
         </div>
-        <div class="field"><label>Dodavatel</label><input id="inv-vendor" type="text" placeholder="Název dodavatele" /></div>
+        <div class="field autocomplete-wrap">
+          <label>Dodavatel</label>
+          <input id="inv-vendor" type="text" placeholder="Název dodavatele nebo vyberte z adresáře" autocomplete="off" />
+          <div class="autocomplete-dropdown" id="inv-vendor-dropdown"></div>
+        </div>
         <div class="field"><label>Interní číslo</label><input id="inv-number" type="text" readonly placeholder="Generuje se automaticky" /></div>
         <div class="field"><label>Číslo faktury dodavatele</label><input id="inv-orig-number" type="text" placeholder="Číslo z faktury dodavatele" /></div>
         <div class="field-row">
@@ -1034,7 +1065,11 @@
           <div style="flex:1;"><label>IČO odběratele</label><input id="fav-ico" type="text" placeholder="12345678" maxlength="8" /></div>
           <button class="btn-secondary" id="btn-ares-fav" style="height:46px;padding:0 14px;font-size:14px;white-space:nowrap;">Doplnit z ARES</button>
         </div>
-        <div class="field"><label>Odběratel</label><input id="fav-vendor" type="text" placeholder="Název odběratele" /></div>
+        <div class="field autocomplete-wrap">
+          <label>Odběratel</label>
+          <input id="fav-vendor" type="text" placeholder="Název odběratele nebo vyberte z adresáře" autocomplete="off" />
+          <div class="autocomplete-dropdown" id="fav-vendor-dropdown"></div>
+        </div>
         <div class="field-row">
           <div class="field"><label>Datum vystavení</label><input id="fav-date" type="date" /></div>
           <div class="field"><label>Datum splatnosti</label><input id="fav-due" type="date" /></div>
@@ -1308,6 +1343,7 @@ function launchApp(){
     <div class="settings-row"><span class="settings-label">Účetní období</span><span class="settings-value">${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}</span></div>
   `;
   subscribeContacts();subscribeTransactions();subscribeInvoices();
+  initAutocompletes();
 }
 
 /* ── PERIOD SELECTOR ── */
@@ -1400,6 +1436,50 @@ async function saveContactIfNew(vendor,ico,address=''){
   const field=ico?'ico':'name', value=ico||vendor;
   const snap=await getDocs(query(col,where(field,'==',value)));
   if(snap.empty)await addDoc(col,{name:vendor,ico:ico||'',address:address||'',type:'supplier',createdAt:serverTimestamp()});
+}
+
+/* ── AUTOCOMPLETE ── */
+function setupAutocomplete(inputId, dropdownId, icoId, onSelect) {
+  const input = $(inputId);
+  const dropdown = $(dropdownId);
+
+  function renderDropdown(filter) {
+    let list = allContacts;
+    if(filter) list = list.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
+    if(!list.length) { dropdown.classList.remove('open'); return; }
+    dropdown.innerHTML = list.map(c => `
+      <div class="autocomplete-item" data-id="${c.id}">
+        <div class="autocomplete-item-name">${escHtml(c.name)}</div>
+        <div class="autocomplete-item-sub">${c.ico?'IČO: '+c.ico:''}${c.ico&&c.address?' · ':''}${c.address?escHtml(c.address):''}</div>
+      </div>
+    `).join('');
+    dropdown.classList.add('open');
+
+    dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const c = allContacts.find(c => c.id === item.dataset.id);
+        if(c) {
+          input.value = c.name;
+          input.dataset.address = c.address || '';
+          if(icoId) $(icoId).value = c.ico || '';
+          onSelect && onSelect(c);
+        }
+        dropdown.classList.remove('open');
+      });
+    });
+  }
+
+  input.addEventListener('focus', () => renderDropdown(input.value));
+  input.addEventListener('input', () => renderDropdown(input.value));
+  document.addEventListener('click', e => {
+    if(!input.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.remove('open');
+  });
+}
+
+// inicializace po launchApp
+function initAutocompletes() {
+  setupAutocomplete('inv-vendor', 'inv-vendor-dropdown', 'inv-ico');
+  setupAutocomplete('fav-vendor', 'fav-vendor-dropdown', 'fav-ico');
 }
 
 function openContactModal(c=null){

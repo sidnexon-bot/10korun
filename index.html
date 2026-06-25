@@ -1429,7 +1429,7 @@ $('btn-ares-contact').addEventListener('click',async()=>{
     const data=await res.json();
     $('contact-name').value=data.obchodniJmeno||'';
     const sid=data.sidlo;
-    if(sid)$('contact-address').value=[sid.nazevUlice,sid.cisloDomovni,sid.nazevObce,sid.psc].filter(Boolean).join(' ');
+    if(sid)$('contact-address').value=formatAddress(sid);
     toast('Údaje doplněny z ARES ✓');
   }catch(e){toast('IČO nenalezeno v ARES.');}
   $('btn-ares-contact').textContent=orig;$('btn-ares-contact').disabled=false;
@@ -1771,7 +1771,7 @@ async function aresLookup(ico,nameEl,addrEl){
   const data=await res.json();
   nameEl.value=data.obchodniJmeno||'';
   const sid=data.sidlo;
-  if(sid)nameEl.dataset.address=[sid.nazevUlice,sid.cisloDomovni,sid.nazevObce,sid.psc].filter(Boolean).join(' ');
+  if(sid)nameEl.dataset.address=formatAddress(sid);
 }
 
 [['btn-ares','inv-ico','inv-vendor'],['btn-ares-edit','inv-edit-ico','inv-edit-vendor'],['btn-ares-fav','fav-ico','fav-vendor']].forEach(([btnId,icoId,nameId])=>{
@@ -2056,6 +2056,18 @@ async function generateReceiptPDF(tx) {
   $('pdf-preview-frame').src = URL.createObjectURL(blob);
   $('pdf-preview-title').textContent = `${tx.docNumber||'Doklad'} – ${isIncome?'PPD':'VPD'}`;
   openModal('modal-pdf-preview');
+}
+
+function formatAddress(sid){
+  if(!sid) return '';
+  const ulice = sid.nazevUlice || '';
+  const popC  = sid.cisloDomovni || '';
+  const oriC  = sid.cisloOrientacni || '';
+  const cislo = popC && oriC ? `${popC}/${oriC}` : (popC || oriC);
+  const uliceCislo = [ulice, cislo].filter(Boolean).join(' ');
+  const psc   = sid.psc ? sid.psc.toString().replace(/(\d{3})(\d{2})/, '$1 $2') : '';
+  const obec  = sid.nazevObce || '';
+  return [uliceCislo, [psc, obec].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 }
 
 function escHtml(str){return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

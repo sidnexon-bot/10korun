@@ -713,6 +713,10 @@
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
         Doklady
       </button>
+      <button class="sidebar-nav-item" data-view="contacts">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        Kontakty
+      </button>
       <button class="sidebar-nav-item" data-view="settings">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
         Nastavení
@@ -806,6 +810,20 @@
       <div id="doc-list-wrap"><div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné doklady</div></div>
     </div>
 
+    <!-- ── KONTAKTY ── -->
+    <div id="view-contacts" class="view">
+      <div class="view-header">
+        <div class="view-title">Kontakty</div>
+        <button class="btn-primary" id="btn-add-contact" style="padding:9px 14px;font-size:14px;flex:none;">+ Přidat kontakt</button>
+      </div>
+      <div class="doc-filters">
+        <button class="filter-btn active" data-contact-filter="all">Vše</button>
+        <button class="filter-btn" data-contact-filter="supplier">Dodavatelé</button>
+        <button class="filter-btn" data-contact-filter="customer">Odběratelé</button>
+      </div>
+      <div id="contacts-list-wrap"></div>
+    </div>
+
     <!-- ── NASTAVENÍ ── -->
     <div id="view-settings" class="view">
       <div class="view-title" style="margin-bottom:16px;">Nastavení</div>
@@ -844,6 +862,10 @@
       <button data-view="documents">
         <span class="icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
         <small>Doklady</small>
+      </button>
+      <button data-view="contacts">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
+        <small>Kontakty</small>
       </button>
       <button data-view="settings">
         <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
@@ -1053,6 +1075,44 @@
   </div>
 </div>
 
+<!-- MODAL: KONTAKT -->
+<div class="modal-overlay" id="modal-contact">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-contact-title">Nový kontakt</div>
+      <button class="modal-close" data-close="modal-contact">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <div class="field">
+          <label>Typ kontaktu</label>
+          <select id="contact-type">
+            <option value="supplier">Dodavatel</option>
+            <option value="customer">Odběratel</option>
+            <option value="both">Oboje</option>
+          </select>
+        </div>
+        <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
+          <div style="flex:1;"><label>IČO</label><input id="contact-ico" type="text" placeholder="12345678" maxlength="8" /></div>
+          <button class="btn-secondary" id="btn-ares-contact" style="height:46px;padding:0 14px;font-size:14px;white-space:nowrap;">Doplnit z ARES</button>
+        </div>
+        <div class="field"><label>Název</label><input id="contact-name" type="text" placeholder="Název firmy nebo osoby" /></div>
+        <div class="field"><label>Adresa sídla</label><input id="contact-address" type="text" placeholder="Ulice, město, PSČ" /></div>
+        <div class="field"><label>Kontaktní osoba (nepovinné)</label><input id="contact-person" type="text" placeholder="Jméno a příjmení" /></div>
+        <div class="field"><label>E-mail (nepovinné)</label><input id="contact-email" type="email" placeholder="email@example.com" /></div>
+        <div class="field"><label>Telefon (nepovinné)</label><input id="contact-phone" type="tel" placeholder="+420 123 456 789" /></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn-danger" id="btn-contact-delete" style="display:none;">Smazat</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-secondary" data-close="modal-contact">Zrušit</button>
+        <button class="btn-primary" id="btn-contact-save">Uložit kontakt</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="pdf-template" style="display:none;position:fixed;left:-9999px;top:0;"></div>
 <div id="toast"></div>
 
@@ -1093,7 +1153,7 @@ const ORG_LOGO = 'https://sidnexon-bot.github.io/10korun/logo.png';
 const INCOME_CATS = ['Prodej zboží','Prodej výrobků a služeb','Příjmy z veřejných sbírek','Přijaté peněžní dary mimo veřejné sbírky','Přijaté členské příspěvky','Dotace a příspěvky z veřejných rozpočtů','Ostatní','Průběžné položky','Kurzové rozdíly'];
 const EXPENSE_CATS = ['Dlouhodobý nehmotný a hmotný majetek','Materiál','Zboží','Služby','Mzdy','Pojistné za zaměstnance a zaměstnavatele','Ostatní osobní výdaje','Ostatní','Průběžné položky','Kurzové rozdíly'];
 
-const VIEW_TITLES = { dashboard:'Přehled', invoices:'Faktury', documents:'Doklady', settings:'Nastavení' };
+const VIEW_TITLES = { dashboard:'Přehled', invoices:'Faktury', documents:'Doklady', contacts:'Kontakty', settings:'Nastavení' };
 
 let currentUser=null, orgData=null, txAccount='cash', txType='income';
 let activePeriod=new Date().getFullYear().toString();
@@ -1264,11 +1324,67 @@ async function renderPeriodSelector() {
 }
   
 /* ── CONTACTS ── */
+let contactFilter = 'all';
+let editContactId = null;
+
 function subscribeContacts(){
   const q=query(collection(db,'orgs',currentUser.uid,'contacts'),orderBy('name','asc'));
-  onSnapshot(q,snap=>{allContacts=snap.docs.map(d=>({id:d.id,...d.data()}));renderContacts();});
+  onSnapshot(q,snap=>{allContacts=snap.docs.map(d=>({id:d.id,...d.data()}));renderContacts();renderContactsSettings();});
 }
+
 function renderContacts(){
+  const wrap=$('contacts-list-wrap');if(!wrap)return;
+  let list=allContacts;
+  if(contactFilter==='supplier') list=list.filter(c=>c.type==='supplier'||c.type==='both'||!c.type);
+  if(contactFilter==='customer') list=list.filter(c=>c.type==='customer'||c.type==='both');
+  if(!list.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné kontakty</div>';return;}
+
+  wrap.innerHTML='<div class="doc-list">'+list.map(c=>`
+    <div class="doc-row" data-contact-id="${c.id}">
+      <div class="doc-row-main" style="grid-template-columns:1fr auto;">
+        <div>
+          <div style="font-size:14px;font-weight:600;">${escHtml(c.name)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${c.ico?'IČO: '+c.ico:''}${c.ico&&c.address?' · ':''}${c.address?escHtml(c.address):''}</div>
+        </div>
+        <span class="badge" style="background:var(--bg);color:var(--muted);">${c.type==='customer'?'Odběratel':c.type==='both'?'Oboje':'Dodavatel'}</span>
+      </div>
+      <div class="doc-row-accordion">
+        ${c.person?`<div style="font-size:13px;padding:4px 0;color:var(--muted);">👤 ${escHtml(c.person)}</div>`:''}
+        ${c.email?`<div style="font-size:13px;padding:4px 0;color:var(--muted);">✉️ <a href="mailto:${escHtml(c.email)}" style="color:var(--accent);">${escHtml(c.email)}</a></div>`:''}
+        ${c.phone?`<div style="font-size:13px;padding:4px 0;color:var(--muted);">📞 <a href="tel:${escHtml(c.phone)}" style="color:var(--accent);">${escHtml(c.phone)}</a></div>`:''}
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="accordion-btn edit" data-action="edit-contact" data-contact-id="${c.id}">Upravit</button>
+          <button class="accordion-btn delete" data-action="delete-contact" data-contact-id="${c.id}">Smazat</button>
+        </div>
+      </div>
+    </div>`).join('')+'</div>';
+
+  wrap.querySelectorAll('.doc-row-main').forEach(row=>{
+    row.addEventListener('click',()=>{
+      const acc=row.nextElementSibling;
+      const isOpen=acc.classList.contains('open');
+      wrap.querySelectorAll('.doc-row-accordion').forEach(a=>a.classList.remove('open'));
+      if(!isOpen) acc.classList.add('open');
+    });
+  });
+
+  wrap.querySelectorAll('.accordion-btn').forEach(btn=>{
+    btn.addEventListener('click',async e=>{
+      e.stopPropagation();
+      if(btn.dataset.action==='edit-contact'){
+        const c=allContacts.find(c=>c.id===btn.dataset.contactId);
+        if(c) openContactModal(c);
+      }
+      if(btn.dataset.action==='delete-contact'){
+        if(!confirm('Opravdu smazat tento kontakt?'))return;
+        try{ await deleteDoc(doc(db,'orgs',currentUser.uid,'contacts',btn.dataset.contactId)); toast('Kontakt smazán.'); }
+        catch(e){ toast('Chyba při mazání.'); }
+      }
+    });
+  });
+}
+
+function renderContactsSettings(){
   const wrap=$('settings-contacts');if(!wrap)return;
   if(!allContacts.length){wrap.innerHTML='<div style="padding:14px 16px;color:var(--muted);font-size:14px;">Zatím žádné kontakty.</div>';return;}
   wrap.innerHTML=allContacts.map((c,i)=>`
@@ -1277,13 +1393,85 @@ function renderContacts(){
       <span style="font-size:12px;color:var(--muted);">${c.ico||'–'}${c.address?' · '+escHtml(c.address):''}</span>
     </div>`).join('');
 }
+
 async function saveContactIfNew(vendor,ico,address=''){
   if(!vendor)return;
   const col=collection(db,'orgs',currentUser.uid,'contacts');
   const field=ico?'ico':'name', value=ico||vendor;
   const snap=await getDocs(query(col,where(field,'==',value)));
-  if(snap.empty)await addDoc(col,{name:vendor,ico:ico||'',address:address||'',createdAt:serverTimestamp()});
+  if(snap.empty)await addDoc(col,{name:vendor,ico:ico||'',address:address||'',type:'supplier',createdAt:serverTimestamp()});
 }
+
+function openContactModal(c=null){
+  editContactId = c?c.id:null;
+  $('modal-contact-title').textContent = c?'Upravit kontakt':'Nový kontakt';
+  $('contact-type').value    = c?.type||'supplier';
+  $('contact-ico').value     = c?.ico||'';
+  $('contact-name').value    = c?.name||'';
+  $('contact-address').value = c?.address||'';
+  $('contact-person').value  = c?.person||'';
+  $('contact-email').value   = c?.email||'';
+  $('contact-phone').value   = c?.phone||'';
+  $('btn-contact-delete').style.display = c?'block':'none';
+  openModal('modal-contact');
+}
+
+$('btn-add-contact').addEventListener('click',()=>openContactModal());
+
+$('btn-ares-contact').addEventListener('click',async()=>{
+  const ico=$('contact-ico').value.trim();
+  if(!ico||ico.length<6){toast('Zadej IČO.');return;}
+  const orig=$('btn-ares-contact').textContent;
+  $('btn-ares-contact').textContent='…';$('btn-ares-contact').disabled=true;
+  try{
+    const res=await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
+    if(!res.ok)throw new Error();
+    const data=await res.json();
+    $('contact-name').value=data.obchodniJmeno||'';
+    const sid=data.sidlo;
+    if(sid)$('contact-address').value=[sid.nazevUlice,sid.cisloDomovni,sid.nazevObce,sid.psc].filter(Boolean).join(' ');
+    toast('Údaje doplněny z ARES ✓');
+  }catch(e){toast('IČO nenalezeno v ARES.');}
+  $('btn-ares-contact').textContent=orig;$('btn-ares-contact').disabled=false;
+});
+
+$('btn-contact-save').addEventListener('click',async()=>{
+  const name=$('contact-name').value.trim();
+  if(!name){toast('Zadej název.');return;}
+  const data={
+    name, type:$('contact-type').value,
+    ico:$('contact-ico').value.trim(),
+    address:$('contact-address').value.trim(),
+    person:$('contact-person').value.trim(),
+    email:$('contact-email').value.trim(),
+    phone:$('contact-phone').value.trim(),
+  };
+  $('btn-contact-save').disabled=true;
+  try{
+    if(editContactId){
+      await updateDoc(doc(db,'orgs',currentUser.uid,'contacts',editContactId),data);
+      toast('Kontakt upraven ✓');
+    } else {
+      await addDoc(collection(db,'orgs',currentUser.uid,'contacts'),{...data,createdAt:serverTimestamp()});
+      toast('Kontakt uložen ✓');
+    }
+    closeModal('modal-contact');
+  }catch(e){toast('Chyba při ukládání.');}
+  $('btn-contact-save').disabled=false;
+});
+
+$('btn-contact-delete').addEventListener('click',async()=>{
+  if(!confirm('Opravdu smazat tento kontakt?'))return;
+  try{
+    await deleteDoc(doc(db,'orgs',currentUser.uid,'contacts',editContactId));
+    closeModal('modal-contact');toast('Kontakt smazán.');
+  }catch(e){toast('Chyba.');}
+});
+
+document.querySelectorAll('[data-contact-filter]').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('[data-contact-filter]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');contactFilter=btn.dataset.contactFilter;renderContacts();
+}));
 
 /* ── TRANSACTIONS ── */
 function subscribeTransactions(){

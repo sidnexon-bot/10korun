@@ -375,12 +375,72 @@
        DOKLADY
     ══════════════════════════════════ */
     .doc-list { display: flex; flex-direction: column; gap: 6px; }
-    .doc-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 11px 14px; background: var(--card); border-radius: 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.04);
+
+    /* ── TABLE HEADER ── */
+    .list-header {
+      display: grid;
+      grid-template-columns: 90px 50px 90px 1fr 100px;
+      gap: 8px;
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
     }
-    .doc-row .btn-pdf-receipt { margin-left: auto; flex-shrink: 0; }
+    
+    /* ── DOC ROW ── */
+    .doc-row {
+      background: var(--card);
+      border-radius: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04);
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    
+    .doc-row-main {
+      display: grid;
+      grid-template-columns: 90px 50px 90px 1fr 100px;
+      gap: 8px;
+      padding: 11px 14px;
+      align-items: center;
+      cursor: pointer;
+      transition: background .1s;
+    }
+    .doc-row-main:active { background: var(--bg); }
+    
+    .doc-row-main .doc-date  { font-size: 13px; color: var(--muted); }
+    .doc-row-main .doc-type  { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px; background: var(--bg); color: var(--muted); white-space: nowrap; width: fit-content; }
+    .doc-row-main .doc-num   { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-row-main .doc-desc  { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-row-main .doc-amount { font-size: 14px; font-weight: 700; text-align: right; white-space: nowrap; }
+    
+    /* ── ACCORDION ── */
+    .doc-row-accordion {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding: 10px 14px;
+      gap: 8px;
+    }
+    .doc-row-accordion.open { display: flex; }
+    
+    .accordion-btn {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity .15s;
+      text-align: center;
+    }
+    .accordion-btn:active { opacity: .8; }
+    .accordion-btn.pdf    { background: var(--accent-soft); color: var(--accent); }
+    .accordion-btn.edit   { background: var(--btn-bg); color: var(--text); }
+    .accordion-btn.delete { background: var(--expense-bg); color: var(--expense); }
+
     .doc-type {
       font-size: 10px; font-weight: 700; padding: 3px 7px;
       border-radius: 6px; background: var(--bg); color: var(--muted); white-space: nowrap;
@@ -1299,6 +1359,7 @@ function subscribeInvoices(){
   const q=query(invCol(),orderBy('dueDate','asc'));
   unsubInv=onSnapshot(q,snap=>{allInvoices=snap.docs.map(d=>({id:d.id,...d.data()}));renderInvoices();});
 }
+  
 function invoiceStatus(inv){
   if(inv.paid)return'paid';
   const now=new Date();now.setHours(0,0,0,0);const due=new Date(inv.dueDate);
@@ -1306,34 +1367,75 @@ function invoiceStatus(inv){
   const soon=new Date(now);soon.setDate(soon.getDate()+7);
   if(due<=soon)return'due';return'unpaid';
 }
+  
 function renderInvoices(){
   const wrap=$('invoice-list-wrap');
-  const list=invFilter==='all'?allInvoices:allInvoices.filter(i=>i.invType===invFilter);
+  let list=invFilter==='all'?allInvoices:allInvoices.filter(i=>i.invType===invFilter);
   if(!list.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné faktury</div>';return;}
+
   const sL={paid:'Uhrazena',unpaid:'Nezaplacena',due:'Brzy splatná',overdue:'Po splatnosti'};
   const bC={paid:'badge-paid',unpaid:'badge-unpaid',due:'badge-due',overdue:'badge-unpaid'};
   const dC={paid:'paid',unpaid:'unpaid',due:'due',overdue:'unpaid'};
-  wrap.innerHTML='<div class="invoice-list">'+list.map(inv=>{
+
+  const header=`<div class="list-header" style="grid-template-columns:90px 50px 90px 1fr 110px;">
+    <span>Datum</span><span>Typ</span><span>Číslo</span><span>Dodavatel / Popis</span><span style="text-align:right;">Částka</span>
+  </div>`;
+
+  const rows=list.map(inv=>{
     const st=invoiceStatus(inv);
-    return`<div class="invoice-card" data-inv-id="${inv.id}">
-      <div class="inv-status ${dC[st]}"></div>
-      <div class="inv-info">
-        <div class="inv-vendor">${escHtml(inv.vendor)} <span class="badge" style="background:var(--bg);color:var(--muted);font-size:9px;">${inv.invType==='fav'?'FAV':'FAP'}</span></div>
-        <div class="inv-meta">${inv.invNumber?inv.invNumber+' · ':''}${fmtDate(inv.date)}${inv.desc?' · '+escHtml(inv.desc):''}</div>
-      </div>
-      <div class="inv-right">
-        <div class="inv-amount">${fmt(inv.amount)}</div>
-        <div class="inv-due"><span class="badge ${bC[st]}">${sL[st]}</span></div>
-        <div style="display:flex;gap:8px;margin-top:4px;justify-content:flex-end;">
-          ${inv.url?`<a href="${escHtml(inv.url)}" target="_blank" style="color:var(--accent);font-size:11px;font-weight:600;text-decoration:none;">PDF ↗</a>`:''}
-          ${inv.invType==='fav'?`<a href="#" class="btn-pdf-fav" data-inv-id="${inv.id}" style="color:var(--accent);font-size:11px;font-weight:600;text-decoration:none;">Stáhnout PDF</a>`:''}
+    const isFav=inv.invType==='fav';
+    return`<div class="doc-row" data-inv-id="${inv.id}">
+      <div class="doc-row-main" style="grid-template-columns:90px 50px 90px 1fr 110px;">
+        <div class="doc-date">${fmtDate(inv.date)}</div>
+        <div class="doc-type">${inv.invType==='fav'?'FAV':'FAP'}</div>
+        <div class="doc-num">${inv.invNumber||'–'}</div>
+        <div class="doc-desc">
+          <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(inv.vendor)}</div>
+          <div style="font-size:11px;margin-top:1px;"><span class="badge ${bC[st]}">${sL[st]}</span>${inv.desc?' · '+escHtml(inv.desc):''}</div>
         </div>
+        <div class="doc-amount" style="text-align:right;">${fmt(inv.amount)}</div>
+      </div>
+      <div class="doc-row-accordion">
+        ${isFav?`<button class="accordion-btn pdf" data-action="pdf-fav" data-inv-id="${inv.id}">Zobrazit PDF</button>`:''}
+        ${inv.url?`<button class="accordion-btn pdf" data-action="open-url" data-url="${escHtml(inv.url)}">Otevřít PDF</button>`:''}
+        <button class="accordion-btn edit" data-action="edit-inv" data-inv-id="${inv.id}">Upravit</button>
+        <button class="accordion-btn delete" data-action="delete-inv" data-inv-id="${inv.id}">Smazat</button>
       </div>
     </div>`;
-  }).join('')+'</div>';
-  document.querySelectorAll('.btn-pdf-fav').forEach(btn=>btn.addEventListener('click',async e=>{e.stopPropagation();e.preventDefault();const inv=allInvoices.find(i=>i.id===btn.dataset.invId);if(inv)await generateInvoicePDF(inv);}));
+  }).join('');
+
+  wrap.innerHTML=header+'<div class="doc-list">'+rows+'</div>';
+
+  wrap.querySelectorAll('.doc-row-main').forEach(row=>{
+    row.addEventListener('click',()=>{
+      const acc=row.nextElementSibling;
+      const isOpen=acc.classList.contains('open');
+      wrap.querySelectorAll('.doc-row-accordion').forEach(a=>a.classList.remove('open'));
+      if(!isOpen) acc.classList.add('open');
+    });
+  });
+
+  wrap.querySelectorAll('.accordion-btn').forEach(btn=>{
+    btn.addEventListener('click', async e=>{
+      e.stopPropagation();
+      if(btn.dataset.action==='pdf-fav'){
+        const inv=allInvoices.find(i=>i.id===btn.dataset.invId);
+        if(inv) await generateInvoicePDF(inv);
+      }
+      if(btn.dataset.action==='open-url'){ window.open(btn.dataset.url,'_blank'); }
+      if(btn.dataset.action==='edit-inv'){
+        const inv=allInvoices.find(i=>i.id===btn.dataset.invId);
+        if(inv) openInvEditModal(inv);
+      }
+      if(btn.dataset.action==='delete-inv'){
+        if(!confirm('Opravdu smazat tuto fakturu?'))return;
+        try{ await deleteDoc(invDoc(btn.dataset.invId)); toast('Faktura smazána.'); }
+        catch(e){ toast('Chyba při mazání.'); }
+      }
+    });
+  });
 }
-document.addEventListener('click',e=>{const c=e.target.closest('.invoice-card');if(!c||e.target.closest('a'))return;const inv=allInvoices.find(i=>i.id===c.dataset.invId);if(inv)openInvEditModal(inv);});
+
 function openInvEditModal(inv){
   editInvId=inv.id;
   $('inv-edit-ico').value=inv.ico||'';$('inv-edit-vendor').value=inv.vendor||'';
@@ -1351,27 +1453,66 @@ document.querySelectorAll('[data-inv-filter]').forEach(btn=>btn.addEventListener
 function renderDocuments(){
   const wrap=$('doc-list-wrap');
   let list=[...allTx];
-  if(docFilter!=='all')list=list.filter(t=>{if(docFilter==='PPD')return t.account==='cash'&&t.type==='income';if(docFilter==='VPD')return t.account==='cash'&&t.type==='expense';if(docFilter==='BANK')return t.account==='bank';return true;});
+  if(docFilter!=='all')list=list.filter(t=>{
+    if(docFilter==='PPD')return t.account==='cash'&&t.type==='income';
+    if(docFilter==='VPD')return t.account==='cash'&&t.type==='expense';
+    if(docFilter==='BANK')return t.account==='bank';
+    return true;
+  });
   list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   if(!list.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné doklady</div>';return;}
-  wrap.innerHTML='<div class="doc-list">'+list.map(t=>{
-    const dt=t.account==='bank'?'BANK':(t.type==='income'?'PPD':'VPD');
-    const showPdf = t.account === 'cash';
-    return`<div class="doc-row"><div class="doc-type">${dt}</div><div class="doc-num">${t.docNumber||'–'}</div><div class="doc-desc">${escHtml(t.desc)}</div><div class="doc-date">${fmtDate(t.date)}</div><div class="doc-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div>${showPdf?`<button class="btn-pdf-receipt" data-tx-id="${t.id}" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;">PDF</button>`:''}</div>`;
-  }).join('')+'</div>';
-}
 
-document.addEventListener('click', e => {
-  const btn = e.target.closest('.btn-pdf-receipt');
-  if(!btn) return;
-  const tx = allTx.find(t => t.id === btn.dataset.txId);
-  if(tx) generateReceiptPDF(tx);
-});
-  
-document.querySelectorAll('.filter-btn').forEach(btn=>btn.addEventListener('click',()=>{
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');docFilter=btn.dataset.filter;renderDocuments();
-}));
+  const header=`<div class="list-header">
+    <span>Datum</span><span>Typ</span><span>Číslo</span><span>Popis</span><span style="text-align:right;">Částka</span>
+  </div>`;
+
+  const rows=list.map(t=>{
+    const dt=t.account==='bank'?'BANK':(t.type==='income'?'PPD':'VPD');
+    const isPdf=t.account==='cash';
+    return`<div class="doc-row" data-tx-id="${t.id}">
+      <div class="doc-row-main">
+        <div class="doc-date">${fmtDate(t.date)}</div>
+        <div class="doc-type">${dt}</div>
+        <div class="doc-num">${t.docNumber||'–'}</div>
+        <div class="doc-desc">${escHtml(t.desc)}</div>
+        <div class="doc-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div>
+      </div>
+      <div class="doc-row-accordion">
+        ${isPdf?`<button class="accordion-btn pdf" data-action="pdf" data-tx-id="${t.id}">Zobrazit PDF</button>`:''}
+        <button class="accordion-btn edit" data-action="edit" data-tx-id="${t.id}">Upravit záznam</button>
+        <button class="accordion-btn delete" data-action="delete" data-tx-id="${t.id}">Smazat záznam</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML=header+'<div class="doc-list">'+rows+'</div>';
+
+  // accordion toggle
+  wrap.querySelectorAll('.doc-row-main').forEach(row=>{
+    row.addEventListener('click',()=>{
+      const acc=row.nextElementSibling;
+      const isOpen=acc.classList.contains('open');
+      wrap.querySelectorAll('.doc-row-accordion').forEach(a=>a.classList.remove('open'));
+      if(!isOpen) acc.classList.add('open');
+    });
+  });
+
+  // accordion akce
+  wrap.querySelectorAll('.accordion-btn').forEach(btn=>{
+    btn.addEventListener('click', async e=>{
+      e.stopPropagation();
+      const tx=allTx.find(t=>t.id===btn.dataset.txId);
+      if(!tx)return;
+      if(btn.dataset.action==='pdf')  { generateReceiptPDF(tx); }
+      if(btn.dataset.action==='edit') { openTxEditModal(tx); }
+      if(btn.dataset.action==='delete') {
+        if(!confirm('Opravdu smazat tento záznam?'))return;
+        try{ await deleteDoc(txDoc(tx.id)); toast('Záznam smazán.'); }
+        catch(e){ toast('Chyba při mazání.'); }
+      }
+    });
+  });
+}
 
 /* ── ADD TX MODAL ── */
 document.querySelectorAll('.btn-add').forEach(btn=>btn.addEventListener('click',()=>{txAccount=btn.dataset.account;txType='income';selectedPairId=null;openTxModal();}));

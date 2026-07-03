@@ -656,6 +656,33 @@
       main { padding-bottom: 120px; }
     }
 
+      /* ── SKELETON ── */
+      .skeleton-card {
+        background: var(--card);
+        border-radius: 18px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.05);
+      }
+      
+      .skeleton {
+        background: linear-gradient(90deg, #e8e8ed 25%, #f2f2f7 50%, #e8e8ed 75%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s infinite;
+        border-radius: 8px;
+        margin-bottom: 10px;
+      }
+      .skeleton:last-child { margin-bottom: 0; }
+      
+      .skeleton-line.tall   { height: 20px; width: 100%; }
+      .skeleton-line.medium { height: 14px; width: 70%; }
+      .skeleton-line.short  { height: 14px; width: 40%; }
+      
+      @keyframes shimmer {
+        0%   { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
@@ -1385,6 +1412,7 @@ let contactFilter = 'all';
 let editContactId = null;
 
 function subscribeContacts(){
+  showSkeleton('contacts-list-wrap', 3);
   const q=query(collection(db,'orgs',currentUser.uid,'contacts'),orderBy('name','asc'));
   onSnapshot(q,snap=>{allContacts=snap.docs.map(d=>({id:d.id,...d.data()}));renderContacts();renderContactsSettings();});
 }
@@ -1575,8 +1603,22 @@ document.querySelectorAll('[data-contact-filter]').forEach(btn=>btn.addEventList
 }));
 
 /* ── TRANSACTIONS ── */
+function showSkeleton(id, count=3) {
+  const wrap=$(id); if(!wrap) return;
+  wrap.innerHTML = Array(count).fill(`
+    <div class="skeleton-card">
+      <div class="skeleton skeleton-line tall"></div>
+      <div class="skeleton skeleton-line medium"></div>
+      <div class="skeleton skeleton-line short"></div>
+    </div>
+  `).join('');
+}
+
 function subscribeTransactions(){
   if(unsubTx)unsubTx();
+  showSkeleton('txlist-cash', 3);
+  showSkeleton('txlist-bank', 3);
+  showSkeleton('doc-list-wrap', 3);
   const q=query(txCol(),orderBy('date','desc'));
   unsubTx=onSnapshot(q,snap=>{
     allTx=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1645,6 +1687,7 @@ $('btn-tx-delete').addEventListener('click',async()=>{
 /* ── INVOICES ── */
 function subscribeInvoices(){
   if(unsubInv)unsubInv();
+  showSkeleton('invoice-list-wrap', 3);
   const q=query(invCol(),orderBy('dueDate','asc'));
   unsubInv=onSnapshot(q,snap=>{allInvoices=snap.docs.map(d=>({id:d.id,...d.data()}));renderInvoices();});
 }

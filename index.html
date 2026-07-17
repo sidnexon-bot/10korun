@@ -563,22 +563,6 @@
     .type-btn.active-income  { background: var(--income-bg);  border-color: var(--income);  color: var(--income);  font-weight: 600; }
     .type-btn.active-expense { background: var(--expense-bg); border-color: var(--expense); color: var(--expense); font-weight: 600; }
 
-    /* ── AI HINT ── */
-    .ai-hint {
-      display: none; margin-top: 12px; padding: 12px 14px;
-      background: var(--accent-soft); border: 1px solid rgba(238,34,12,.2);
-      border-radius: 12px; font-size: 13px; line-height: 1.6;
-    }
-    .ai-hint.visible { display: block; }
-    .ai-hint-label  { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: .07em; font-weight: 700; margin-bottom: 5px; }
-    .ai-loading { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
-    .spinner {
-      width: 14px; height: 14px;
-      border: 2px solid var(--border); border-top-color: var(--accent);
-      border-radius: 50%; animation: spin .7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
     /* ── AUTOCOMPLETE ── */
     .autocomplete-wrap { position: relative; }
     .autocomplete-dropdown {
@@ -1013,10 +997,6 @@
           <label>Spárovat s fakturou (nepovinné)</label>
           <div class="pair-list" id="tx-pair-list"></div>
         </div>
-      </div>
-      <div class="ai-hint" id="ai-hint-box">
-        <div class="ai-hint-label">💡 Rada k zaúčtování</div>
-        <div id="ai-hint-text"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1877,12 +1857,11 @@ document.querySelectorAll('.btn-add').forEach(btn=>btn.addEventListener('click',
 function openTxModal(){
   $('modal-tx-title').textContent=txAccount==='cash'?'Nový záznam – Pokladna':'Nový záznam – Banka';
   $('tx-desc').value='';$('tx-amount').value='';$('tx-date').value=today();$('tx-party').value='';
-  $('ai-hint-box').classList.remove('visible');
   $('tx-type-income').classList.add('active-income');$('tx-type-expense').classList.remove('active-expense');
   setCatOptions('income');txType='income';renderPairList();openModal('modal-tx');
 }
-$('tx-type-income').addEventListener('click',()=>{txType='income';$('tx-type-income').classList.add('active-income');$('tx-type-expense').classList.remove('active-expense');setCatOptions('income');$('tx-pair-wrap').style.display='none';selectedPairId=null;triggerAiHint();});
-$('tx-type-expense').addEventListener('click',()=>{txType='expense';$('tx-type-expense').classList.add('active-expense');$('tx-type-income').classList.remove('active-income');setCatOptions('expense');const u=allInvoices.filter(i=>!i.paid);$('tx-pair-wrap').style.display=u.length?'block':'none';renderPairList();triggerAiHint();});
+$('tx-type-income').addEventListener('click',()=>{txType='income';$('tx-type-income').classList.add('active-income');$('tx-type-expense').classList.remove('active-expense');setCatOptions('income');$('tx-pair-wrap').style.display='none';selectedPairId=null;});
+$('tx-type-expense').addEventListener('click',()=>{txType='expense';$('tx-type-expense').classList.add('active-expense');$('tx-type-income').classList.remove('active-income');setCatOptions('expense');const u=allInvoices.filter(i=>!i.paid);$('tx-pair-wrap').style.display=u.length?'block':'none';renderPairList();});
 
 function renderPairList(){
   const unpaid=allInvoices.filter(i=>!i.paid),wrap=$('tx-pair-list');
@@ -1893,19 +1872,6 @@ function renderPairList(){
     if(selectedPairId){const inv=allInvoices.find(i=>i.id===selectedPairId);if(inv){$('tx-amount').value=inv.amount;$('tx-desc').value=$('tx-desc').value||'Úhrada FA '+(inv.invNumber||inv.vendor);$('tx-party').value=$('tx-party').value||inv.vendor;}}
     renderPairList();
   }));
-}
-$('tx-desc').addEventListener('blur',()=>{if($('tx-desc').value.trim().length>4)triggerAiHint();});
-async function triggerAiHint(){
-  const desc=$('tx-desc').value.trim();if(!desc)return;
-  const box=$('ai-hint-box');box.classList.add('visible');
-  $('ai-hint-text').innerHTML='<div class="ai-loading"><div class="spinner"></div> Načítám radu…</div>';
-  try{
-    const cats=txType==='income'?INCOME_CATS:EXPENSE_CATS;
-    const prompt=`Jsi asistent pro jednoduché účetnictví neziskového spolku (z. s.) v České republice dle vyhlášky č. 325/2015 Sb. Účetní rok 2026.\n\nTransakce: "${desc}"\nTyp: ${txType==='income'?'příjem':'výdaj'}\nDostupné kategorie: ${cats.join(', ')}\n\nOdpověz stručně (max 3 věty): Doporučená kategorie a krátké vysvětlení proč.`;
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const data=await res.json();
-    $('ai-hint-text').textContent=data.content?.find(b=>b.type==='text')?.text||'Nepodařilo se načíst radu.';
-  }catch(e){$('ai-hint-text').textContent='Radu se nepodařilo načíst.';}
 }
 $('btn-tx-save').addEventListener('click',async()=>{
   const desc=$('tx-desc').value.trim(),amount=parseFloat($('tx-amount').value),date=$('tx-date').value;

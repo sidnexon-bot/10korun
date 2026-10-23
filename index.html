@@ -1208,23 +1208,23 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc,
+import { initializeFirestore, doc, getDoc, setDoc, collection, addDoc,
   query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAXTSVShXlJKDf2quwqiFO4UuxzI80Lugk",
-  authDomain: "korun-95c19.firebaseapp.com",
-  databaseURL: "https://korun-95c19-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "korun-95c19",
-  storageBucket: "korun-95c19.firebasestorage.app",
-  messagingSenderId: "49992318866",
-  appId: "1:49992318866:web:888e22d20fa9f643fc4b4b"
+  apiKey: "AIzaSyAjDCB3gpqytTHnG7zKLKJGXMNeW5vyC_I",
+  authDomain: "base-39f52.firebaseapp.com",
+  projectId: "base-39f52",
+  messagingSenderId: "20753597026",
+  appId: "1:20753597026:web:bec0c5a784492206f3c73b"
 };
+const ORG_ID = '10men';
+let userRole = null;
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db   = getFirestore(app);
+const db   = initializeFirestore(app, { experimentalForceLongPolling: true, useFetchStreams: false }, 'korun');
 
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n).toLocaleString('cs-CZ') + ' Kč';
@@ -1275,13 +1275,13 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 document.querySelectorAll('[data-view]').forEach(item=>item.addEventListener('click',()=>showView(item.dataset.view)));
 
 /* ── PERIOD HELPERS ── */
-function txCol()  { return collection(db,'orgs',currentUser.uid,'periods',activePeriod,'transactions'); }
-function invCol() { return collection(db,'orgs',currentUser.uid,'periods',activePeriod,'invoices'); }
-function txDoc(id)  { return doc(db,'orgs',currentUser.uid,'periods',activePeriod,'transactions',id); }
-function invDoc(id) { return doc(db,'orgs',currentUser.uid,'periods',activePeriod,'invoices',id); }
+function txCol()  { return collection(db,'orgs',ORG_ID,'periods',activePeriod,'transactions'); }
+function invCol() { return collection(db,'orgs',ORG_ID,'periods',activePeriod,'invoices'); }
+function txDoc(id)  { return doc(db,'orgs',ORG_ID,'periods',activePeriod,'transactions',id); }
+function invDoc(id) { return doc(db,'orgs',ORG_ID,'periods',activePeriod,'invoices',id); }
 
 async function loadPeriods() {
-  const snap = await getDocs(collection(db,'orgs',currentUser.uid,'periods'));
+  const snap = await getDocs(collection(db,'orgs',ORG_ID,'periods'));
   return snap.docs.map(d=>d.id).sort();
 }
 
@@ -1324,11 +1324,12 @@ onAuthStateChanged(auth,async user=>{
   $('sidebar-user-name').textContent=user.displayName||user.email;
 
   try{
-    const snap=await getDoc(doc(db,'config','allowlist'));
-    if(!snap.exists()||!snap.data().emails.includes(user.email)){
+    const mSnap=await getDoc(doc(db,'orgs',ORG_ID,'members',user.uid));
+    if(!mSnap.exists()){
       await signOut(auth); showScreen('screen-login');
       document.querySelector('.login-sub').textContent='Přístup odepřen.'; return;
     }
+    userRole=mSnap.data().role||'member';
   }catch(e){await signOut(auth);showScreen('screen-login');return;}
 
   const orgSnap=await getDoc(doc(db,'orgs',user.uid));
@@ -1377,12 +1378,17 @@ $('ob-finish').addEventListener('click',async()=>{
     bankInit:parseFloat($('ob-bank-init').value)||0,
     createdAt:serverTimestamp(),
   };
-  try{await setDoc(doc(db,'orgs',currentUser.uid),data);orgData=data;launchApp();}
+  try{await setDoc(doc(db,'orgs',ORG_ID),data);orgData=data;launchApp();}
   catch(e){toast('Chyba při ukládání.');$('ob-finish').disabled=false;}
 });
 
 /* ── LAUNCH ── */
 function launchApp(){
+  if(userRole!=='treasurer'){
+    document.body.innerHTML='<div style="padding:40px;text-align:center;font-family:-apple-system">Modul výdajů připravujeme.</div>';
+    return;
+  }
+
   showScreen('screen-app');
   $('sidebar').style.display='';
   showView('dashboard');
@@ -1419,7 +1425,7 @@ let editContactId = null;
 
 function subscribeContacts(){
   showSkeleton('contacts-list-wrap', 3);
-  const q=query(collection(db,'orgs',currentUser.uid,'contacts'),orderBy('name','asc'));
+  const q=query(collection(db,'orgs',ORG_ID,'contacts'),orderBy('name','asc'));
   onSnapshot(q,snap=>{allContacts=snap.docs.map(d=>({id:d.id,...d.data()}));renderContacts();renderContactsSettings();});
 }
 
@@ -1468,7 +1474,7 @@ function renderContacts(){
       }
       if(btn.dataset.action==='delete-contact'){
         if(!confirm('Opravdu smazat tento kontakt?'))return;
-        try{ await deleteDoc(doc(db,'orgs',currentUser.uid,'contacts',btn.dataset.contactId)); toast('Kontakt smazán.'); }
+        try{ await deleteDoc(doc(db,'orgs',ORG_ID,'contacts',btn.dataset.contactId)); toast('Kontakt smazán.'); }
         catch(e){ toast('Chyba při mazání.'); }
       }
     });
@@ -1487,7 +1493,7 @@ function renderContactsSettings(){
 
 async function saveContactIfNew(vendor,ico,address=''){
   if(!vendor)return;
-  const col=collection(db,'orgs',currentUser.uid,'contacts');
+  const col=collection(db,'orgs',ORG_ID,'contacts');
   const field=ico?'ico':'name', value=ico||vendor;
   const snap=await getDocs(query(col,where(field,'==',value)));
   if(snap.empty)await addDoc(col,{name:vendor,ico:ico||'',address:address||'',type:'supplier',createdAt:serverTimestamp()});
@@ -1584,10 +1590,10 @@ $('btn-contact-save').addEventListener('click',async()=>{
   $('btn-contact-save').disabled=true;
   try{
     if(editContactId){
-      await updateDoc(doc(db,'orgs',currentUser.uid,'contacts',editContactId),data);
+      await updateDoc(doc(db,'orgs',ORG_ID,'contacts',editContactId),data);
       toast('Kontakt upraven ✓');
     } else {
-      await addDoc(collection(db,'orgs',currentUser.uid,'contacts'),{...data,createdAt:serverTimestamp()});
+      await addDoc(collection(db,'orgs',ORG_ID,'contacts'),{...data,createdAt:serverTimestamp()});
       toast('Kontakt uložen ✓');
     }
     closeModal('modal-contact');
@@ -1598,7 +1604,7 @@ $('btn-contact-save').addEventListener('click',async()=>{
 $('btn-contact-delete').addEventListener('click',async()=>{
   if(!confirm('Opravdu smazat tento kontakt?'))return;
   try{
-    await deleteDoc(doc(db,'orgs',currentUser.uid,'contacts',editContactId));
+    await deleteDoc(doc(db,'orgs',ORG_ID,'contacts',editContactId));
     closeModal('modal-contact');toast('Kontakt smazán.');
   }catch(e){toast('Chyba.');}
 });
@@ -2090,7 +2096,7 @@ $('btn-new-period').addEventListener('click',async()=>{
   const cashBal = allTx.filter(t=>t.account==='cash').reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),orgData.cashInit||0);
   const bankBal = allTx.filter(t=>t.account==='bank').reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),orgData.bankInit||0);
   // ulož metadata nového období
-  await setDoc(doc(db,'orgs',currentUser.uid,'periods',nextYear),{
+  await setDoc(doc(db,'orgs',ORG_ID,'periods',nextYear),{
     year: nextYear,
     cashInit: cashBal,
     bankInit: bankBal,

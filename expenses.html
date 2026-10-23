@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7">
+<title>10korun – Výdaje</title>
+<style>
+  :root {
+    --bg:#f2f2f7; --card:#fff; --text:#111; --muted:#8e8e93; --border:#e5e5ea;
+    --accent:#EE220C; --accent-soft:rgba(238,34,12,.08);
+    --income:#1a7a3a; --income-bg:#d4f5e2; --expense:#c00000; --expense-bg:#fde8e8;
+    --warn:#b07800; --warn-bg:#fff4dc; --btn-bg:#e8e8ed; --btn-color:#007aff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#000; --card:#1c1c1e; --text:#f2f2f7; --muted:#8e8e93; --border:#38383a;
+      --accent:#ff453a; --accent-soft:rgba(255,69,58,.14);
+      --income:#32d74b; --income-bg:rgba(50,215,75,.16); --expense:#ff6961; --expense-bg:rgba(255,69,58,.16);
+      --warn:#ffd60a; --warn-bg:rgba(255,214,10,.14); --btn-bg:#2c2c2e; --btn-color:#0a84ff;
+    }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--text); font-size:15px; line-height:1.5;
+    min-height:100vh; -webkit-tap-highlight-color:transparent;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .screen { display:none; }
+  .screen.active { display:block; }
+  .wrap { max-width:560px; margin:0 auto; padding:calc(16px + env(safe-area-inset-top)) 16px 40px; }
+
+  /* login */
+  #screen-login.active { display:flex; min-height:100vh; align-items:center; justify-content:center; padding:24px; }
+  .login-box { background:var(--card); border-radius:20px; padding:32px 24px; width:100%; max-width:360px; text-align:center; }
+  .login-logo { font-size:28px; font-weight:800; letter-spacing:-.02em; }
+  .login-logo span { color:var(--accent); }
+  .login-sub { color:var(--muted); font-size:14px; margin:6px 0 24px; }
+
+  button { font-family:inherit; cursor:pointer; }
+  .btn-primary { background:var(--accent); color:#fff; border:none; border-radius:12px; padding:12px 18px; font-size:15px; font-weight:600; }
+  .btn-primary:disabled { opacity:.5; }
+  .btn-secondary { background:var(--btn-bg); color:var(--btn-color); border:none; border-radius:12px; padding:12px 18px; font-size:15px; font-weight:600; }
+  .btn-danger { background:var(--expense-bg); color:var(--expense); border:none; border-radius:12px; padding:10px 16px; font-size:14px; font-weight:600; }
+  .btn-full { width:100%; }
+
+  /* hlavička */
+  .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .topbar h1 { font-size:24px; font-weight:800; letter-spacing:-.02em; }
+  .topbar .who { font-size:12px; color:var(--muted); }
+  .avatar { width:34px; height:34px; border-radius:50%; background:var(--btn-bg); object-fit:cover; }
+
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .stat { background:var(--card); border-radius:14px; padding:14px 16px; }
+  .stat-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+  .stat-value { font-size:20px; font-weight:700; margin-top:2px; }
+  .stat-note { font-size:11px; color:var(--muted); margin:-8px 0 14px; grid-column:1/-1; }
+
+  .actions { display:flex; gap:10px; margin-bottom: 8px; }
+  .link-row { margin:14px 0 4px; font-size:13px; }
+  .link-row a { color:var(--btn-color); text-decoration:none; font-weight:600; }
+
+  .exp-card { background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:10px; }
+  .exp-top { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+  .exp-title { font-weight:600; word-break:break-word; }
+  .exp-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+  .exp-amount { font-weight:700; white-space:nowrap; text-align:right; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-top:4px; }
+  .badge-due { background:var(--warn-bg); color:var(--warn); }
+  .badge-paid { background:var(--income-bg); color:var(--income); }
+  .badge-unpaid { background:var(--expense-bg); color:var(--expense); }
+  .exp-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .exp-actions button { padding:8px 12px; font-size:13px; border-radius:10px; border:none; font-weight:600; }
+  .a-no { background:var(--expense-bg); color:var(--expense); }
+  .a-neutral { background:var(--btn-bg); color:var(--btn-color); }
+  .empty { color:var(--muted); text-align:center; padding:40px 0; font-size:14px; }
+
+  /* modal */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:flex-end; justify-content:center; z-index:50; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--card); width:100%; max-width:560px; border-radius:20px 20px 0 0; max-height:92vh; overflow-y:auto; padding:18px 16px calc(18px + env(safe-area-inset-bottom)); }
+  @media (min-width:600px) { .modal-overlay { align-items:center; } .modal { border-radius:20px; } }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .modal-title { font-size:18px; font-weight:700; }
+  .modal-close { background:var(--btn-bg); border:none; color:var(--muted); width:30px; height:30px; border-radius:50%; font-size:14px; }
+  .seg { display:flex; gap:8px; margin-bottom:16px; }
+  .seg button { flex:1; padding:10px; border-radius:10px; border:1.5px solid var(--border); background:var(--card); color:var(--text); font-size:14px; }
+  .seg button.on { background:var(--income-bg); border-color:var(--income); color:var(--income); font-weight:600; }
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; font-weight:600; }
+  .field input { width:100%; min-width:0; max-width:100%; display:block; -webkit-appearance:none; appearance:none; font-family:inherit; font-size:16px; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; background:var(--card); color:var(--text); }
+  .field input:focus { outline:none; border-color:var(--accent); }
+  .field input[readonly] { background:var(--bg); color:var(--muted); }
+  .modal-footer { display:flex; gap:8px; margin-top:6px; }
+  .modal-footer button { flex:1; }
+
+  #toast { position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px); background:#1c1c1e; color:#fff; padding:10px 16px; border-radius:12px; font-size:14px; opacity:0; pointer-events:none; transition:.25s; z-index:99; max-width:90%; text-align:center; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  #loading { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:100; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="loading">Načítám…</div>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen">
+  <div class="login-box">
+    <div class="login-logo">10<span>korun</span></div>
+    <div class="login-sub">Výdaje a náhrady – skupina 10men</div>
+    <button class="btn-primary btn-full" id="btn-login">Přihlásit se přes Google</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="screen-app" class="screen">
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Výdaje</h1>
+        <div class="who" id="who"></div>
+      </div>
+      <img class="avatar" id="avatar" alt="" />
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Pokladna</div><div class="stat-value" id="bal-cash">–</div></div>
+      <div class="stat"><div class="stat-label">Bankovní účet</div><div class="stat-value" id="bal-bank">–</div></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary btn-full" id="btn-new">+ Nový výdaj</button>
+    </div>
+
+    <div id="list"></div>
+
+    <div class="link-row" id="treasurer-link" style="display:none;"><a href="index.html">Schvalování a účetnictví v 10korun →</a></div>
+    <div style="margin-top:28px;"><button class="btn-danger" id="btn-signout">Odhlásit se</button></div>
+  </div>
+</div>
+
+<!-- NOVÝ VÝDAJ -->
+<div class="modal-overlay" id="modal-exp">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Nový výdaj</div>
+      <button class="modal-close" data-close>✕</button>
+    </div>
+    <div class="seg">
+      <button id="t-naklad" class="on">Náhrada výdaje</button>
+      <button id="t-palivo">Palivo</button>
+    </div>
+    <div class="field"><label>Popis</label><input id="f-desc" type="text" placeholder="Např. nákup not / cesta na koncert" /></div>
+    <div id="w-naklad" class="field"><label>Částka (Kč)</label><input id="f-amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" /></div>
+    <div id="w-palivo" style="display:none;">
+      <div class="field"><label>Počet kilometrů</label><input id="f-km" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" /></div>
+      <div class="field"><label>K proplacení (sazba <span id="rate-label"></span> Kč/km)</label><input id="f-calc" type="text" readonly /></div>
+    </div>
+    <div class="field"><label>Datum</label><input id="f-date" type="date" /></div>
+    <div class="field"><label>Účtenka (foto nebo PDF)</label><input id="f-file" type="file" accept="image/*,application/pdf" /></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-close>Zrušit</button>
+      <button class="btn-primary" id="btn-save">Odeslat</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initializeFirestore, doc, getDoc, setDoc, deleteDoc, collection,
+  query, where, onSnapshot, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAjDCB3gpqytTHnG7zKLKJGXMNeW5vyC_I",
+  authDomain: "base-39f52.firebaseapp.com",
+  projectId: "base-39f52",
+  storageBucket: "SEM_DOPLN_BUCKET",
+  messagingSenderId: "20753597026",
+  appId: "1:20753597026:web:bec0c5a784492206f3c73b"
+};
+const ORG_ID = '10men';
+const FUEL_RATE = 5.90; // Kč/km, osobní automobil 2026 – změň zde při změně sazby
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = initializeFirestore(app, { experimentalForceLongPolling: true, useFetchStreams: false }, 'korun');
+const storage = getStorage(app);
+
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n).toLocaleString('cs-CZ') + ' Kč';
+const fmtDate = d => d ? new Date(d).toLocaleDateString('cs-CZ') : '';
+const today = () => new Date().toISOString().slice(0,10);
+const escHtml = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
+function toast(msg, dur=2800){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),dur); }
+function openModal(id){ $(id).classList.add('open'); }
+function closeModal(id){ $(id).classList.remove('open'); }
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal('modal-exp')));
+$('modal-exp').addEventListener('click',e=>{ if(e.target===$('modal-exp')) closeModal('modal-exp'); });
+
+let currentUser=null, memberName='', userRole=null;
+let allExp=[], unsubExp=null, unsubSummary=null;
+let expType='naklad', busy=false;
+
+const STATUS = {
+  pending:  {label:'Čeká na schválení', cls:'badge-due'},
+  approved: {label:'Schváleno · čeká na proplacení', cls:'badge-due'},
+  paid:     {label:'Proplaceno', cls:'badge-paid'},
+  rejected: {label:'Zamítnuto', cls:'badge-unpaid'},
+};
+
+/* ── AUTH ── */
+$('btn-login').addEventListener('click', async ()=>{
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(e){ toast('Přihlášení se nezdařilo.'); }
+});
+$('btn-signout').addEventListener('click', ()=>signOut(auth));
+
+function loginMessage(txt){ document.querySelector('.login-sub').textContent = txt; }
+
+onAuthStateChanged(auth, async user => {
+  $('loading').style.display='none';
+  if (unsubExp){ unsubExp(); unsubExp=null; }
+  if (unsubSummary){ unsubSummary(); unsubSummary=null; }
+  if (!user){ currentUser=null; showScreen('screen-login'); return; }
+  currentUser = user;
+
+  try {
+    const m = await getDoc(doc(db,'orgs',ORG_ID,'members',user.uid));
+    if (!m.exists()){
+      await signOut(auth); showScreen('screen-login'); loginMessage('Přístup odepřen.'); return;
+    }
+    userRole = m.data().role || 'member';
+    memberName = m.data().name || user.displayName || user.email;
+  } catch(e){
+    console.error('MEMBER CHECK:', e);
+    await signOut(auth); showScreen('screen-login');
+    loginMessage('Chyba: ' + (e.code||'') + ' ' + e.message); return;
+  }
+
+  $('who').textContent = memberName;
+  if (user.photoURL) $('avatar').src = user.photoURL; else $('avatar').style.visibility='hidden';
+  $('treasurer-link').style.display = userRole==='treasurer' ? '' : 'none';
+  showScreen('screen-app');
+  subscribe();
+});
+
+function subscribe(){
+  unsubExp = onSnapshot(
+    query(collection(db,'orgs',ORG_ID,'expenses'), where('uid','==',currentUser.uid)),
+    snap => {
+      allExp = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      allExp.sort((a,b)=>(b.createdAt?.seconds ?? 9e12) - (a.createdAt?.seconds ?? 9e12));
+      render();
+    },
+    err => { console.error('EXPENSES:', err); toast('Výdaje se nepodařilo načíst.'); }
+  );
+  unsubSummary = onSnapshot(doc(db,'orgs',ORG_ID,'summary','balances'), s => {
+    const d = s.exists() ? s.data() : null;
+    $('bal-cash').textContent = d ? fmt(d.cash) : '–';
+    $('bal-bank').textContent = d ? fmt(d.bank) : '–';
+  }, ()=>{});
+}
+
+/* ── SEZNAM ── */
+function card(e){
+  const st = STATUS[e.status] || STATUS.pending;
+  const kind = e.type==='palivo' ? `palivo · ${e.km} km × ${String(e.rate).replace('.',',')} Kč` : 'náhrada výdaje';
+  const sub = [fmtDate(e.date), kind, e.docNumber||null].filter(Boolean).join(' · ');
+  let act = '';
+  if (e.receiptPath) act += `<button class="a-neutral" data-act="receipt" data-id="${e.id}">Účtenka</button>`;
+  if (e.status==='pending') act += `<button class="a-no" data-act="delete" data-id="${e.id}">Smazat</button>`;
+  return `<div class="exp-card">
+    <div class="exp-top">
+      <div style="min-width:0;">
+        <div class="exp-title">${escHtml(e.desc)}</div>
+        <div class="exp-sub">${sub}</div>
+      </div>
+      <div>
+        <div class="exp-amount">${fmt(e.amount)}</div>
+        <div style="text-align:right;"><span class="badge ${st.cls}">${st.label}</span></div>
+      </div>
+    </div>
+    ${e.status==='rejected' && e.rejectNote ? `<div class="exp-sub" style="margin-top:8px;color:var(--expense);">Důvod: ${escHtml(e.rejectNote)}</div>` : ''}
+    ${act ? `<div class="exp-actions">${act}</div>` : ''}
+  </div>`;
+}
+
+function render(){
+  $('list').innerHTML = allExp.length ? allExp.map(card).join('') : '<div class="empty">Zatím žádné výdaje</div>';
+}
+
+$('list').addEventListener('click', async ev => {
+  const btn = ev.target.closest('button[data-act]'); if(!btn) return;
+  const e = allExp.find(x=>x.id===btn.dataset.id); if(!e) return;
+  try {
+    if (btn.dataset.act==='receipt'){
+      const w = window.open('', '_blank');
+      const url = await getDownloadURL(sRef(storage, e.receiptPath));
+      if (w) w.location.href = url; else window.location.href = url;
+    } else if (btn.dataset.act==='delete'){
+      if (!confirm('Smazat tento výdaj?')) return;
+      await deleteDoc(doc(db,'orgs',ORG_ID,'expenses',e.id));
+      if (e.receiptPath){ try { await deleteObject(sRef(storage, e.receiptPath)); } catch(_){} }
+      toast('Smazáno.');
+    }
+  } catch(err){ console.error(err); toast('Akce se nezdařila.'); }
+});
+
+/* ── NOVÝ VÝDAJ ── */
+function setType(t){
+  expType = t;
+  $('t-naklad').classList.toggle('on', t==='naklad');
+  $('t-palivo').classList.toggle('on', t==='palivo');
+  $('w-naklad').style.display = t==='naklad' ? '' : 'none';
+  $('w-palivo').style.display = t==='palivo' ? '' : 'none';
+  calc();
+}
+function calc(){
+  const km = parseFloat($('f-km').value) || 0;
+  $('f-calc').value = km ? fmt(Math.round(km*FUEL_RATE*100)/100) : '';
+}
+$('t-naklad').addEventListener('click', ()=>setType('naklad'));
+$('t-palivo').addEventListener('click', ()=>setType('palivo'));
+$('f-km').addEventListener('input', calc);
+
+$('btn-new').addEventListener('click', ()=>{
+  ['f-desc','f-amount','f-km','f-calc'].forEach(id=>$(id).value='');
+  $('f-file').value='';
+  $('f-date').value = today();
+  $('rate-label').textContent = String(FUEL_RATE).replace('.',',');
+  setType('naklad');
+  openModal('modal-exp');
+});
+
+async function prepareReceipt(file){
+  if (!file.type.startsWith('image/')) return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const sc = Math.min(1, 1800/Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width*sc); c.height = Math.round(bmp.height*sc);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+    return blob || file;
+  } catch(_){ return file; }
+}
+
+$('btn-save').addEventListener('click', async ()=>{
+  if (busy) return;
+  const desc = $('f-desc').value.trim(), date = $('f-date').value, file = $('f-file').files[0];
+  let amount = 0, km = null;
+  if (expType==='naklad'){
+    amount = parseFloat($('f-amount').value) || 0;
+    if (!amount){ toast('Zadej částku.'); return; }
+    if (!file){ toast('Přilož účtenku.'); return; }
+  } else {
+    km = parseFloat($('f-km').value) || 0;
+    if (!km){ toast('Zadej počet kilometrů.'); return; }
+    amount = Math.round(km*FUEL_RATE*100)/100;
+  }
+  if (!desc || !date){ toast('Vyplň popis a datum.'); return; }
+
+  const btn = $('btn-save');
+  busy = true; btn.disabled = true; btn.textContent = 'Odesílám…';
+  try {
+    const newRef = doc(collection(db,'orgs',ORG_ID,'expenses'));
+    let receiptPath = null;
+    if (file){
+      const isPdf = file.type==='application/pdf';
+      const blob = await prepareReceipt(file);
+      receiptPath = `korun/vydaje/${currentUser.uid}/${newRef.id}.${isPdf?'pdf':'jpg'}`;
+      await uploadBytes(sRef(storage, receiptPath), blob, {contentType: isPdf ? 'application/pdf' : 'image/jpeg'});
+    }
+    await setDoc(newRef, {
+      uid: currentUser.uid, name: memberName, email: currentUser.email,
+      type: expType, amount, date, desc, km, rate: expType==='palivo' ? FUEL_RATE : null,
+      receiptPath, status: 'pending', createdAt: serverTimestamp()
+    });
+    closeModal('modal-exp'); toast('Výdaj odeslán ✓');
+  } catch(err){ console.error('EXPENSE SAVE:', err); toast('Odeslání se nezdařilo.'); }
+  busy = false; btn.disabled = false; btn.textContent = 'Odeslat';
+});
+</script>
+</body>
+</html>

@@ -58,7 +58,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, writeBatch }
+import { initializeFirestore, collection, doc, getDoc, getDocs, writeBatch }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const OLD_CFG = {
@@ -83,8 +83,8 @@ const oldApp  = initializeApp(OLD_CFG, 'old');
 const newApp  = initializeApp(NEW_CFG, 'new');
 const oldAuth = getAuth(oldApp);
 const newAuth = getAuth(newApp);
-const oldDb   = getFirestore(oldApp);
-const newDb   = getFirestore(newApp);
+const oldDb   = initializeFirestore(oldApp, { experimentalForceLongPolling: true, useFetchStreams: false });
+const newDb   = initializeFirestore(newApp, { experimentalForceLongPolling: true, useFetchStreams: false }, 'korun');
 
 const $ = id => document.getElementById(id);
 function log(msg){ const el=$('log'); el.textContent += '\n' + msg; el.scrollTop = el.scrollHeight; }

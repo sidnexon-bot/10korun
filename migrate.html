@@ -163,10 +163,12 @@ async function readOld(){
   }
 
   // data z doby před rozdělením na roky (jen kontrola, nemigrují se)
-  const lt = await getDocs(collection(oldDb, 'orgs', uid, 'transactions'));
-  const li = await getDocs(collection(oldDb, 'orgs', uid, 'invoices'));
-  out.legacy = { transactions: lt.size, invoices: li.size };
-  if (lt.size || li.size) log(`POZOR: ve starém umístění (bez roku) zůstalo ${lt.size} transakcí a ${li.size} faktur. Nemigrují se.`);
+  try {
+    const lt = await getDocs(collection(oldDb, 'orgs', uid, 'transactions'));
+    const li = await getDocs(collection(oldDb, 'orgs', uid, 'invoices'));
+    out.legacy = { transactions: lt.size, invoices: li.size };
+    if (lt.size || li.size) log(`POZOR: ve starém umístění (bez roku) zůstalo ${lt.size} transakcí a ${li.size} faktur. Nemigrují se.`);
+  } catch (e) { log('Staré umístění bez roku: nelze zkontrolovat (' + e.message + ') – přeskakuji.'); }
 
   return out;
 }

@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f2f2f7">
 <title>10korun – Výdaje</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
   :root {
     --bg:#f2f2f7; --card:#fff; --text:#111; --muted:#8e8e93; --border:#e5e5ea;
@@ -97,6 +99,22 @@
   .modal-footer { display:flex; gap:8px; margin-top:6px; }
   .modal-footer button { flex:1; }
 
+  .group-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:20px 0 8px; }
+  .draft-row { display:flex; gap:12px; align-items:flex-start; }
+  .draft-row input[type=checkbox] { width:22px; height:22px; margin-top:2px; accent-color:var(--accent); flex:none; }
+  .draft-main { flex:1; min-width:0; }
+  .select-bar { position:sticky; bottom:calc(12px + env(safe-area-inset-bottom)); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:10px 12px; display:none; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 4px 18px rgba(0,0,0,.12); margin-top:12px; }
+  .select-bar.show { display:flex; }
+  .select-bar .sum { font-size:13px; }
+  .select-bar .sum b { display:block; font-size:16px; }
+  .note-red { font-size:12px; color:var(--expense); margin-top:6px; }
+  table.rep { width:100%; border-collapse:collapse; font-size:13px; margin:6px 0 10px; }
+  table.rep th { text-align:left; font-size:11px; color:var(--muted); text-transform:uppercase; padding:6px 4px; border-bottom:1px solid var(--border); }
+  table.rep td { padding:7px 4px; border-bottom:1px solid var(--border); vertical-align:top; }
+  table.rep td.r, table.rep th.r { text-align:right; white-space:nowrap; }
+  table.rep tfoot td { font-weight:700; border-bottom:none; }
+  .rep-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+  .rep-actions .btn-primary { grid-column:1/-1; }
   #toast { position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(20px); background:#1c1c1e; color:#fff; padding:10px 16px; border-radius:12px; font-size:14px; opacity:0; pointer-events:none; transition:.25s; z-index:99; max-width:90%; text-align:center; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   #loading { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:100; color:var(--muted); }
@@ -135,47 +153,69 @@
       <button class="btn-primary btn-full" id="btn-new">+ Nový výdaj</button>
     </div>
 
-    <div id="list"></div>
+    <div id="drafts"></div>
+    <div class="select-bar" id="select-bar">
+      <div class="sum"><span id="sel-count"></span><b id="sel-total"></b></div>
+      <button class="btn-primary" id="btn-make-report">Vytvořit report</button>
+    </div>
+    <div id="reports"></div>
 
     <div class="link-row" id="treasurer-link" style="display:none;"><a href="index.html">Schvalování a účetnictví v 10korun →</a></div>
     <div style="margin-top:28px;"><button class="btn-danger" id="btn-signout">Odhlásit se</button></div>
   </div>
 </div>
 
-<!-- NOVÝ VÝDAJ -->
+<!-- VÝDAJ (koncept) -->
 <div class="modal-overlay" id="modal-exp">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">Nový výdaj</div>
-      <button class="modal-close" data-close>✕</button>
+      <div class="modal-title" id="exp-modal-title">Nový výdaj</div>
+      <button class="modal-close" data-close="modal-exp">✕</button>
     </div>
-    <div class="seg">
-      <button id="t-naklad" class="on">Náhrada výdaje</button>
-      <button id="t-palivo">Palivo</button>
+    <div class="field"><label>Datum (z účtenky)</label><input id="f-date" type="date" /></div>
+    <div class="field"><label>Popis</label><input id="f-desc" type="text" placeholder="Např. nákup not" /></div>
+    <div class="field"><label>Částka (Kč)</label><input id="f-amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" /></div>
+    <div class="field"><label>Účtenka (foto nebo PDF)</label><input id="f-file" type="file" accept="image/*,application/pdf" />
+      <div class="stat-note" id="f-file-note" style="margin:4px 0 0;display:none;"></div>
     </div>
-    <div class="field"><label>Popis</label><input id="f-desc" type="text" placeholder="Např. nákup not / cesta na koncert" /></div>
-    <div id="w-naklad" class="field"><label>Částka (Kč)</label><input id="f-amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" /></div>
-    <div id="w-palivo" style="display:none;">
-      <div class="field"><label>Počet kilometrů</label><input id="f-km" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" /></div>
-      <div class="field"><label>K proplacení (sazba <span id="rate-label"></span> Kč/km)</label><input id="f-calc" type="text" readonly /></div>
-    </div>
-    <div class="field"><label>Datum</label><input id="f-date" type="date" /></div>
-    <div class="field"><label>Účtenka (foto nebo PDF)</label><input id="f-file" type="file" accept="image/*,application/pdf" /></div>
     <div class="modal-footer">
-      <button class="btn-secondary" data-close>Zrušit</button>
-      <button class="btn-primary" id="btn-save">Odeslat</button>
+      <button class="btn-secondary" data-close="modal-exp">Zrušit</button>
+      <button class="btn-primary" id="btn-save">Uložit</button>
     </div>
   </div>
 </div>
 
+<!-- REPORT -->
+<div class="modal-overlay" id="modal-report">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Žádost o náhradu výdajů</div>
+      <button class="modal-close" data-close="modal-report">✕</button>
+    </div>
+    <div class="exp-sub" id="rep-who"></div>
+    <table class="rep">
+      <thead><tr><th>#</th><th>Datum</th><th>Popis</th><th class="r">Částka</th></tr></thead>
+      <tbody id="rep-body"></tbody>
+      <tfoot><tr><td colspan="3">Celkem</td><td class="r" id="rep-total"></td></tr></tfoot>
+    </table>
+    <div class="rep-actions">
+      <button class="btn-secondary" id="btn-rep-xlsx">Stáhnout Excel</button>
+      <button class="btn-secondary" id="btn-rep-pdf">Stáhnout PDF</button>
+      <button class="btn-primary" id="btn-rep-submit">Odeslat ke schválení</button>
+    </div>
+    <div class="stat-note" style="margin:10px 0 0;">Po odeslání už položky nepůjde upravit.</div>
+  </div>
+</div>
+
+<div id="pdf-template" style="position:fixed;left:-9999px;top:0;"></div>
 <div id="toast"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initializeFirestore, doc, getDoc, setDoc, deleteDoc, collection,
-  query, where, onSnapshot, serverTimestamp }
+import { initializeFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection,
+  query, where, onSnapshot, serverTimestamp, writeBatch }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -189,7 +229,8 @@ const firebaseConfig = {
   appId: "1:20753597026:web:bec0c5a784492206f3c73b"
 };
 const ORG_ID = '10men';
-const FUEL_RATE = 5.90; // Kč/km, osobní automobil 2026 – změň zde při změně sazby
+const MAX_ITEMS = 12;                         // řádky v šabloně žádosti
+const TEMPLATE_URL = 'sablona-nahrada.xlsx';  // šablona v repu vedle expenses.html
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -197,27 +238,29 @@ const db = initializeFirestore(app, { experimentalForceLongPolling: true, useFet
 const storage = getStorage(app);
 
 const $ = id => document.getElementById(id);
-const fmt = n => Number(n).toLocaleString('cs-CZ') + ' Kč';
+const fmt = n => Number(n).toLocaleString('cs-CZ', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' Kč';
 const fmtDate = d => d ? new Date(d).toLocaleDateString('cs-CZ') : '';
 const today = () => new Date().toISOString().slice(0,10);
+const r2 = n => Math.round(n*100)/100;
 const escHtml = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
 function toast(msg, dur=2800){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),dur); }
 function openModal(id){ $(id).classList.add('open'); }
 function closeModal(id){ $(id).classList.remove('open'); }
-document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal('modal-exp')));
-$('modal-exp').addEventListener('click',e=>{ if(e.target===$('modal-exp')) closeModal('modal-exp'); });
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) closeModal(o.id); }));
 
 let currentUser=null, memberName='', userRole=null;
-let allExp=[], unsubExp=null, unsubSummary=null;
-let expType='naklad', busy=false;
+let allExp=[], allRep=[], unsubExp=null, unsubRep=null, unsubSummary=null;
+let editId=null, busy=false;
+const selected = new Set();
+let reportItems = [];
 
-const STATUS = {
-  pending:  {label:'Čeká na schválení', cls:'badge-due'},
-  approved: {label:'Schváleno · čeká na proplacení', cls:'badge-due'},
-  paid:     {label:'Proplaceno', cls:'badge-paid'},
-  rejected: {label:'Zamítnuto', cls:'badge-unpaid'},
+const REP_STATUS = {
+  submitted: {label:'Čeká na schválení', cls:'badge-due'},
+  paid:      {label:'Proplaceno', cls:'badge-paid'},
+  rejected:  {label:'Vráceno k úpravě', cls:'badge-unpaid'},
 };
 
 /* ── AUTH ── */
@@ -226,21 +269,17 @@ $('btn-login').addEventListener('click', async ()=>{
   catch(e){ toast('Přihlášení se nezdařilo.'); }
 });
 $('btn-signout').addEventListener('click', ()=>signOut(auth));
-
 function loginMessage(txt){ document.querySelector('.login-sub').textContent = txt; }
 
 onAuthStateChanged(auth, async user => {
   $('loading').style.display='none';
-  if (unsubExp){ unsubExp(); unsubExp=null; }
-  if (unsubSummary){ unsubSummary(); unsubSummary=null; }
+  [unsubExp, unsubRep, unsubSummary].forEach(u=>u&&u());
+  unsubExp = unsubRep = unsubSummary = null;
   if (!user){ currentUser=null; showScreen('screen-login'); return; }
   currentUser = user;
-
   try {
     const m = await getDoc(doc(db,'orgs',ORG_ID,'members',user.uid));
-    if (!m.exists()){
-      await signOut(auth); showScreen('screen-login'); loginMessage('Přístup odepřen.'); return;
-    }
+    if (!m.exists()){ await signOut(auth); showScreen('screen-login'); loginMessage('Přístup odepřen.'); return; }
     userRole = m.data().role || 'member';
     memberName = m.data().name || user.displayName || user.email;
   } catch(e){
@@ -248,7 +287,6 @@ onAuthStateChanged(auth, async user => {
     await signOut(auth); showScreen('screen-login');
     loginMessage('Chyba: ' + (e.code||'') + ' ' + e.message); return;
   }
-
   $('who').textContent = memberName;
   if (user.photoURL) $('avatar').src = user.photoURL; else $('avatar').style.visibility='hidden';
   $('treasurer-link').style.display = userRole==='treasurer' ? '' : 'none';
@@ -257,15 +295,18 @@ onAuthStateChanged(auth, async user => {
 });
 
 function subscribe(){
-  unsubExp = onSnapshot(
-    query(collection(db,'orgs',ORG_ID,'expenses'), where('uid','==',currentUser.uid)),
-    snap => {
-      allExp = snap.docs.map(d=>({id:d.id, ...d.data()}));
-      allExp.sort((a,b)=>(b.createdAt?.seconds ?? 9e12) - (a.createdAt?.seconds ?? 9e12));
-      render();
-    },
-    err => { console.error('EXPENSES:', err); toast('Výdaje se nepodařilo načíst.'); }
-  );
+  const exp = collection(db,'orgs',ORG_ID,'expenses');
+  const rep = collection(db,'orgs',ORG_ID,'expenseReports');
+  unsubExp = onSnapshot(query(exp, where('uid','==',currentUser.uid)), snap => {
+    allExp = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    [...selected].forEach(id=>{ const e=allExp.find(x=>x.id===id); if(!e||e.status!=='draft') selected.delete(id); });
+    render();
+  }, err => { console.error('EXPENSES:', err); toast('Výdaje se nepodařilo načíst.'); });
+  unsubRep = onSnapshot(query(rep, where('uid','==',currentUser.uid)), snap => {
+    allRep = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    allRep.sort((a,b)=>(b.createdAt?.seconds ?? 9e12) - (a.createdAt?.seconds ?? 9e12));
+    render();
+  }, err => { console.error('REPORTS:', err); toast('Žádosti se nepodařilo načíst.'); });
   unsubSummary = onSnapshot(doc(db,'orgs',ORG_ID,'summary','balances'), s => {
     const d = s.exists() ? s.data() : null;
     $('bal-cash').textContent = d ? fmt(d.cash) : '–';
@@ -273,43 +314,81 @@ function subscribe(){
   }, ()=>{});
 }
 
-/* ── SEZNAM ── */
-function card(e){
-  const st = STATUS[e.status] || STATUS.pending;
-  const kind = e.type==='palivo' ? `palivo · ${e.km} km × ${String(e.rate).replace('.',',')} Kč` : 'náhrada výdaje';
-  const sub = [fmtDate(e.date), kind, e.docNumber||null].filter(Boolean).join(' · ');
-  let act = '';
-  if (e.receiptPath) act += `<button class="a-neutral" data-act="receipt" data-id="${e.id}">Účtenka</button>`;
-  if (e.status==='pending') act += `<button class="a-no" data-act="delete" data-id="${e.id}">Smazat</button>`;
-  return `<div class="exp-card">
-    <div class="exp-top">
-      <div style="min-width:0;">
-        <div class="exp-title">${escHtml(e.desc)}</div>
-        <div class="exp-sub">${sub}</div>
-      </div>
-      <div>
+/* ── VYKRESLENÍ ── */
+function draftCard(e){
+  return `<div class="exp-card"><div class="draft-row">
+    <input type="checkbox" data-sel="${e.id}" ${selected.has(e.id)?'checked':''} />
+    <div class="draft-main">
+      <div class="exp-top">
+        <div style="min-width:0;"><div class="exp-title">${escHtml(e.desc)}</div><div class="exp-sub">${fmtDate(e.date)}</div></div>
         <div class="exp-amount">${fmt(e.amount)}</div>
-        <div style="text-align:right;"><span class="badge ${st.cls}">${st.label}</span></div>
+      </div>
+      ${e.returnNote ? `<div class="note-red">Vráceno: ${escHtml(e.returnNote)}</div>` : ''}
+      <div class="exp-actions">
+        ${e.receiptPath ? `<button class="a-neutral" data-act="receipt" data-id="${e.id}">Účtenka</button>` : ''}
+        <button class="a-neutral" data-act="edit" data-id="${e.id}">Upravit</button>
+        <button class="a-no" data-act="delete" data-id="${e.id}">Smazat</button>
       </div>
     </div>
-    ${e.status==='rejected' && e.rejectNote ? `<div class="exp-sub" style="margin-top:8px;color:var(--expense);">Důvod: ${escHtml(e.rejectNote)}</div>` : ''}
-    ${act ? `<div class="exp-actions">${act}</div>` : ''}
+  </div></div>`;
+}
+
+function reportCard(r){
+  const st = REP_STATUS[r.status] || REP_STATUS.submitted;
+  const created = r.createdAt?.seconds ? new Date(r.createdAt.seconds*1000).toISOString().slice(0,10) : today();
+  return `<div class="exp-card">
+    <div class="exp-top">
+      <div style="min-width:0;"><div class="exp-title">Žádost z ${fmtDate(created)}</div>
+        <div class="exp-sub">${r.count} ${r.count===1?'položka':(r.count<5?'položky':'položek')}${r.docNumber?' · '+escHtml(r.docNumber):''}</div></div>
+      <div><div class="exp-amount">${fmt(r.total)}</div><div style="text-align:right;"><span class="badge ${st.cls}">${st.label}</span></div></div>
+    </div>
+    ${r.status==='rejected' && r.rejectNote ? `<div class="note-red">Důvod: ${escHtml(r.rejectNote)}</div>` : ''}
+    <div class="exp-actions">
+      ${r.pdfPath ? `<button class="a-neutral" data-ract="pdf" data-id="${r.id}">PDF</button>` : ''}
+      <button class="a-neutral" data-ract="xlsx" data-id="${r.id}">Excel</button>
+    </div>
   </div>`;
 }
 
 function render(){
-  $('list').innerHTML = allExp.length ? allExp.map(card).join('') : '<div class="empty">Zatím žádné výdaje</div>';
+  const drafts = allExp.filter(e=>e.status==='draft').sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  $('drafts').innerHTML = drafts.length
+    ? `<div class="group-title">Rozpracované výdaje</div>${drafts.map(draftCard).join('')}`
+    : (allRep.length ? '' : '<div class="empty">Zatím žádné výdaje.<br>Přidej první tlačítkem nahoře.</div>');
+  $('reports').innerHTML = allRep.length
+    ? `<div class="group-title">Odeslané žádosti</div>${allRep.filter(r=>r).map(reportCard).join('')}` : '';
+  updateSelectBar();
 }
 
-$('list').addEventListener('click', async ev => {
+function updateSelectBar(){
+  const items = allExp.filter(e=>selected.has(e.id));
+  const total = r2(items.reduce((s,e)=>s+e.amount,0));
+  $('select-bar').classList.toggle('show', items.length>0);
+  $('sel-count').textContent = `Vybráno: ${items.length}`;
+  $('sel-total').textContent = fmt(total);
+}
+
+$('drafts').addEventListener('change', ev=>{
+  const cb = ev.target.closest('input[data-sel]'); if(!cb) return;
+  if (cb.checked) selected.add(cb.dataset.sel); else selected.delete(cb.dataset.sel);
+  updateSelectBar();
+});
+
+async function openStorageFile(path){
+  const w = window.open('', '_blank');
+  try {
+    const url = await getDownloadURL(sRef(storage, path));
+    if (w) w.location.href = url; else window.location.href = url;
+  } catch(err){ if (w) w.close(); throw err; }
+}
+
+$('drafts').addEventListener('click', async ev=>{
   const btn = ev.target.closest('button[data-act]'); if(!btn) return;
   const e = allExp.find(x=>x.id===btn.dataset.id); if(!e) return;
   try {
-    if (btn.dataset.act==='receipt'){
-      const w = window.open('', '_blank');
-      const url = await getDownloadURL(sRef(storage, e.receiptPath));
-      if (w) w.location.href = url; else window.location.href = url;
-    } else if (btn.dataset.act==='delete'){
+    if (btn.dataset.act==='receipt') await openStorageFile(e.receiptPath);
+    else if (btn.dataset.act==='edit') openEdit(e);
+    else if (btn.dataset.act==='delete'){
       if (!confirm('Smazat tento výdaj?')) return;
       await deleteDoc(doc(db,'orgs',ORG_ID,'expenses',e.id));
       if (e.receiptPath){ try { await deleteObject(sRef(storage, e.receiptPath)); } catch(_){} }
@@ -318,31 +397,29 @@ $('list').addEventListener('click', async ev => {
   } catch(err){ console.error(err); toast('Akce se nezdařila.'); }
 });
 
-/* ── NOVÝ VÝDAJ ── */
-function setType(t){
-  expType = t;
-  $('t-naklad').classList.toggle('on', t==='naklad');
-  $('t-palivo').classList.toggle('on', t==='palivo');
-  $('w-naklad').style.display = t==='naklad' ? '' : 'none';
-  $('w-palivo').style.display = t==='palivo' ? '' : 'none';
-  calc();
-}
-function calc(){
-  const km = parseFloat($('f-km').value) || 0;
-  $('f-calc').value = km ? fmt(Math.round(km*FUEL_RATE*100)/100) : '';
-}
-$('t-naklad').addEventListener('click', ()=>setType('naklad'));
-$('t-palivo').addEventListener('click', ()=>setType('palivo'));
-$('f-km').addEventListener('input', calc);
-
-$('btn-new').addEventListener('click', ()=>{
-  ['f-desc','f-amount','f-km','f-calc'].forEach(id=>$(id).value='');
-  $('f-file').value='';
-  $('f-date').value = today();
-  $('rate-label').textContent = String(FUEL_RATE).replace('.',',');
-  setType('naklad');
-  openModal('modal-exp');
+$('reports').addEventListener('click', async ev=>{
+  const btn = ev.target.closest('button[data-ract]'); if(!btn) return;
+  const r = allRep.find(x=>x.id===btn.dataset.id); if(!r) return;
+  try {
+    if (btn.dataset.ract==='pdf') await openStorageFile(r.pdfPath);
+    else if (btn.dataset.ract==='xlsx') download(await buildXlsx(r.items, r.total, r.name), `Zadost-o-nahradu-vydaju.xlsx`);
+  } catch(err){ console.error(err); toast('Akce se nezdařila.'); }
 });
+
+/* ── VÝDAJ (koncept) ── */
+function openEdit(e){
+  editId = e ? e.id : null;
+  $('exp-modal-title').textContent = e ? 'Upravit výdaj' : 'Nový výdaj';
+  $('f-date').value = e ? e.date : today();
+  $('f-desc').value = e ? e.desc : '';
+  $('f-amount').value = e ? e.amount : '';
+  $('f-file').value = '';
+  const note = $('f-file-note');
+  note.style.display = (e && e.receiptPath) ? '' : 'none';
+  note.textContent = 'Účtenka je nahraná. Nahráním jiné se nahradí.';
+  openModal('modal-exp');
+}
+$('btn-new').addEventListener('click', ()=>openEdit(null));
 
 async function prepareReceipt(file){
   if (!file.type.startsWith('image/')) return file;
@@ -359,38 +436,167 @@ async function prepareReceipt(file){
 
 $('btn-save').addEventListener('click', async ()=>{
   if (busy) return;
-  const desc = $('f-desc').value.trim(), date = $('f-date').value, file = $('f-file').files[0];
-  let amount = 0, km = null;
-  if (expType==='naklad'){
-    amount = parseFloat($('f-amount').value) || 0;
-    if (!amount){ toast('Zadej částku.'); return; }
-    if (!file){ toast('Přilož účtenku.'); return; }
-  } else {
-    km = parseFloat($('f-km').value) || 0;
-    if (!km){ toast('Zadej počet kilometrů.'); return; }
-    amount = Math.round(km*FUEL_RATE*100)/100;
-  }
-  if (!desc || !date){ toast('Vyplň popis a datum.'); return; }
+  const date = $('f-date').value, desc = $('f-desc').value.trim();
+  const amount = r2(parseFloat($('f-amount').value) || 0), file = $('f-file').files[0];
+  const existing = editId ? allExp.find(x=>x.id===editId) : null;
+  if (!date || !desc){ toast('Vyplň datum a popis.'); return; }
+  if (!amount){ toast('Zadej částku.'); return; }
+  if (!file && !(existing && existing.receiptPath)){ toast('Přilož účtenku.'); return; }
 
   const btn = $('btn-save');
-  busy = true; btn.disabled = true; btn.textContent = 'Odesílám…';
+  busy = true; btn.disabled = true; btn.textContent = 'Ukládám…';
   try {
-    const newRef = doc(collection(db,'orgs',ORG_ID,'expenses'));
-    let receiptPath = null;
+    const ref = existing ? doc(db,'orgs',ORG_ID,'expenses',existing.id) : doc(collection(db,'orgs',ORG_ID,'expenses'));
+    let receiptPath = existing ? existing.receiptPath : null;
+    const oldPath = receiptPath;
     if (file){
       const isPdf = file.type==='application/pdf';
       const blob = await prepareReceipt(file);
-      receiptPath = `korun/vydaje/${currentUser.uid}/${newRef.id}.${isPdf?'pdf':'jpg'}`;
+      receiptPath = `korun/vydaje/${currentUser.uid}/${ref.id}-${Date.now()}.${isPdf?'pdf':'jpg'}`;
       await uploadBytes(sRef(storage, receiptPath), blob, {contentType: isPdf ? 'application/pdf' : 'image/jpeg'});
     }
-    await setDoc(newRef, {
+    if (existing){
+      await updateDoc(ref, { date, desc, amount, receiptPath, returnNote: null });
+    } else {
+      await setDoc(ref, {
+        uid: currentUser.uid, name: memberName, email: currentUser.email,
+        type: 'naklad', category: null, date, desc, amount, receiptPath,
+        status: 'draft', createdAt: serverTimestamp()
+      });
+    }
+    if (file && oldPath && oldPath!==receiptPath){ try { await deleteObject(sRef(storage, oldPath)); } catch(_){} }
+    closeModal('modal-exp'); toast('Uloženo ✓');
+  } catch(err){ console.error('EXPENSE SAVE:', err); toast('Uložení se nezdařilo.'); }
+  busy = false; btn.disabled = false; btn.textContent = 'Uložit';
+});
+
+/* ── REPORT ── */
+$('btn-make-report').addEventListener('click', ()=>{
+  const items = allExp.filter(e=>selected.has(e.id)).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if (!items.length) return;
+  if (items.length > MAX_ITEMS){ toast(`Do jedné žádosti se vejde nejvýše ${MAX_ITEMS} položek.`); return; }
+  reportItems = items.map(e=>({id:e.id, date:e.date, desc:e.desc, amount:e.amount, receiptPath:e.receiptPath||null}));
+  const total = r2(reportItems.reduce((s,i)=>s+i.amount,0));
+  $('rep-who').textContent = memberName;
+  $('rep-body').innerHTML = reportItems.map((i,n)=>`<tr><td>${n+1}</td><td>${fmtDate(i.date)}</td><td>${escHtml(i.desc)}</td><td class="r">${fmt(i.amount)}</td></tr>`).join('');
+  $('rep-total').textContent = fmt(total);
+  openModal('modal-report');
+});
+
+function reportTotal(){ return r2(reportItems.reduce((s,i)=>s+i.amount,0)); }
+
+function download(blob, filename){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+
+/* Excel: vyplní šablonu (list „Náhrada“): jméno B6, řádky 9–20, celkem G21 */
+async function buildXlsx(items, total, name){
+  if (!window.ExcelJS) throw new Error('ExcelJS není načtený');
+  const res = await fetch(TEMPLATE_URL);
+  if (!res.ok) throw new Error('Šablona nenalezena: ' + TEMPLATE_URL);
+  const wb = new window.ExcelJS.Workbook();
+  await wb.xlsx.load(await res.arrayBuffer());
+  const ws = wb.worksheets[0];
+  ws.getCell('B6').value = name;
+  items.slice(0, MAX_ITEMS).forEach((it, n) => {
+    const row = 9 + n;
+    ws.getCell('B'+row).value = fmtDate(it.date);
+    ws.getCell('C'+row).value = it.desc;
+    const g = ws.getCell('G'+row);
+    g.value = it.amount;
+    g.numFmt = '#,##0.00" Kč"';
+  });
+  ws.getCell('E21').value = null;
+  ws.getCell('F21').value = null;
+  ws.getCell('G21').value = { formula: 'SUM(G9:G20)', result: total };
+  ws.getCell('G21').numFmt = '#,##0.00" Kč"';
+  const buf = await wb.xlsx.writeBuffer();
+  return new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+/* PDF: věrná HTML kopie šablony, A4 na šířku */
+async function buildPdf(items, total, name){
+  const th = 'border:1px solid #000;padding:4px 6px;font-size:11px;text-align:left;';
+  const td = 'border:1px solid #000;padding:4px 6px;height:24px;font-size:12px;';
+  let rows = '';
+  for (let n=0; n<MAX_ITEMS; n++){
+    const it = items[n];
+    rows += `<tr>
+      <td style="${td}text-align:center;font-weight:bold;">${n+1}</td>
+      <td style="${td}">${it?fmtDate(it.date):''}</td>
+      <td style="${td}">${it?escHtml(it.desc):''}</td>
+      <td style="${td}"></td><td style="${td}"></td>
+      <td style="${td}background:#f3f3f3;text-align:right;">${it?fmt(it.amount):''}</td></tr>`;
+  }
+  const html = `<div style="width:1123px;height:794px;background:#fff;font-family:Arial,sans-serif;color:#000;padding:40px 60px;box-sizing:border-box;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div><div style="font-size:18px;font-weight:bold;">ŽÁDOST O NÁHRADU VÝDAJŮ A VÝDAJOVÝ DOKLAD</div>
+        <div style="font-size:13px;font-weight:bold;margin-top:8px;">Vyúčtování zálohy</div></div>
+      <div style="text-align:right;font-size:12px;line-height:1.5;"><b>Vokální skupina 10men, z. s.</b><br>Smetanovo nábřeží 330/16<br>110 00 Praha 1<br>IČ 21194297</div>
+    </div>
+    <div style="margin:18px 0 10px;font-size:13px;"><b>Jméno:</b> <span style="display:inline-block;min-width:320px;border-bottom:1px solid #000;padding:0 6px;">${escHtml(name)}</span>
+      <span style="margin-left:40px;font-size:11px;font-style:italic;font-weight:bold;">(stačí to napsat do částky celkem)</span></div>
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+      <colgroup><col style="width:50px"><col style="width:100px"><col style="width:380px"><col style="width:120px"><col style="width:90px"><col style="width:160px"></colgroup>
+      <thead><tr><th style="${th}">Číslo</th><th style="${th}">Datum</th><th style="${th}">Popis</th><th style="${th}">Částka bez DPH</th><th style="${th}">DPH</th><th style="${th}">Částka celkem</th></tr></thead>
+      <tbody>${rows}
+        <tr><td colspan="5" style="${td}background:#c0c0c0;font-weight:bold;">CELKEM:</td><td style="${td}background:#c0c0c0;text-align:right;font-weight:bold;">${fmt(total)}</td></tr>
+      </tbody>
+    </table>
+    <div style="display:flex;gap:60px;margin-top:18px;font-size:13px;">
+      <div style="flex:1;"><b>Schválil:</b></div><div style="width:160px;border:1px solid #000;background:#c0c0c0;height:22px;"></div>
+    </div>
+    <div style="display:flex;gap:60px;margin-top:12px;font-size:13px;">
+      <div style="flex:1;"><b>Zaúčtoval:</b></div><div style="width:160px;border:1px solid #000;background:#c0c0c0;height:22px;"></div>
+    </div>
+    <div style="position:absolute;left:60px;bottom:18px;font-size:9px;color:#666;">Vystaveno v aplikaci 10korun – účetním systému skupiny 10men</div>
+  </div>`;
+  const wrap = $('pdf-template');
+  wrap.innerHTML = html;
+  const blob = await window.html2pdf().set({
+    margin: 0, image:{type:'jpeg',quality:0.98},
+    html2canvas:{scale:2,useCORS:true,allowTaint:false},
+    jsPDF:{unit:'px',format:[1123,794],orientation:'landscape'}
+  }).from(wrap.firstElementChild).outputPdf('blob');
+  wrap.innerHTML = '';
+  return blob;
+}
+
+$('btn-rep-xlsx').addEventListener('click', async ()=>{
+  try { download(await buildXlsx(reportItems, reportTotal(), memberName), 'Zadost-o-nahradu-vydaju.xlsx'); }
+  catch(err){ console.error(err); toast('Excel se nepodařilo vytvořit.'); }
+});
+$('btn-rep-pdf').addEventListener('click', async ()=>{
+  try { download(await buildPdf(reportItems, reportTotal(), memberName), 'Zadost-o-nahradu-vydaju.pdf'); }
+  catch(err){ console.error(err); toast('PDF se nepodařilo vytvořit.'); }
+});
+
+$('btn-rep-submit').addEventListener('click', async ()=>{
+  if (busy || !reportItems.length) return;
+  if (!confirm('Odeslat žádost ke schválení? Položky pak nepůjde upravit.')) return;
+  const btn = $('btn-rep-submit');
+  busy = true; btn.disabled = true; btn.textContent = 'Odesílám…';
+  try {
+    const total = reportTotal();
+    const repRef = doc(collection(db,'orgs',ORG_ID,'expenseReports'));
+    const pdfBlob = await buildPdf(reportItems, total, memberName);
+    const pdfPath = `korun/vydaje/${currentUser.uid}/report-${repRef.id}.pdf`;
+    await uploadBytes(sRef(storage, pdfPath), pdfBlob, {contentType:'application/pdf'});
+    const batch = writeBatch(db);
+    batch.set(repRef, {
       uid: currentUser.uid, name: memberName, email: currentUser.email,
-      type: expType, amount, date, desc, km, rate: expType==='palivo' ? FUEL_RATE : null,
-      receiptPath, status: 'pending', createdAt: serverTimestamp()
+      items: reportItems, count: reportItems.length, total, pdfPath,
+      status: 'submitted', createdAt: serverTimestamp()
     });
-    closeModal('modal-exp'); toast('Výdaj odeslán ✓');
-  } catch(err){ console.error('EXPENSE SAVE:', err); toast('Odeslání se nezdařilo.'); }
-  busy = false; btn.disabled = false; btn.textContent = 'Odeslat';
+    reportItems.forEach(i=>batch.update(doc(db,'orgs',ORG_ID,'expenses',i.id), {status:'submitted', reportId:repRef.id}));
+    await batch.commit();
+    reportItems.forEach(i=>selected.delete(i.id));
+    closeModal('modal-report'); toast('Žádost odeslána ✓');
+  } catch(err){ console.error('REPORT SUBMIT:', err); toast('Odeslání se nezdařilo.'); }
+  busy = false; btn.disabled = false; btn.textContent = 'Odeslat ke schválení';
 });
 </script>
 </body>

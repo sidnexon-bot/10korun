@@ -957,6 +957,10 @@
       <h3>Adresář kontaktů</h3>
       <div class="settings-group" id="settings-contacts"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Načítám…</div></div>
 
+      <h3>Sazby náhrad (vyhláška MPSV)</h3>
+      <div class="settings-group" id="rates-list"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Načítám…</div></div>
+      <button class="btn-secondary" id="btn-add-rate" style="width:auto;margin-bottom:16px;">+ Přidat sazbu od data</button>
+
       <h3>Účetní období</h3>
       <div class="settings-group">
         <div class="settings-row">
@@ -1260,6 +1264,34 @@
   </div>
 </div>
 
+<!-- SAZBY NÁHRAD -->
+<div class="modal-overlay" id="modal-rates">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-rates-title">Nová sazba</div>
+      <button class="modal-close" data-close="modal-rates">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <div class="field"><label>Platí od data</label><input id="rt-from" type="date" /></div>
+        <div class="field"><label>Základní náhrada za 1 km (Kč)</label><input id="rt-km" type="number" min="0" step="0.01" /></div>
+        <div class="field"><label>Benzin 95 (Kč/l)</label><input id="rt-95" type="number" min="0" step="0.01" /></div>
+        <div class="field"><label>Benzin 98 (Kč/l)</label><input id="rt-98" type="number" min="0" step="0.01" /></div>
+        <div class="field"><label>Nafta (Kč/l)</label><input id="rt-nafta" type="number" min="0" step="0.01" /></div>
+        <div class="field"><label>Elektřina (Kč/kWh)</label><input id="rt-elektrina" type="number" min="0" step="0.01" /></div>
+        <div class="field"><label>Poznámka (např. číslo vyhlášky)</label><input id="rt-note" type="text" placeholder="např. 175/2026 Sb." /></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn-danger" id="btn-rt-delete" style="display:none;">Smazat</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-secondary" data-close="modal-rates">Zrušit</button>
+        <button class="btn-primary" id="btn-rt-save">Uložit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="pdf-template" style="display:none;position:fixed;left:-9999px;top:0;"></div>
 <div id="toast"></div>
 
@@ -1469,7 +1501,7 @@ function launchApp(){
     <div class="settings-row"><span class="settings-label">Adresa</span><span class="settings-value">${orgData.address||'–'}</span></div>
     <div class="settings-row"><span class="settings-label">Účetní období</span><span class="settings-value">${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}</span></div>
   `;
-  subscribeContacts();subscribeTransactions();subscribeInvoices();subscribeExpenses();
+  subscribeContacts();subscribeTransactions();subscribeInvoices();subscribeExpenses();subscribeRates();
   initAutocompletes();
 }
 
@@ -1625,6 +1657,90 @@ $('btn-exp-pay-save').addEventListener('click',async()=>{
     closeModal('modal-exp-pay');toast(`Zaúčtováno ${docNumber} ✓`);
   }catch(err){console.error('REPORT PAY:',err);toast('Zaúčtování se nezdařilo.');}
   btn.disabled=false;
+});
+
+/* ── SAZBY NÁHRAD ── */
+const DEFAULT_RATES=[
+  {from:'2026-01-01',km:5.9,prices:{'95':34.7,'98':39.0,'nafta':34.1,'elektrina':7.2},note:'573/2025 Sb.'},
+  {from:'2026-06-01',km:5.9,prices:{'95':34.7,'98':39.0,'nafta':44.5,'elektrina':7.2},note:'78/2026 Sb. (nafta)'},
+  {from:'2026-10-01',km:5.9,prices:{'95':41.8,'98':39.0,'nafta':44.5,'elektrina':7.2},note:'175/2026 Sb. (benzin 95)'},
+];
+let rateEntries=[], unsubRates=null, editRateFrom=null;
+const ratesRef=()=>doc(db,'orgs',ORG_ID,'config','rates');
+const nf2=n=>Number(n).toLocaleString('cs-CZ',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function subscribeRates(){
+  if(unsubRates)unsubRates();
+  unsubRates=onSnapshot(ratesRef(),snap=>{
+    rateEntries=snap.exists()?(snap.data().entries||[]):[];
+    renderRates();
+  },err=>{console.error('RATES:',err);});
+}
+
+function renderRates(){
+  const wrap=$('rates-list'); if(!wrap)return;
+  if(!rateEntries.length){
+    wrap.innerHTML=`<div style="padding:14px 16px;font-size:14px;color:var(--muted);">Sazby zatím nejsou uložené (členové používají záložní tabulku).
+      <div style="margin-top:10px;"><button class="btn-secondary" id="btn-rates-seed" style="width:auto;">Nahrát sazby pro rok 2026</button></div></div>`;
+    $('btn-rates-seed').addEventListener('click',async()=>{
+      try{await setDoc(ratesRef(),{entries:DEFAULT_RATES,updatedAt:serverTimestamp()});toast('Sazby nahrány ✓');}
+      catch(e){console.error(e);toast('Nahrání se nezdařilo.');}
+    });
+    return;
+  }
+  const rows=[...rateEntries].sort((a,b)=>String(b.from).localeCompare(String(a.from)));
+  wrap.innerHTML=rows.map(r=>`
+    <div class="settings-row" data-rate="${escHtml(r.from)}" style="cursor:pointer;flex-direction:column;align-items:flex-start;gap:2px;">
+      <span class="settings-label" style="font-weight:600;color:var(--text);">Od ${fmtDate(r.from)}${r.note?' · '+escHtml(r.note):''}</span>
+      <span class="settings-value" style="font-size:12px;color:var(--muted);">km ${nf2(r.km)} · B95 ${nf2(r.prices['95'])} · B98 ${nf2(r.prices['98'])} · nafta ${nf2(r.prices['nafta'])} · el. ${nf2(r.prices['elektrina'])}</span>
+    </div>`).join('');
+  wrap.querySelectorAll('[data-rate]').forEach(el=>el.addEventListener('click',()=>openRate(el.dataset.rate)));
+}
+
+function openRate(from){
+  editRateFrom=from||null;
+  const r=from?rateEntries.find(x=>x.from===from):null;
+  const last=[...rateEntries].sort((a,b)=>String(b.from).localeCompare(String(a.from)))[0];
+  const base=r||last||DEFAULT_RATES[DEFAULT_RATES.length-1];
+  $('modal-rates-title').textContent=r?'Upravit sazbu':'Nová sazba';
+  $('rt-from').value=r?r.from:today();
+  $('rt-km').value=base.km;
+  ['95','98','nafta','elektrina'].forEach(k=>$('rt-'+k).value=base.prices[k]);
+  $('rt-note').value=r?(r.note||''):'';
+  $('btn-rt-delete').style.display=r?'':'none';
+  openModal('modal-rates');
+}
+$('btn-add-rate').addEventListener('click',()=>openRate(null));
+
+async function saveRates(entries){
+  entries.sort((a,b)=>String(a.from).localeCompare(String(b.from)));
+  await setDoc(ratesRef(),{entries,updatedAt:serverTimestamp()});
+}
+
+$('btn-rt-save').addEventListener('click',async()=>{
+  const from=$('rt-from').value;
+  const km=parseFloat($('rt-km').value);
+  const prices={};
+  for(const k of ['95','98','nafta','elektrina']){
+    const v=parseFloat($('rt-'+k).value);
+    if(!(v>0)){toast('Vyplň všechny ceny.');return;}
+    prices[k]=v;
+  }
+  if(!from||!(km>0)){toast('Vyplň datum a sazbu za km.');return;}
+  const entry={from,km,prices,note:$('rt-note').value.trim()};
+  // záznam se stejným datem (nebo původní při změně data) se nahradí
+  const entries=rateEntries.filter(x=>x.from!==from&&x.from!==editRateFrom);
+  entries.push(entry);
+  try{await saveRates(entries);closeModal('modal-rates');toast('Sazba uložena ✓');}
+  catch(e){console.error(e);toast('Uložení se nezdařilo.');}
+});
+
+$('btn-rt-delete').addEventListener('click',async()=>{
+  if(!editRateFrom)return;
+  if(rateEntries.length<=1){toast('Poslední sazbu nelze smazat.');return;}
+  if(!confirm('Smazat tuto sazbu?'))return;
+  try{await saveRates(rateEntries.filter(x=>x.from!==editRateFrom));closeModal('modal-rates');toast('Smazáno.');}
+  catch(e){console.error(e);toast('Smazání se nezdařilo.');}
 });
 
 /* ── CONTACTS ── */

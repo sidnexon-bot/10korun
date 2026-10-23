@@ -1522,6 +1522,13 @@ function updateExpBadge(){
 function repCard(r){
   const st=REP_STATUS[r.status]||REP_STATUS.submitted;
   const created=r.createdAt?.seconds?new Date(r.createdAt.seconds*1000).toISOString().slice(0,10):today();
+  const f=r.kind==='palivo'?r.fuel:null;
+  const fr=(a,b)=>`<tr><td style="padding:6px 4px;border-bottom:1px solid var(--border);color:var(--muted);">${a}</td><td colspan="4" style="padding:6px 4px;border-bottom:1px solid var(--border);text-align:right;">${b}</td></tr>`;
+  const fuelRows=f?(
+    fr('Místo',escHtml(f.place))+fr('Účel',escHtml(f.purpose))+
+    fr('Ujeté km',`${String(f.km).replace('.',',')} km × ${fmt(f.rate)} = ${fmt(f.kmAmount)}`)+
+    fr('Pohonné hmoty',`${String(f.consumption).replace('.',',')} l/100 km × ${escHtml(f.fuelLabel)} ${fmt(f.price)} = ${fmt(f.phmAmount)}`)
+  ):'';
   const rows=(r.items||[]).map((i,n)=>`
     <tr>
       <td style="padding:6px 4px;border-bottom:1px solid var(--border);">${n+1}</td>
@@ -1536,15 +1543,15 @@ function repCard(r){
   return `<div class="exp-card">
     <div class="exp-top">
       <div style="min-width:0;">
-        <div class="exp-title">${escHtml(r.name)}</div>
-        <div class="exp-sub">Odesláno ${fmtDate(created)} · ${r.count} pol.${r.docNumber?' · '+escHtml(r.docNumber):''}</div>
+        <div class="exp-title">${escHtml(r.name)}${f?' · palivo':''}</div>
+        <div class="exp-sub">Odesláno ${fmtDate(created)} · ${f?'cesta '+fmtDate(f.date):r.count+' pol.'}${r.docNumber?' · '+escHtml(r.docNumber):''}</div>
       </div>
       <div style="text-align:right;">
         <div class="exp-amount">${fmt(r.total)}</div>
         <span class="badge ${st.cls}" style="margin-top:4px;">${st.label}</span>
       </div>
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">${rows}</table>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">${fuelRows}${rows}</table>
     ${r.status==='rejected'&&r.rejectNote?`<div class="exp-sub" style="margin-top:8px;color:var(--expense);">Důvod: ${escHtml(r.rejectNote)}</div>`:''}
     ${act?`<div class="exp-actions">${act}</div>`:''}
   </div>`;
@@ -1604,7 +1611,7 @@ $('btn-exp-pay-save').addEventListener('click',async()=>{
   try{
     const docNumber=await generateDocNumber(account);
     const txRef=await addDoc(txCol(),{
-      desc:`Náhrada výdajů – ${r.name} (${r.count} pol.)`,amount:r.total,date,account,type:'expense',
+      desc:r.kind==='palivo'&&r.fuel?`Náhrada za palivo – ${r.name}, ${r.fuel.place}`:`Náhrada výdajů – ${r.name} (${r.count} pol.)`,amount:r.total,date,account,type:'expense',
       category:$('exp-pay-category').value,party:r.name,pairedInvoice:null,docNumber,
       reportId:r.id,pdfPath:r.pdfPath||null,createdAt:serverTimestamp()
     });

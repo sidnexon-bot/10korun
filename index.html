@@ -1337,7 +1337,7 @@ onAuthStateChanged(auth,async user=>{
     return;
   }
 
-  const orgSnap=await getDoc(doc(db,'orgs',user.uid));
+  const orgSnap=await getDoc(doc(db,'orgs',ORG_ID));
   if(!orgSnap.exists()){showScreen('screen-onboarding');initOnboarding();}
   else{orgData=orgSnap.data();launchApp();}
 });

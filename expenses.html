@@ -93,8 +93,8 @@
   .seg button.on { background:var(--income-bg); border-color:var(--income); color:var(--income); font-weight:600; }
   .field { margin-bottom:12px; }
   .field label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; font-weight:600; }
-  .field input { width:100%; min-width:0; max-width:100%; display:block; -webkit-appearance:none; appearance:none; font-family:inherit; font-size:16px; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; background:var(--card); color:var(--text); }
-  .field input:focus { outline:none; border-color:var(--accent); }
+  .field input, .field select { width:100%; min-width:0; max-width:100%; display:block; -webkit-appearance:none; appearance:none; font-family:inherit; font-size:16px; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; background:var(--card); color:var(--text); }
+  .field input:focus, .field select:focus { outline:none; border-color:var(--accent); }
   .field input[readonly] { background:var(--bg); color:var(--muted); }
   .modal-footer { display:flex; gap:8px; margin-top:6px; }
   .modal-footer button { flex:1; }
@@ -150,7 +150,8 @@
     </div>
 
     <div class="actions">
-      <button class="btn-primary btn-full" id="btn-new">+ Nový výdaj</button>
+      <button class="btn-primary" style="flex:1;" id="btn-new">+ Nový výdaj</button>
+      <button class="btn-secondary" style="flex:1;" id="btn-fuel">+ Palivo</button>
     </div>
 
     <div id="drafts"></div>
@@ -207,6 +208,35 @@
   </div>
 </div>
 
+<!-- PROPLACENÍ PALIVA -->
+<div class="modal-overlay" id="modal-fuel">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Proplacení paliva</div>
+      <button class="modal-close" data-close="modal-fuel">✕</button>
+    </div>
+    <div class="field"><label>Řidič</label><input id="fu-driver" type="text" readonly /></div>
+    <div class="field"><label>Datum akce</label><input id="fu-date" type="date" /></div>
+    <div class="field"><label>Místo konání akce</label><input id="fu-place" type="text" placeholder="Např. Kladno, kostel sv. Vavřince" /></div>
+    <div class="field"><label>Účel cesty</label><input id="fu-purpose" type="text" placeholder="Např. koncert" /></div>
+    <div class="field"><label>Ujeté km (celkem tam i zpět)</label><input id="fu-km" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" /></div>
+    <div class="field"><label>Průměrná spotřeba dle technického průkazu (l/100 km, u elektřiny kWh/100 km)</label><input id="fu-cons" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" /></div>
+    <div class="field"><label>Druh paliva</label><select id="fu-fuel"></select></div>
+    <table class="rep">
+      <tbody>
+        <tr><td>Náhrada za ujeté km</td><td class="r" id="fu-sum-km">–</td></tr>
+        <tr><td>Náhrada za pohonné hmoty</td><td class="r" id="fu-sum-phm">–</td></tr>
+      </tbody>
+      <tfoot><tr><td>Celkem náhrada</td><td class="r" id="fu-sum-total">–</td></tr></tfoot>
+    </table>
+    <div class="rep-actions">
+      <button class="btn-secondary" id="btn-fu-xlsx">Stáhnout Excel</button>
+      <button class="btn-secondary" id="btn-fu-pdf">Stáhnout PDF</button>
+      <button class="btn-primary" id="btn-fu-submit">Odeslat ke schválení</button>
+    </div>
+  </div>
+</div>
+
 <div id="pdf-template" style="position:fixed;left:-9999px;top:0;"></div>
 <div id="toast"></div>
 
@@ -231,6 +261,15 @@ const firebaseConfig = {
 const ORG_ID = '10men';
 const MAX_ITEMS = 12;                         // řádky v šabloně žádosti
 const TEMPLATE_URL = 'sablona-nahrada.xlsx';  // šablona v repu vedle expenses.html
+const FUEL_TEMPLATE_URL = 'sablona-palivo.xlsx'; // šablona proplacení paliva (list „Soukromé vozidlo“)
+const FUEL_RATE = 5.90;                       // Kč/km, základní náhrada, osobní vozidlo
+// Ceny PHM podle listu „Nápověda“ v šabloně (sazba od 1. 1. 2026) – aktualizovat ročně
+const FUELS = [
+  {key:'95',        excel:95,          label:'Benzin 95',        price:34.7},
+  {key:'98',        excel:98,          label:'Benzin 98',        price:39.0},
+  {key:'nafta',     excel:'nafta',     label:'Nafta',            price:44.5},
+  {key:'elektrina', excel:'elektřina', label:'Elektřina (kWh)',  price:7.2},
+];
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -336,16 +375,22 @@ function draftCard(e){
 function reportCard(r){
   const st = REP_STATUS[r.status] || REP_STATUS.submitted;
   const created = r.createdAt?.seconds ? new Date(r.createdAt.seconds*1000).toISOString().slice(0,10) : today();
+  const isFuel = r.kind==='palivo' && r.fuel;
+  const title = isFuel ? `Palivo – ${escHtml(r.fuel.place)}` : `Žádost z ${fmtDate(created)}`;
+  const sub = isFuel
+    ? `${fmtDate(r.fuel.date)} · ${r.fuel.km} km${r.docNumber?' · '+escHtml(r.docNumber):''}`
+    : `${r.count} ${r.count===1?'položka':(r.count<5?'položky':'položek')}${r.docNumber?' · '+escHtml(r.docNumber):''}`;
   return `<div class="exp-card">
     <div class="exp-top">
-      <div style="min-width:0;"><div class="exp-title">Žádost z ${fmtDate(created)}</div>
-        <div class="exp-sub">${r.count} ${r.count===1?'položka':(r.count<5?'položky':'položek')}${r.docNumber?' · '+escHtml(r.docNumber):''}</div></div>
+      <div style="min-width:0;"><div class="exp-title">${title}</div>
+        <div class="exp-sub">${sub}</div></div>
       <div><div class="exp-amount">${fmt(r.total)}</div><div style="text-align:right;"><span class="badge ${st.cls}">${st.label}</span></div></div>
     </div>
     ${r.status==='rejected' && r.rejectNote ? `<div class="note-red">Důvod: ${escHtml(r.rejectNote)}</div>` : ''}
     <div class="exp-actions">
       ${r.pdfPath ? `<button class="a-neutral" data-ract="pdf" data-id="${r.id}">PDF</button>` : ''}
       <button class="a-neutral" data-ract="xlsx" data-id="${r.id}">Excel</button>
+      ${isFuel && r.status==='rejected' ? `<button class="a-neutral" data-ract="refuel" data-id="${r.id}">Opravit a poslat znovu</button>` : ''}
     </div>
   </div>`;
 }
@@ -402,7 +447,11 @@ $('reports').addEventListener('click', async ev=>{
   const r = allRep.find(x=>x.id===btn.dataset.id); if(!r) return;
   try {
     if (btn.dataset.ract==='pdf') await openStorageFile(r.pdfPath);
-    else if (btn.dataset.ract==='xlsx') download(await buildXlsx(r.items, r.total, r.name), `Zadost-o-nahradu-vydaju.xlsx`);
+    else if (btn.dataset.ract==='xlsx'){
+      if (r.kind==='palivo' && r.fuel) download(await buildFuelXlsx(r.fuel, r.name), 'Proplaceni-paliva.xlsx');
+      else download(await buildXlsx(r.items, r.total, r.name), 'Zadost-o-nahradu-vydaju.xlsx');
+    }
+    else if (btn.dataset.ract==='refuel') openFuel(r.fuel);
   } catch(err){ console.error(err); toast('Akce se nezdařila.'); }
 });
 
@@ -597,6 +646,152 @@ $('btn-rep-submit').addEventListener('click', async ()=>{
     closeModal('modal-report'); toast('Žádost odeslána ✓');
   } catch(err){ console.error('REPORT SUBMIT:', err); toast('Odeslání se nezdařilo.'); }
   busy = false; btn.disabled = false; btn.textContent = 'Odeslat ke schválení';
+});
+
+/* ── PALIVO ── */
+let fuelBusy = false;
+$('fu-fuel').innerHTML = FUELS.map(f=>`<option value="${f.key}">${f.label} – ${String(f.price).replace('.',',')} Kč</option>`).join('');
+
+function openFuel(prefill){
+  $('fu-driver').value = memberName;
+  $('fu-date').value = prefill ? prefill.date : today();
+  $('fu-place').value = prefill ? prefill.place : '';
+  $('fu-purpose').value = prefill ? prefill.purpose : '';
+  $('fu-km').value = prefill ? prefill.km : '';
+  $('fu-cons').value = prefill ? prefill.consumption : '';
+  $('fu-fuel').value = prefill ? prefill.fuelKey : FUELS[0].key;
+  updateFuelSummary();
+  openModal('modal-fuel');
+}
+$('btn-fuel').addEventListener('click', ()=>openFuel(null));
+
+function readFuel(){
+  const km = parseFloat($('fu-km').value) || 0;
+  const consumption = parseFloat($('fu-cons').value) || 0;
+  const fu = FUELS.find(x=>x.key===$('fu-fuel').value) || FUELS[0];
+  const kmAmount = r2(km*FUEL_RATE);
+  const phmAmount = r2(km/100*consumption*fu.price);
+  return {
+    date: $('fu-date').value, place: $('fu-place').value.trim(), purpose: $('fu-purpose').value.trim(),
+    km, consumption, fuelKey: fu.key, fuelLabel: fu.label, price: fu.price, rate: FUEL_RATE,
+    kmAmount, phmAmount, total: r2(km*FUEL_RATE + km/100*consumption*fu.price)
+  };
+}
+function updateFuelSummary(){
+  const f = readFuel();
+  $('fu-sum-km').textContent = f.km ? fmt(f.kmAmount) : '–';
+  $('fu-sum-phm').textContent = (f.km && f.consumption) ? fmt(f.phmAmount) : '–';
+  $('fu-sum-total').textContent = (f.km && f.consumption) ? fmt(f.total) : '–';
+}
+['fu-km','fu-cons','fu-fuel'].forEach(id=>{ $(id).addEventListener('input', updateFuelSummary); $(id).addEventListener('change', updateFuelSummary); });
+
+function validFuel(){
+  const f = readFuel();
+  if (!f.date || !f.place || !f.purpose){ toast('Vyplň datum, místo a účel cesty.'); return null; }
+  if (!f.km){ toast('Zadej ujeté kilometry.'); return null; }
+  if (!f.consumption){ toast('Zadej průměrnou spotřebu z technického průkazu.'); return null; }
+  return f;
+}
+
+/* Excel: šablona, list „Soukromé vozidlo“ */
+async function buildFuelXlsx(f, name){
+  if (!window.ExcelJS) throw new Error('ExcelJS není načtený');
+  const res = await fetch(FUEL_TEMPLATE_URL);
+  if (!res.ok) throw new Error('Šablona nenalezena: ' + FUEL_TEMPLATE_URL);
+  const wb = new window.ExcelJS.Workbook();
+  await wb.xlsx.load(await res.arrayBuffer());
+  const ws = wb.worksheets[0];
+  const fu = FUELS.find(x=>x.key===f.fuelKey) || FUELS[0];
+  ws.getCell('C5').value = name;
+  ws.getCell('C6').value = `${f.place} (${fmtDate(f.date)})`;
+  ws.getCell('C7').value = f.purpose;
+  ws.getCell('A12').value = f.km;
+  ws.getCell('B12').value = FUEL_RATE;
+  ws.getCell('A17').value = f.consumption;
+  ws.getCell('B17').value = fu.excel;
+  // ceny PHM v tabulce pod výpočtem (v šabloně jsou to maticové vzorce XLOOKUP, nahrazeny hodnotami)
+  FUELS.forEach((x,i)=>{ ws.getCell('A'+(24+i)).value = x.excel; ws.getCell('B'+(24+i)).value = x.price; });
+  ws.getCell('C12').value = { formula:'A12*B12', result:f.kmAmount };
+  ws.getCell('C17').value = { formula:'VLOOKUP(B17,$A$24:$B$27,2,0)', result:f.price };
+  ws.getCell('D17').value = { formula:'A12/100*A17*C17', result:f.phmAmount };
+  ws.getCell('D19').value = { formula:'C12+D17', result:f.total };
+  const buf = await wb.xlsx.writeBuffer();
+  return new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+/* PDF: výdajový doklad k proplacení paliva, A4 na výšku */
+async function buildFuelPdf(f, name){
+  const lbl = 'border:1px solid #000;padding:5px 8px;font-size:12px;font-weight:bold;width:190px;background:#f3f3f3;';
+  const val = 'border:1px solid #000;padding:5px 8px;font-size:12px;';
+  const th = 'border:1px solid #000;padding:5px 8px;font-size:11px;text-align:right;background:#f3f3f3;';
+  const td = 'border:1px solid #000;padding:6px 8px;font-size:12px;text-align:right;';
+  const html = `<div style="width:794px;height:1123px;background:#fff;font-family:Arial,sans-serif;color:#000;padding:50px 56px;box-sizing:border-box;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div style="max-width:420px;"><div style="font-size:17px;font-weight:bold;">VYÚČTOVÁNÍ – VÝDAJOVÝ DOKLAD</div>
+        <div style="font-size:13px;font-weight:bold;margin-top:6px;">Výpočet náhrad za použití soukromého vozidla</div></div>
+      <div style="text-align:right;font-size:12px;line-height:1.5;"><b>Vokální skupina 10men, z. s.</b><br>Smetanovo nábřeží 330/16<br>110 00 Praha 1<br>IČ 21194297</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-top:26px;">
+      <tr><td style="${lbl}">Řidič</td><td style="${val}">${escHtml(name)}</td></tr>
+      <tr><td style="${lbl}">Datum akce</td><td style="${val}">${fmtDate(f.date)}</td></tr>
+      <tr><td style="${lbl}">Místo konání akce</td><td style="${val}">${escHtml(f.place)}</td></tr>
+      <tr><td style="${lbl}">Účel cesty</td><td style="${val}">${escHtml(f.purpose)}</td></tr>
+    </table>
+    <div style="font-size:13px;font-weight:bold;margin:24px 0 6px;">Náhrada za ujeté kilometry</div>
+    <table style="border-collapse:collapse;"><tr><th style="${th}width:120px;">Ujeté km</th><th style="${th}width:100px;">Sazba</th><th style="${th}width:140px;">Celkem Kč</th></tr>
+      <tr><td style="${td}">${String(f.km).replace('.',',')}</td><td style="${td}">${fmt(f.rate)}</td><td style="${td}">${fmt(f.kmAmount)}</td></tr></table>
+    <div style="font-size:13px;font-weight:bold;margin:24px 0 6px;">Náhrada za spotřebované pohonné hmoty</div>
+    <table style="border-collapse:collapse;"><tr><th style="${th}width:200px;">Průměrná spotřeba dle TP</th><th style="${th}width:150px;">Palivo</th><th style="${th}width:110px;">Cena</th><th style="${th}width:140px;">Celkem Kč</th></tr>
+      <tr><td style="${td}">${String(f.consumption).replace('.',',')} / 100 km</td><td style="${td}">${escHtml(f.fuelLabel)}</td><td style="${td}">${fmt(f.price)}</td><td style="${td}">${fmt(f.phmAmount)}</td></tr></table>
+    <table style="border-collapse:collapse;margin-top:26px;width:100%;"><tr>
+      <td style="border:1px solid #000;padding:8px 10px;font-size:13px;font-weight:bold;background:#c0c0c0;">Celkem náhrada</td>
+      <td style="border:1px solid #000;padding:8px 10px;font-size:14px;font-weight:bold;background:#c0c0c0;text-align:right;width:200px;">${fmt(f.total)}</td></tr></table>
+    <div style="display:flex;gap:40px;margin-top:40px;font-size:13px;align-items:center;">
+      <div style="flex:1;"><b>Schválil:</b></div><div style="width:200px;border:1px solid #000;background:#c0c0c0;height:24px;"></div></div>
+    <div style="display:flex;gap:40px;margin-top:14px;font-size:13px;align-items:center;">
+      <div style="flex:1;"><b>Zaúčtoval:</b></div><div style="width:200px;border:1px solid #000;background:#c0c0c0;height:24px;"></div></div>
+    <div style="position:absolute;left:56px;bottom:24px;font-size:9px;color:#666;">Vystaveno v aplikaci 10korun – účetním systému skupiny 10men</div>
+  </div>`;
+  const wrap = $('pdf-template');
+  wrap.innerHTML = html;
+  const blob = await window.html2pdf().set({
+    margin: 0, image:{type:'jpeg',quality:0.98},
+    html2canvas:{scale:2,useCORS:true,allowTaint:false},
+    jsPDF:{unit:'px',format:[794,1123],orientation:'portrait'}
+  }).from(wrap.firstElementChild).outputPdf('blob');
+  wrap.innerHTML = '';
+  return blob;
+}
+
+$('btn-fu-xlsx').addEventListener('click', async ()=>{
+  const f = validFuel(); if(!f) return;
+  try { download(await buildFuelXlsx(f, memberName), 'Proplaceni-paliva.xlsx'); }
+  catch(err){ console.error(err); toast('Excel se nepodařilo vytvořit.'); }
+});
+$('btn-fu-pdf').addEventListener('click', async ()=>{
+  const f = validFuel(); if(!f) return;
+  try { download(await buildFuelPdf(f, memberName), 'Proplaceni-paliva.pdf'); }
+  catch(err){ console.error(err); toast('PDF se nepodařilo vytvořit.'); }
+});
+$('btn-fu-submit').addEventListener('click', async ()=>{
+  if (fuelBusy) return;
+  const f = validFuel(); if(!f) return;
+  if (!confirm(`Odeslat ke schválení náhradu ${fmt(f.total)}?`)) return;
+  const btn = $('btn-fu-submit');
+  fuelBusy = true; btn.disabled = true; btn.textContent = 'Odesílám…';
+  try {
+    const repRef = doc(collection(db,'orgs',ORG_ID,'expenseReports'));
+    const pdfBlob = await buildFuelPdf(f, memberName);
+    const pdfPath = `korun/vydaje/${currentUser.uid}/report-${repRef.id}.pdf`;
+    await uploadBytes(sRef(storage, pdfPath), pdfBlob, {contentType:'application/pdf'});
+    await setDoc(repRef, {
+      uid: currentUser.uid, name: memberName, email: currentUser.email,
+      kind: 'palivo', fuel: f, items: [], count: 1, total: f.total, pdfPath,
+      status: 'submitted', createdAt: serverTimestamp()
+    });
+    closeModal('modal-fuel'); toast('Žádost odeslána ✓');
+  } catch(err){ console.error('FUEL SUBMIT:', err); toast('Odeslání se nezdařilo.'); }
+  fuelBusy = false; btn.disabled = false; btn.textContent = 'Odeslat ke schválení';
 });
 </script>
 </body>

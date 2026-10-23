@@ -411,6 +411,23 @@
     .badge-paid   { background: var(--income-bg);  color: var(--income); }
     .badge-due    { background: var(--warn-bg);    color: var(--warn); }
 
+    /* výdaje */
+    .exp-card { background: var(--card); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+    .exp-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+    .exp-title { font-weight: 600; font-size: 15px; }
+    .exp-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .exp-amount { font-weight: 700; white-space: nowrap; }
+    .exp-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .exp-actions button { padding: 8px 12px; font-size: 13px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; }
+    .exp-actions .a-ok { background: var(--income-bg); color: var(--income); }
+    .exp-actions .a-no { background: var(--expense-bg); color: var(--expense); }
+    .exp-actions .a-neutral { background: var(--btn-bg); color: var(--btn-color); }
+    .exp-group-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 18px 0 8px; }
+    .nav-badge { display: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; margin-left: auto; }
+    .nav-badge.show { display: inline-block; }
+    .bottom button { position: relative; }
+    .bottom .nav-badge { position: absolute; top: 0; right: 4px; margin: 0; }
+
     /* ══════════════════════════════════
        FILTERS
     ══════════════════════════════════ */
@@ -808,6 +825,11 @@
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
         Doklady
       </button>
+      <button class="sidebar-nav-item" data-view="expenses">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2V2l-3 2-3-2-3 2-3-2z"/><path d="M8 9h8M8 13h5"/></svg></span>
+        Výdaje
+        <span class="nav-badge"></span>
+      </button>
       <button class="sidebar-nav-item" data-view="contacts">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
         Kontakty
@@ -905,6 +927,14 @@
       <div id="doc-list-wrap"><div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné doklady</div></div>
     </div>
 
+    <!-- ── VÝDAJE ── -->
+    <div id="view-expenses" class="view">
+      <div class="view-header">
+        <div class="view-title">Výdaje</div>
+      </div>
+      <div id="exp-list"></div>
+    </div>
+
     <!-- ── KONTAKTY ── -->
     <div id="view-contacts" class="view">
       <div class="view-header">
@@ -957,6 +987,11 @@
       <button data-view="documents">
         <span class="icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
         <small>Doklady</small>
+      </button>
+      <button data-view="expenses">
+        <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2V2l-3 2-3-2-3 2-3-2z"/><path d="M8 9h8M8 13h5"/></svg></span>
+        <small>Výdaje</small>
+        <span class="nav-badge"></span>
       </button>
       <button data-view="contacts">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
@@ -1198,6 +1233,33 @@
   </div>
 </div>
 
+<!-- PROPLACENÍ VÝDAJE -->
+<div class="modal-overlay" id="modal-exp-pay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Proplatit výdaj</div>
+      <button class="modal-close" data-close="modal-exp-pay">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="exp-pay-info" style="font-size:14px;color:var(--muted);margin-bottom:14px;"></div>
+      <div class="field-group">
+        <div class="field"><label>Způsob proplacení</label>
+          <select id="exp-pay-account">
+            <option value="cash">Hotově z pokladny (VPD)</option>
+            <option value="bank">Z bankovního účtu (BV)</option>
+          </select>
+        </div>
+        <div class="field"><label>Kategorie</label><select id="exp-pay-category"><option value="">— vyber —</option></select></div>
+        <div class="field"><label>Datum proplacení</label><input id="exp-pay-date" type="date" /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-close="modal-exp-pay">Zrušit</button>
+      <button class="btn-primary" id="btn-exp-pay-save">Potvrdit a zaúčtovat</button>
+    </div>
+  </div>
+</div>
+
 <div id="pdf-template" style="display:none;position:fixed;left:-9999px;top:0;"></div>
 <div id="toast"></div>
 
@@ -1211,6 +1273,8 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
 import { initializeFirestore, doc, getDoc, setDoc, collection, addDoc,
   query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref as sRef, getDownloadURL, deleteObject }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAjDCB3gpqytTHnG7zKLKJGXMNeW5vyC_I",
@@ -1226,6 +1290,7 @@ let userRole = null;
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = initializeFirestore(app, { experimentalForceLongPolling: true, useFetchStreams: false }, 'korun');
+const storage = getStorage(app);
 
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n).toLocaleString('cs-CZ') + ' Kč';
@@ -1239,7 +1304,7 @@ const ORG_LOGO = 'https://sidnexon-bot.github.io/10korun/logo.png';
 const INCOME_CATS = ['Prodej zboží','Prodej výrobků a služeb','Příjmy z veřejných sbírek','Přijaté peněžní dary mimo veřejné sbírky','Přijaté členské příspěvky','Dotace a příspěvky z veřejných rozpočtů','Ostatní','Průběžné položky','Kurzové rozdíly'];
 const EXPENSE_CATS = ['Dlouhodobý nehmotný a hmotný majetek','Materiál','Zboží','Služby','Mzdy','Pojistné za zaměstnance a zaměstnavatele','Ostatní osobní výdaje','Ostatní','Průběžné položky','Kurzové rozdíly'];
 
-const VIEW_TITLES = { dashboard:'Přehled', invoices:'Faktury', documents:'Doklady', contacts:'Kontakty', settings:'Nastavení' };
+const VIEW_TITLES = { dashboard:'Přehled', invoices:'Faktury', documents:'Doklady', expenses:'Výdaje', contacts:'Kontakty', settings:'Nastavení' };
 
 let currentUser=null, orgData=null, txAccount='cash', txType='income';
 let activePeriod=new Date().getFullYear().toString();
@@ -1338,6 +1403,7 @@ onAuthStateChanged(auth,async user=>{
     return;
   }
 
+  if(userRole!=='treasurer'){location.replace('expenses.html');return;}
   const orgSnap=await getDoc(doc(db,'orgs',ORG_ID));
   if(!orgSnap.exists()){showScreen('screen-onboarding');initOnboarding();}
   else{orgData=orgSnap.data();launchApp();}
@@ -1390,11 +1456,6 @@ $('ob-finish').addEventListener('click',async()=>{
 
 /* ── LAUNCH ── */
 function launchApp(){
-  if(userRole!=='treasurer'){
-    document.body.innerHTML='<div style="padding:40px;text-align:center;font-family:-apple-system">Modul výdajů připravujeme.</div>';
-    return;
-  }
-
   showScreen('screen-app');
   $('sidebar').style.display='';
   showView('dashboard');
@@ -1408,7 +1469,7 @@ function launchApp(){
     <div class="settings-row"><span class="settings-label">Adresa</span><span class="settings-value">${orgData.address||'–'}</span></div>
     <div class="settings-row"><span class="settings-label">Účetní období</span><span class="settings-value">${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}</span></div>
   `;
-  subscribeContacts();subscribeTransactions();subscribeInvoices();
+  subscribeContacts();subscribeTransactions();subscribeInvoices();subscribeExpenses();
   initAutocompletes();
 }
 
@@ -1425,6 +1486,128 @@ async function renderPeriodSelector() {
   wrap.querySelectorAll('[data-year]').forEach(btn=>btn.addEventListener('click',()=>switchPeriod(btn.dataset.year)));
 }
   
+/* ── VÝDAJE (pokladník) ── */
+let allExp=[], unsubExp=null, lastSummary='', payExpId=null;
+
+const EXP_STATUS={
+  pending:  {label:'Čeká na schválení', cls:'badge-due'},
+  approved: {label:'Schváleno · čeká na proplacení', cls:'badge-due'},
+  paid:     {label:'Proplaceno', cls:'badge-paid'},
+  rejected: {label:'Zamítnuto', cls:'badge-unpaid'},
+};
+
+function syncSummary(){
+  if(userRole!=='treasurer'||activePeriod!==new Date().getFullYear().toString())return;
+  // POZOR: po zavedení periodInit() nahradit orgData.cashInit/bankInit stejně jako v renderLedger
+  const calc=a=>allTx.filter(t=>t.account===a).reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),a==='cash'?(orgData.cashInit||0):(orgData.bankInit||0));
+  const cash=calc('cash'), bank=calc('bank'), key=cash+'|'+bank+'|'+activePeriod;
+  if(key===lastSummary)return;
+  lastSummary=key;
+  setDoc(doc(db,'orgs',ORG_ID,'summary','balances'),{cash,bank,year:activePeriod,updatedAt:serverTimestamp()}).catch(console.error);
+}
+
+function subscribeExpenses(){
+  if(unsubExp)unsubExp();
+  unsubExp=onSnapshot(collection(db,'orgs',ORG_ID,'expenses'),snap=>{
+    allExp=snap.docs.map(d=>({id:d.id,...d.data()}));
+    allExp.sort((a,b)=>(b.createdAt?.seconds??9e12)-(a.createdAt?.seconds??9e12));
+    renderExpenses();updateExpBadge();
+  },err=>{console.error('EXPENSES:',err);toast('Výdaje se nepodařilo načíst.');});
+}
+
+function updateExpBadge(){
+  const n=allExp.filter(e=>e.status==='pending'||e.status==='approved').length;
+  document.querySelectorAll('.nav-badge').forEach(b=>{b.textContent=n;b.classList.toggle('show',n>0);});
+}
+
+function expCard(e){
+  const st=EXP_STATUS[e.status]||EXP_STATUS.pending;
+  const kind=e.type==='palivo'?`palivo · ${e.km} km × ${String(e.rate).replace('.',',')} Kč`:'náhrada výdaje';
+  const sub=[escHtml(e.name),fmtDate(e.date),kind,e.docNumber||null].filter(Boolean).join(' · ');
+  let act='';
+  if(e.receiptPath) act+=`<button class="a-neutral" data-act="receipt" data-id="${e.id}">Účtenka</button>`;
+  if(e.status==='pending') act+=`<button class="a-ok" data-act="approve" data-id="${e.id}">Schválit</button><button class="a-no" data-act="reject" data-id="${e.id}">Zamítnout</button>`;
+  if(e.status==='approved') act+=`<button class="a-ok" data-act="pay" data-id="${e.id}">Proplatit…</button><button class="a-no" data-act="reject" data-id="${e.id}">Zamítnout</button>`;
+  return `<div class="exp-card">
+    <div class="exp-top">
+      <div style="min-width:0;">
+        <div class="exp-title">${escHtml(e.desc)}</div>
+        <div class="exp-sub">${sub}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="exp-amount">${fmt(e.amount)}</div>
+        <span class="badge ${st.cls}" style="margin-top:4px;">${st.label}</span>
+      </div>
+    </div>
+    ${e.status==='rejected'&&e.rejectNote?`<div class="exp-sub" style="margin-top:8px;color:var(--expense);">Důvod: ${escHtml(e.rejectNote)}</div>`:''}
+    ${act?`<div class="exp-actions">${act}</div>`:''}
+  </div>`;
+}
+
+function renderExpenses(){
+  const wrap=$('exp-list');
+  if(!allExp.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Zatím žádné výdaje</div>';return;}
+  const open=allExp.filter(e=>e.status==='pending'||e.status==='approved');
+  const done=allExp.filter(e=>e.status==='paid'||e.status==='rejected');
+  wrap.innerHTML=(open.length?`<div class="exp-group-title">K vyřízení</div>${open.map(expCard).join('')}`:'')
+    +(done.length?`<div class="exp-group-title">Historie</div>${done.map(expCard).join('')}`:'');
+}
+
+$('exp-list').addEventListener('click',async ev=>{
+  const btn=ev.target.closest('button[data-act]'); if(!btn)return;
+  const e=allExp.find(x=>x.id===btn.dataset.id); if(!e)return;
+  const ref=doc(db,'orgs',ORG_ID,'expenses',e.id);
+  try{
+    if(btn.dataset.act==='receipt'){
+      const w=window.open('','_blank');
+      const url=await getDownloadURL(sRef(storage,e.receiptPath));
+      if(w) w.location.href=url; else window.location.href=url;
+    }
+    else if(btn.dataset.act==='approve'){
+      await updateDoc(ref,{status:'approved',approvedAt:serverTimestamp()});toast('Schváleno ✓');
+    }
+    else if(btn.dataset.act==='reject'){
+      const note=prompt('Důvod zamítnutí (nepovinné):');
+      if(note===null)return;
+      await updateDoc(ref,{status:'rejected',rejectNote:note.trim(),rejectedAt:serverTimestamp()});toast('Zamítnuto.');
+    }
+    else if(btn.dataset.act==='pay') openExpPay(e.id);
+  }catch(err){console.error(err);toast('Akce se nezdařila.');}
+});
+
+function openExpPay(id){
+  const e=allExp.find(x=>x.id===id); if(!e)return;
+  payExpId=id;
+  $('exp-pay-info').textContent=`${e.name} · ${fmt(e.amount)} · ${e.desc}`;
+  setCatOptions('expense','exp-pay-category');
+  $('exp-pay-account').value='cash';
+  $('exp-pay-date').value=today();
+  openModal('modal-exp-pay');
+}
+
+$('btn-exp-pay-save').addEventListener('click',async()=>{
+  const e=allExp.find(x=>x.id===payExpId); if(!e)return;
+  const account=$('exp-pay-account').value, date=$('exp-pay-date').value||today();
+  const yr=String(new Date(date).getFullYear());
+  if(yr!==activePeriod){toast(`Datum patří do roku ${yr} – přepni aktivní období.`);return;}
+  const btn=$('btn-exp-pay-save');
+  btn.disabled=true;
+  try{
+    const docNumber=await generateDocNumber(account);
+    const txRef=await addDoc(txCol(),{
+      desc:`Náhrada výdaje – ${e.name}: ${e.desc}`,amount:e.amount,date,account,type:'expense',
+      category:$('exp-pay-category').value,party:e.name,pairedInvoice:null,docNumber,
+      expenseId:e.id,receiptPath:e.receiptPath||null,createdAt:serverTimestamp()
+    });
+    await updateDoc(doc(db,'orgs',ORG_ID,'expenses',e.id),{
+      status:'paid',paidAt:serverTimestamp(),paidDate:date,paidAccount:account,
+      docNumber,txId:txRef.id,txPeriod:activePeriod
+    });
+    closeModal('modal-exp-pay');toast(`Zaúčtováno ${docNumber} ✓`);
+  }catch(err){console.error('EXPENSE PAY:',err);toast('Zaúčtování se nezdařilo.');}
+  btn.disabled=false;
+});
+
 /* ── CONTACTS ── */
 let contactFilter = 'all';
 let editContactId = null;
@@ -1640,7 +1823,7 @@ function subscribeTransactions(){
   const q=query(txCol(),orderBy('date','desc'));
   unsubTx=onSnapshot(q,snap=>{
     allTx=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderLedger('cash');renderLedger('bank');renderStats();renderDocuments();
+    renderLedger('cash');renderLedger('bank');renderStats();renderDocuments();syncSummary();
   });
 }
 

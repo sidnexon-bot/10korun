@@ -1271,7 +1271,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { initializeFirestore, doc, getDoc, setDoc, collection, addDoc,
-  query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs }
+  query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs, writeBatch }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref as sRef, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -1486,14 +1486,13 @@ async function renderPeriodSelector() {
   wrap.querySelectorAll('[data-year]').forEach(btn=>btn.addEventListener('click',()=>switchPeriod(btn.dataset.year)));
 }
   
-/* ── VÝDAJE (pokladník) ── */
-let allExp=[], unsubExp=null, lastSummary='', payExpId=null;
+/* ── VÝDAJE (pokladník) – reporty ── */
+let allRep=[], unsubRep=null, lastSummary='', payRepId=null;
 
-const EXP_STATUS={
-  pending:  {label:'Čeká na schválení', cls:'badge-due'},
-  approved: {label:'Schváleno · čeká na proplacení', cls:'badge-due'},
+const REP_STATUS={
+  submitted:{label:'Čeká na schválení', cls:'badge-due'},
   paid:     {label:'Proplaceno', cls:'badge-paid'},
-  rejected: {label:'Zamítnuto', cls:'badge-unpaid'},
+  rejected: {label:'Vráceno k úpravě', cls:'badge-unpaid'},
 };
 
 function syncSummary(){
@@ -1507,78 +1506,88 @@ function syncSummary(){
 }
 
 function subscribeExpenses(){
-  if(unsubExp)unsubExp();
-  unsubExp=onSnapshot(collection(db,'orgs',ORG_ID,'expenses'),snap=>{
-    allExp=snap.docs.map(d=>({id:d.id,...d.data()}));
-    allExp.sort((a,b)=>(b.createdAt?.seconds??9e12)-(a.createdAt?.seconds??9e12));
+  if(unsubRep)unsubRep();
+  unsubRep=onSnapshot(collection(db,'orgs',ORG_ID,'expenseReports'),snap=>{
+    allRep=snap.docs.map(d=>({id:d.id,...d.data()}));
+    allRep.sort((a,b)=>(b.createdAt?.seconds??9e12)-(a.createdAt?.seconds??9e12));
     renderExpenses();updateExpBadge();
-  },err=>{console.error('EXPENSES:',err);toast('Výdaje se nepodařilo načíst.');});
+  },err=>{console.error('REPORTS:',err);toast('Žádosti se nepodařilo načíst.');});
 }
 
 function updateExpBadge(){
-  const n=allExp.filter(e=>e.status==='pending'||e.status==='approved').length;
+  const n=allRep.filter(r=>r.status==='submitted').length;
   document.querySelectorAll('.nav-badge').forEach(b=>{b.textContent=n;b.classList.toggle('show',n>0);});
 }
 
-function expCard(e){
-  const st=EXP_STATUS[e.status]||EXP_STATUS.pending;
-  const kind=e.type==='palivo'?`palivo · ${e.km} km × ${String(e.rate).replace('.',',')} Kč`:'náhrada výdaje';
-  const sub=[escHtml(e.name),fmtDate(e.date),kind,e.docNumber||null].filter(Boolean).join(' · ');
+function repCard(r){
+  const st=REP_STATUS[r.status]||REP_STATUS.submitted;
+  const created=r.createdAt?.seconds?new Date(r.createdAt.seconds*1000).toISOString().slice(0,10):today();
+  const rows=(r.items||[]).map((i,n)=>`
+    <tr>
+      <td style="padding:6px 4px;border-bottom:1px solid var(--border);">${n+1}</td>
+      <td style="padding:6px 4px;border-bottom:1px solid var(--border);white-space:nowrap;">${fmtDate(i.date)}</td>
+      <td style="padding:6px 4px;border-bottom:1px solid var(--border);">${escHtml(i.desc)}</td>
+      <td style="padding:6px 4px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;">${fmt(i.amount)}</td>
+      <td style="padding:6px 0 6px 6px;border-bottom:1px solid var(--border);">${i.receiptPath?`<button class="a-neutral" style="padding:4px 8px;font-size:12px;border:none;border-radius:8px;cursor:pointer;" data-act="receipt" data-path="${escHtml(i.receiptPath)}">Účtenka</button>`:''}</td>
+    </tr>`).join('');
   let act='';
-  if(e.receiptPath) act+=`<button class="a-neutral" data-act="receipt" data-id="${e.id}">Účtenka</button>`;
-  if(e.status==='pending') act+=`<button class="a-ok" data-act="approve" data-id="${e.id}">Schválit</button><button class="a-no" data-act="reject" data-id="${e.id}">Zamítnout</button>`;
-  if(e.status==='approved') act+=`<button class="a-ok" data-act="pay" data-id="${e.id}">Proplatit…</button><button class="a-no" data-act="reject" data-id="${e.id}">Zamítnout</button>`;
+  if(r.pdfPath) act+=`<button class="a-neutral" data-act="pdf" data-path="${escHtml(r.pdfPath)}">Žádost (PDF)</button>`;
+  if(r.status==='submitted') act+=`<button class="a-ok" data-act="pay" data-id="${r.id}">Schválit a proplatit…</button><button class="a-no" data-act="reject" data-id="${r.id}">Vrátit k úpravě</button>`;
   return `<div class="exp-card">
     <div class="exp-top">
       <div style="min-width:0;">
-        <div class="exp-title">${escHtml(e.desc)}</div>
-        <div class="exp-sub">${sub}</div>
+        <div class="exp-title">${escHtml(r.name)}</div>
+        <div class="exp-sub">Odesláno ${fmtDate(created)} · ${r.count} pol.${r.docNumber?' · '+escHtml(r.docNumber):''}</div>
       </div>
       <div style="text-align:right;">
-        <div class="exp-amount">${fmt(e.amount)}</div>
+        <div class="exp-amount">${fmt(r.total)}</div>
         <span class="badge ${st.cls}" style="margin-top:4px;">${st.label}</span>
       </div>
     </div>
-    ${e.status==='rejected'&&e.rejectNote?`<div class="exp-sub" style="margin-top:8px;color:var(--expense);">Důvod: ${escHtml(e.rejectNote)}</div>`:''}
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;">${rows}</table>
+    ${r.status==='rejected'&&r.rejectNote?`<div class="exp-sub" style="margin-top:8px;color:var(--expense);">Důvod: ${escHtml(r.rejectNote)}</div>`:''}
     ${act?`<div class="exp-actions">${act}</div>`:''}
   </div>`;
 }
 
 function renderExpenses(){
   const wrap=$('exp-list');
-  if(!allExp.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Zatím žádné výdaje</div>';return;}
-  const open=allExp.filter(e=>e.status==='pending'||e.status==='approved');
-  const done=allExp.filter(e=>e.status==='paid'||e.status==='rejected');
-  wrap.innerHTML=(open.length?`<div class="exp-group-title">K vyřízení</div>${open.map(expCard).join('')}`:'')
-    +(done.length?`<div class="exp-group-title">Historie</div>${done.map(expCard).join('')}`:'');
+  if(!allRep.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Zatím žádné žádosti</div>';return;}
+  const open=allRep.filter(r=>r.status==='submitted');
+  const done=allRep.filter(r=>r.status!=='submitted');
+  wrap.innerHTML=(open.length?`<div class="exp-group-title">K vyřízení</div>${open.map(repCard).join('')}`:'')
+    +(done.length?`<div class="exp-group-title">Historie</div>${done.map(repCard).join('')}`:'');
 }
 
 $('exp-list').addEventListener('click',async ev=>{
   const btn=ev.target.closest('button[data-act]'); if(!btn)return;
-  const e=allExp.find(x=>x.id===btn.dataset.id); if(!e)return;
-  const ref=doc(db,'orgs',ORG_ID,'expenses',e.id);
   try{
-    if(btn.dataset.act==='receipt'){
+    if(btn.dataset.act==='receipt'||btn.dataset.act==='pdf'){
       const w=window.open('','_blank');
-      const url=await getDownloadURL(sRef(storage,e.receiptPath));
-      if(w) w.location.href=url; else window.location.href=url;
+      try{
+        const url=await getDownloadURL(sRef(storage,btn.dataset.path));
+        if(w) w.location.href=url; else window.location.href=url;
+      }catch(err){ if(w) w.close(); throw err; }
+      return;
     }
-    else if(btn.dataset.act==='approve'){
-      await updateDoc(ref,{status:'approved',approvedAt:serverTimestamp()});toast('Schváleno ✓');
-    }
+    const r=allRep.find(x=>x.id===btn.dataset.id); if(!r)return;
+    if(btn.dataset.act==='pay') openRepPay(r.id);
     else if(btn.dataset.act==='reject'){
-      const note=prompt('Důvod zamítnutí (nepovinné):');
+      const note=prompt('Který výdaj je třeba opravit a proč?');
       if(note===null)return;
-      await updateDoc(ref,{status:'rejected',rejectNote:note.trim(),rejectedAt:serverTimestamp()});toast('Zamítnuto.');
+      if(!note.trim()){toast('Napiš prosím důvod.');return;}
+      const batch=writeBatch(db);
+      batch.update(doc(db,'orgs',ORG_ID,'expenseReports',r.id),{status:'rejected',rejectNote:note.trim(),rejectedAt:serverTimestamp()});
+      (r.items||[]).forEach(i=>batch.update(doc(db,'orgs',ORG_ID,'expenses',i.id),{status:'draft',reportId:null,returnNote:note.trim()}));
+      await batch.commit();toast('Vráceno členovi.');
     }
-    else if(btn.dataset.act==='pay') openExpPay(e.id);
   }catch(err){console.error(err);toast('Akce se nezdařila.');}
 });
 
-function openExpPay(id){
-  const e=allExp.find(x=>x.id===id); if(!e)return;
-  payExpId=id;
-  $('exp-pay-info').textContent=`${e.name} · ${fmt(e.amount)} · ${e.desc}`;
+function openRepPay(id){
+  const r=allRep.find(x=>x.id===id); if(!r)return;
+  payRepId=id;
+  $('exp-pay-info').textContent=`${r.name} · ${r.count} pol. · ${fmt(r.total)}`;
   setCatOptions('expense','exp-pay-category');
   $('exp-pay-account').value='cash';
   $('exp-pay-date').value=today();
@@ -1586,7 +1595,7 @@ function openExpPay(id){
 }
 
 $('btn-exp-pay-save').addEventListener('click',async()=>{
-  const e=allExp.find(x=>x.id===payExpId); if(!e)return;
+  const r=allRep.find(x=>x.id===payRepId); if(!r)return;
   const account=$('exp-pay-account').value, date=$('exp-pay-date').value||today();
   const yr=String(new Date(date).getFullYear());
   if(yr!==activePeriod){toast(`Datum patří do roku ${yr} – přepni aktivní období.`);return;}
@@ -1595,16 +1604,19 @@ $('btn-exp-pay-save').addEventListener('click',async()=>{
   try{
     const docNumber=await generateDocNumber(account);
     const txRef=await addDoc(txCol(),{
-      desc:`Náhrada výdaje – ${e.name}: ${e.desc}`,amount:e.amount,date,account,type:'expense',
-      category:$('exp-pay-category').value,party:e.name,pairedInvoice:null,docNumber,
-      expenseId:e.id,receiptPath:e.receiptPath||null,createdAt:serverTimestamp()
+      desc:`Náhrada výdajů – ${r.name} (${r.count} pol.)`,amount:r.total,date,account,type:'expense',
+      category:$('exp-pay-category').value,party:r.name,pairedInvoice:null,docNumber,
+      reportId:r.id,pdfPath:r.pdfPath||null,createdAt:serverTimestamp()
     });
-    await updateDoc(doc(db,'orgs',ORG_ID,'expenses',e.id),{
+    const batch=writeBatch(db);
+    batch.update(doc(db,'orgs',ORG_ID,'expenseReports',r.id),{
       status:'paid',paidAt:serverTimestamp(),paidDate:date,paidAccount:account,
       docNumber,txId:txRef.id,txPeriod:activePeriod
     });
+    (r.items||[]).forEach(i=>batch.update(doc(db,'orgs',ORG_ID,'expenses',i.id),{status:'paid',docNumber}));
+    await batch.commit();
     closeModal('modal-exp-pay');toast(`Zaúčtováno ${docNumber} ✓`);
-  }catch(err){console.error('EXPENSE PAY:',err);toast('Zaúčtování se nezdařilo.');}
+  }catch(err){console.error('REPORT PAY:',err);toast('Zaúčtování se nezdařilo.');}
   btn.disabled=false;
 });
 

@@ -1330,7 +1330,12 @@ onAuthStateChanged(auth,async user=>{
       document.querySelector('.login-sub').textContent='Přístup odepřen.'; return;
     }
     userRole=mSnap.data().role||'member';
-  }catch(e){await signOut(auth);showScreen('screen-login');return;}
+  }catch(e){
+    console.error('AUTH/MEMBER CHECK:',e);
+    await signOut(auth);showScreen('screen-login');
+    document.querySelector('.login-sub').textContent='Chyba: '+(e.code||'')+' '+e.message;
+    return;
+  }
 
   const orgSnap=await getDoc(doc(db,'orgs',user.uid));
   if(!orgSnap.exists()){showScreen('screen-onboarding');initOnboarding();}

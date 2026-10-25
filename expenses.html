@@ -17,12 +17,18 @@
     --warn:#b07800; --warn-bg:#fff4dc; --btn-bg:#e8e8ed; --btn-color:#007aff;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg:#000; --card:#1c1c1e; --text:#f2f2f7; --muted:#8e8e93; --border:#38383a;
       --accent:#ff453a; --accent-soft:rgba(255,69,58,.14);
       --income:#32d74b; --income-bg:rgba(50,215,75,.16); --expense:#ff6961; --expense-bg:rgba(255,69,58,.16);
       --warn:#ffd60a; --warn-bg:rgba(255,214,10,.14); --btn-bg:#2c2c2e; --btn-color:#0a84ff;
     }
+  }
+  :root[data-theme="dark"] {
+    --bg:#000; --card:#1c1c1e; --text:#f2f2f7; --muted:#8e8e93; --border:#38383a;
+    --accent:#ff453a; --accent-soft:rgba(255,69,58,.14);
+    --income:#32d74b; --income-bg:rgba(50,215,75,.16); --expense:#ff6961; --expense-bg:rgba(255,69,58,.16);
+    --warn:#ffd60a; --warn-bg:rgba(255,214,10,.14); --btn-bg:#2c2c2e; --btn-color:#0a84ff;
   }
   * { box-sizing:border-box; margin:0; padding:0; }
   body {
@@ -53,7 +59,16 @@
   .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .topbar h1 { font-size:24px; font-weight:800; letter-spacing:-.02em; }
   .topbar .who { font-size:12px; color:var(--muted); }
-  .avatar { width:34px; height:34px; border-radius:50%; background:var(--btn-bg); object-fit:cover; }
+  .avatar { width:34px; height:34px; border-radius:50%; background:var(--btn-bg); object-fit:cover; display:block; }
+  .avatar-btn { background:none; border:none; padding:0; border-radius:50%; display:block; }
+  .menu { position:absolute; right:0; top:42px; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,.2); min-width:220px; padding:6px; display:none; z-index:40; }
+  .menu.open { display:block; }
+  .menu button { display:flex; width:100%; align-items:center; gap:10px; background:none; border:none; color:var(--text); font-size:15px; padding:11px 12px; border-radius:10px; text-align:left; }
+  .menu button:active { background:var(--btn-bg); }
+  .menu button.on { color:var(--accent); font-weight:600; }
+  .menu button.out { color:var(--expense); }
+  .menu .sep { height:1px; background:var(--border); margin:4px 6px; }
+  .menu svg { width:18px; height:18px; flex:none; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 
   .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
   .stat { background:var(--card); border-radius:14px; padding:14px 16px; }
@@ -137,10 +152,20 @@
   <div class="wrap">
     <div class="topbar">
       <div>
-        <h1>Výdaje</h1>
+        <h1 id="h-title">Výdaje</h1>
         <div class="who" id="who"></div>
       </div>
-      <img class="avatar" id="avatar" alt="" />
+      <div style="position:relative;">
+        <button class="avatar-btn" id="btn-menu" aria-label="Menu"><img class="avatar" id="avatar" alt="" /></button>
+        <div class="menu" id="menu">
+          <button id="m-main" class="on"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Moje výdaje</button>
+          <button id="m-archive"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Schválené žádosti</button>
+          <div class="sep"></div>
+          <button id="menu-theme"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span id="menu-theme-label">Tmavý režim</span></button>
+          <div class="sep"></div>
+          <button id="btn-signout" class="out"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Odhlásit se</button>
+        </div>
+      </div>
     </div>
 
     <div class="stats">
@@ -148,7 +173,7 @@
       <div class="stat"><div class="stat-label">Bankovní účet</div><div class="stat-value" id="bal-bank">–</div></div>
     </div>
 
-    <div class="actions">
+    <div class="actions" id="actions">
       <button class="btn-primary" style="flex:1;" id="btn-new">+ Nový výdaj</button>
       <button class="btn-secondary" style="flex:1;" id="btn-fuel">+ Palivo</button>
     </div>
@@ -344,6 +369,32 @@ $('btn-login').addEventListener('click', async ()=>{
   catch(e){ toast('Přihlášení se nezdařilo.'); }
 });
 $('btn-signout').addEventListener('click', ()=>signOut(auth));
+
+/* menu profilu, motiv */
+const menu = $('menu');
+const sysDark = ()=>matchMedia('(prefers-color-scheme: dark)').matches;
+function isDark(){
+  const t = document.documentElement.getAttribute('data-theme');
+  return t ? t==='dark' : sysDark();
+}
+function applyTheme(t){
+  const r = document.documentElement;
+  if (t==='dark' || t==='light') r.setAttribute('data-theme', t); else r.removeAttribute('data-theme');
+  $('menu-theme-label').textContent = isDark() ? 'Světlý režim' : 'Tmavý režim';
+  document.querySelector('meta[name=theme-color]').setAttribute('content', isDark() ? '#000000' : '#f2f2f7');
+}
+let savedTheme = null;
+try { savedTheme = localStorage.getItem('korun-theme'); } catch(_){}
+applyTheme(savedTheme);
+$('menu-theme').addEventListener('click', ()=>{
+  const next = isDark() ? 'light' : 'dark';
+  try { localStorage.setItem('korun-theme', next); } catch(_){}
+  applyTheme(next); menu.classList.remove('open');
+});
+$('btn-menu').addEventListener('click', ev=>{ ev.stopPropagation(); menu.classList.toggle('open'); });
+document.addEventListener('click', ev=>{ if (!ev.target.closest('#menu')) menu.classList.remove('open'); });
+$('m-main').addEventListener('click', ()=>{ view='main'; menu.classList.remove('open'); render(); });
+$('m-archive').addEventListener('click', ()=>{ view='archive'; menu.classList.remove('open'); render(); });
 function loginMessage(txt){ document.querySelector('.login-sub').textContent = txt; }
 
 onAuthStateChanged(auth, async user => {
@@ -363,7 +414,7 @@ onAuthStateChanged(auth, async user => {
     loginMessage('Chyba: ' + (e.code||'') + ' ' + e.message); return;
   }
   $('who').textContent = memberName;
-  if (user.photoURL) $('avatar').src = user.photoURL; else $('avatar').style.visibility='hidden';
+  if (user.photoURL) $('avatar').src = user.photoURL; else $('avatar').src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 34'><circle cx='17' cy='13' r='6' fill='%238e8e93'/><path d='M5 32c1-8 7-10 12-10s11 2 12 10z' fill='%238e8e93'/></svg>";
   $('treasurer-link').style.display = userRole==='treasurer' ? '' : 'none';
   showScreen('screen-app');
   subscribe();
@@ -437,20 +488,29 @@ function reportCard(r){
   </div>`;
 }
 
+let view = 'main';
 function render(){
+  const archive = view==='archive';
+  $('h-title').textContent = archive ? 'Schválené žádosti' : 'Výdaje';
+  $('actions').style.display = archive ? 'none' : '';
+  $('drafts').style.display = archive ? 'none' : '';
+  $('m-main').classList.toggle('on', !archive);
+  $('m-archive').classList.toggle('on', archive);
   const drafts = allExp.filter(e=>e.status==='draft').sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   $('drafts').innerHTML = drafts.length
     ? `<div class="group-title">Rozpracované výdaje</div>${drafts.map(draftCard).join('')}`
     : (allRep.length ? '' : '<div class="empty">Zatím žádné výdaje.<br>Přidej první tlačítkem nahoře.</div>');
-  $('reports').innerHTML = allRep.length
-    ? `<div class="group-title">Odeslané žádosti</div>${allRep.filter(r=>r).map(reportCard).join('')}` : '';
+  const reps = allRep.filter(r=>r && (archive ? r.status==='paid' : r.status!=='paid'));
+  $('reports').innerHTML = reps.length
+    ? `${archive?'':'<div class="group-title">Aktivní žádosti</div>'}${reps.map(reportCard).join('')}`
+    : (archive ? '<div class="empty">Zatím žádné schválené žádosti.</div>' : '');
   updateSelectBar();
 }
 
 function updateSelectBar(){
   const items = allExp.filter(e=>selected.has(e.id));
   const total = r2(items.reduce((s,e)=>s+e.amount,0));
-  $('select-bar').classList.toggle('show', items.length>0);
+  $('select-bar').classList.toggle('show', items.length>0 && view!=='archive');
   $('sel-count').textContent = `Vybráno: ${items.length}`;
   $('sel-total').textContent = fmt(total);
 }

@@ -1616,7 +1616,8 @@ $('exp-list').addEventListener('click',async ev=>{
       if(note===null)return;
       if(!note.trim()){toast('Napiš prosím důvod.');return;}
       const batch=writeBatch(db);
-      batch.update(doc(db,'orgs',ORG_ID,'expenseReports',r.id),{status:'rejected',rejectNote:note.trim(),rejectedAt:serverTimestamp()});
+      if(r.kind==='palivo') batch.update(doc(db,'orgs',ORG_ID,'expenseReports',r.id),{status:'rejected',rejectNote:note.trim(),rejectedAt:serverTimestamp()});
+      else batch.delete(doc(db,'orgs',ORG_ID,'expenseReports',r.id));
       (r.items||[]).forEach(i=>batch.update(doc(db,'orgs',ORG_ID,'expenses',i.id),{status:'draft',reportId:null,returnNote:note.trim()}));
       await batch.commit();toast('Vráceno členovi.');
     }

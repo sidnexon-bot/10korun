@@ -500,7 +500,7 @@ function render(){
   $('drafts').innerHTML = drafts.length
     ? `<div class="group-title">Rozpracované výdaje</div>${drafts.map(draftCard).join('')}`
     : (allRep.length ? '' : '<div class="empty">Zatím žádné výdaje.<br>Přidej první tlačítkem nahoře.</div>');
-  const reps = allRep.filter(r=>r && (archive ? r.status==='paid' : r.status!=='paid'));
+  const reps = allRep.filter(r=>r && !(r.status==='rejected' && r.kind!=='palivo') && (archive ? r.status==='paid' : r.status!=='paid'));
   $('reports').innerHTML = reps.length
     ? `${archive?'':'<div class="group-title">Aktivní žádosti</div>'}${reps.map(reportCard).join('')}`
     : (archive ? '<div class="empty">Zatím žádné schválené žádosti.</div>' : '');

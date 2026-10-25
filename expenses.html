@@ -214,6 +214,7 @@
       <div class="modal-title">Proplacení paliva</div>
       <button class="modal-close" data-close="modal-fuel">✕</button>
     </div>
+    <div class="note-red" id="fu-rej-note" style="display:none;margin:0 0 12px;"></div>
     <div class="field"><label>Řidič</label><input id="fu-driver" type="text" readonly /></div>
     <div class="field"><label>Datum akce</label><input id="fu-date" type="date" /></div>
     <div class="field"><label>Místo konání akce</label><input id="fu-place" type="text" placeholder="Např. Kladno, kostel sv. Vavřince" /></div>
@@ -232,6 +233,31 @@
       <button class="btn-secondary" id="btn-fu-xlsx">Stáhnout Excel</button>
       <button class="btn-secondary" id="btn-fu-pdf">Stáhnout PDF</button>
       <button class="btn-primary" id="btn-fu-submit">Odeslat ke schválení</button>
+    </div>
+    <div class="rep-actions" id="fu-rej-actions" style="display:none;">
+      <button class="btn-secondary" id="btn-fu-close">Zavřít</button>
+      <button class="btn-danger" id="btn-fu-delete">Smazat</button>
+    </div>
+  </div>
+</div>
+
+<!-- VRÁCENÁ ŽÁDOST (běžná) -->
+<div class="modal-overlay" id="modal-rejrep">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Vrácená žádost</div>
+      <button class="modal-close" data-close="modal-rejrep">✕</button>
+    </div>
+    <div class="note-red" id="rr-note" style="margin:0 0 12px;"></div>
+    <table class="rep">
+      <thead><tr><th>#</th><th>Datum</th><th>Popis</th><th class="r">Částka</th></tr></thead>
+      <tbody id="rr-body"></tbody>
+      <tfoot><tr><td colspan="3">Celkem</td><td class="r" id="rr-total"></td></tr></tfoot>
+    </table>
+    <div class="stat-note" style="margin:10px 0;">Položky jsou zpět v rozpracovaných výdajích. Uprav je a vytvoř nový report.</div>
+    <div class="rep-actions">
+      <button class="btn-secondary" data-close="modal-rejrep">Zavřít</button>
+      <button class="btn-danger" id="btn-rr-delete">Smazat</button>
     </div>
   </div>
 </div>
@@ -395,7 +421,8 @@ function reportCard(r){
   const sub = isFuel
     ? `${fmtDate(r.fuel.date)} · ${r.fuel.km} km${r.docNumber?' · '+escHtml(r.docNumber):''}`
     : `${r.count} ${r.count===1?'položka':(r.count<5?'položky':'položek')}${r.docNumber?' · '+escHtml(r.docNumber):''}`;
-  return `<div class="exp-card">
+  const rej = r.status==='rejected';
+  return `<div class="exp-card"${rej?` data-open="${r.id}" style="cursor:pointer;"`:''}>
     <div class="exp-top">
       <div style="min-width:0;"><div class="exp-title">${title}</div>
         <div class="exp-sub">${sub}</div></div>
@@ -405,7 +432,7 @@ function reportCard(r){
     <div class="exp-actions">
       ${r.pdfPath ? `<button class="a-neutral" data-ract="pdf" data-id="${r.id}">PDF</button>` : ''}
       <button class="a-neutral" data-ract="xlsx" data-id="${r.id}">Excel</button>
-      ${isFuel && r.status==='rejected' ? `<button class="a-neutral" data-ract="refuel" data-id="${r.id}">Opravit a poslat znovu</button>` : ''}
+      ${rej ? `<button class="a-neutral" data-ract="open" data-id="${r.id}">${isFuel?'Opravit a poslat znovu':'Detail'}</button>` : ''}
     </div>
   </div>`;
 }
@@ -458,7 +485,13 @@ $('drafts').addEventListener('click', async ev=>{
 });
 
 $('reports').addEventListener('click', async ev=>{
-  const btn = ev.target.closest('button[data-ract]'); if(!btn) return;
+  const btn = ev.target.closest('button[data-ract]');
+  if(!btn){
+    const c = ev.target.closest('[data-open]');
+    const rr = c && allRep.find(x=>x.id===c.dataset.open);
+    if (rr) openRejected(rr);
+    return;
+  }
   const r = allRep.find(x=>x.id===btn.dataset.id); if(!r) return;
   try {
     if (btn.dataset.ract==='pdf') await openStorageFile(r.pdfPath);
@@ -466,7 +499,7 @@ $('reports').addEventListener('click', async ev=>{
       if (r.kind==='palivo' && r.fuel) download(await buildFuelXlsx(r.fuel, r.name), 'Proplaceni-paliva.xlsx');
       else download(await buildXlsx(r.items, r.total, r.name), 'Zadost-o-nahradu-vydaju.xlsx');
     }
-    else if (btn.dataset.ract==='refuel') openFuel(r.fuel);
+    else if (btn.dataset.ract==='open') openRejected(r);
   } catch(err){ console.error(err); toast('Akce se nezdařila.'); }
 });
 
@@ -673,7 +706,13 @@ function renderFuelOptions(){
 }
 $('fu-date').addEventListener('change', ()=>{ renderFuelOptions(); updateFuelSummary(); });
 
-function openFuel(prefill){
+let fuelRejId = null;
+function openFuel(prefill, rej){
+  fuelRejId = rej ? rej.id : null;
+  $('fu-rej-actions').style.display = rej ? '' : 'none';
+  $('fu-rej-note').style.display = (rej && rej.rejectNote) ? '' : 'none';
+  $('fu-rej-note').textContent = (rej && rej.rejectNote) ? 'Důvod vrácení: ' + rej.rejectNote : '';
+  $('btn-fu-submit').textContent = rej ? 'Odeslat znovu' : 'Odeslat ke schválení';
   $('fu-driver').value = memberName;
   $('fu-date').value = prefill ? prefill.date : today();
   $('fu-place').value = prefill ? prefill.place : '';
@@ -816,10 +855,42 @@ $('btn-fu-submit').addEventListener('click', async ()=>{
       kind: 'palivo', fuel: f, items: [], count: 1, total: f.total, pdfPath,
       status: 'submitted', createdAt: serverTimestamp()
     });
+    if (fuelRejId){
+      const old = allRep.find(x=>x.id===fuelRejId);
+      try {
+        await deleteDoc(doc(db,'orgs',ORG_ID,'expenseReports',fuelRejId));
+        if (old && old.pdfPath) await deleteObject(sRef(storage, old.pdfPath));
+      } catch(e){ console.warn('Smazání staré žádosti:', e); }
+      fuelRejId = null;
+    }
     closeModal('modal-fuel'); toast('Žádost odeslána ✓');
   } catch(err){ console.error('FUEL SUBMIT:', err); toast('Odeslání se nezdařilo.'); }
-  fuelBusy = false; btn.disabled = false; btn.textContent = 'Odeslat ke schválení';
+  fuelBusy = false; btn.disabled = false; btn.textContent = fuelRejId ? 'Odeslat znovu' : 'Odeslat ke schválení';
 });
+/* ── VRÁCENÉ ŽÁDOSTI: detail, smazání ── */
+let rejRepId = null;
+function openRejected(r){
+  if (r.kind==='palivo' && r.fuel){ openFuel(r.fuel, r); return; }
+  rejRepId = r.id;
+  $('rr-note').style.display = r.rejectNote ? '' : 'none';
+  $('rr-note').textContent = r.rejectNote ? 'Důvod vrácení: ' + r.rejectNote : '';
+  $('rr-body').innerHTML = (r.items||[]).map((i,n)=>
+    `<tr><td>${n+1}</td><td>${fmtDate(i.date)}</td><td>${escHtml(i.desc)}</td><td class="r">${fmt(i.amount)}</td></tr>`).join('');
+  $('rr-total').textContent = fmt(r.total);
+  openModal('modal-rejrep');
+}
+async function deleteRejected(id, modalId){
+  const r = allRep.find(x=>x.id===id); if(!r) return;
+  if (!confirm('Smazat tuto vrácenou žádost?')) return;
+  try {
+    await deleteDoc(doc(db,'orgs',ORG_ID,'expenseReports',id));
+    if (r.pdfPath){ try { await deleteObject(sRef(storage, r.pdfPath)); } catch(_){} }
+    closeModal(modalId); toast('Smazáno.');
+  } catch(err){ console.error(err); toast('Smazání se nezdařilo.'); }
+}
+$('btn-rr-delete').addEventListener('click', ()=>deleteRejected(rejRepId, 'modal-rejrep'));
+$('btn-fu-delete').addEventListener('click', ()=>deleteRejected(fuelRejId, 'modal-fuel'));
+$('btn-fu-close').addEventListener('click', ()=>closeModal('modal-fuel'));
 </script>
 </body>
 </html>

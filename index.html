@@ -972,7 +972,11 @@
           <span class="settings-value" id="period-selector">–</span>
         </div>
       </div>
-      <button class="btn-secondary" id="btn-new-period" style="width:auto;margin-bottom:16px;">+ Otevřít nový rok</button>      
+      <button class="btn-secondary" id="btn-new-period" style="width:auto;margin-bottom:16px;">+ Otevřít nový rok</button>
+
+      <h3>Historie změn</h3>
+      <div class="settings-group"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Kdo, kdy a co změnil u dokladů, faktur, žádostí, čítačů a členů. Záznamy vytváří server a nelze je upravit ani smazat.</div></div>
+      <button class="btn-secondary" id="btn-audit-log" style="width:auto;margin-bottom:16px;">Zobrazit historii změn</button>      
       
       <div style="margin-top:20px;">
         <button class="btn-danger" id="btn-signout-mob" style="width:auto;">Odhlásit se</button>
@@ -1269,6 +1273,22 @@
 </div>
 
 <!-- SAZBY NÁHRAD -->
+<div class="modal-overlay" id="modal-audit">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-header">
+      <div class="modal-title">Historie změn</div>
+      <button class="modal-close" data-close="modal-audit">✕</button>
+    </div>
+    <div class="modal-body">
+      <select id="audit-filter" class="field" style="margin-bottom:12px;">
+        <option value="">Vše</option><option value="transactions">Doklady (PD, BV)</option><option value="invoices">Faktury</option>
+        <option value="expenseReports">Žádosti o proplacení</option><option value="counters">Čítače čísel</option>
+        <option value="members">Členové a role</option><option value="contacts">Kontakty</option><option value="config">Sazby</option><option value="org">Organizace</option>
+      </select>
+      <div id="audit-list" style="max-height:60vh;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-rates">
   <div class="modal">
     <div class="modal-header">
@@ -1307,7 +1327,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { initializeFirestore, doc, getDoc, setDoc, collection, addDoc,
-  query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs, writeBatch, runTransaction }
+  query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs, writeBatch, runTransaction, limit }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref as sRef, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -1786,6 +1806,38 @@ function openRate(from){
   openModal('modal-rates');
 }
 $('btn-add-rate').addEventListener('click',()=>openRate(null));
+
+/* ── HISTORIE ZMĚN (auditní log zapisuje server, stránka ho jen čte) ── */
+const AUDIT_COLS={transactions:'Doklad',invoices:'Faktura',expenseReports:'Žádost',counters:'Čítač',members:'Člen',contacts:'Kontakt',config:'Sazby',org:'Organizace'};
+const AUDIT_ACTS={create:'vytvořeno',update:'změněno',delete:'smazáno'};
+let auditRows=[];
+function auditChangeText(a){
+  const ch=a.changes||{}, keys=Object.keys(ch);
+  if(ch.cancelled&&ch.cancelled.to===true)return 'STORNO'+(ch.cancelReason&&ch.cancelReason.to?': '+ch.cancelReason.to:'');
+  const show=v=>v===null||v===undefined?'–':String(v);
+  return keys.slice(0,6).map(k=>a.action==='update'?`${k}: ${show(ch[k].from)} → ${show(ch[k].to)}`:`${k}: ${show(ch[k].to!==undefined?ch[k].to:ch[k].from)}`).join(' · ')+(keys.length>6?` · … (+${keys.length-6})`:'');
+}
+function renderAudit(){
+  const f=$('audit-filter').value, wrap=$('audit-list');
+  const rows=auditRows.filter(a=>!f||a.collection===f);
+  if(!rows.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:30px 0;">Žádné záznamy</div>';return;}
+  wrap.innerHTML=rows.map(a=>{
+    const when=a.at&&a.at.toDate?a.at.toDate().toLocaleString('cs-CZ'):'';
+    const who=a.actorEmail||(a.actorType&&a.actorType!=='unknown'&&a.actorType!=='app_user'?'systém ('+a.actorType+')':'neznámý');
+    return`<div style="padding:10px 4px;border-bottom:1px solid var(--border);font-size:13px;">
+      <div style="display:flex;justify-content:space-between;gap:8px;"><strong>${escHtml(AUDIT_COLS[a.collection]||a.collection||'')} ${escHtml(a.label||a.docId||'')} – ${escHtml(AUDIT_ACTS[a.action]||a.action||'')}</strong><span style="color:var(--muted);white-space:nowrap;">${escHtml(when)}</span></div>
+      <div style="color:var(--muted);margin-top:2px;">${escHtml(who)}</div>
+      <div style="margin-top:4px;word-break:break-word;">${escHtml(auditChangeText(a))}</div></div>`;
+  }).join('');
+}
+$('btn-audit-log').addEventListener('click',async()=>{
+  openModal('modal-audit');$('audit-list').innerHTML='<div style="color:var(--muted);padding:30px 0;text-align:center;">Načítám…</div>';
+  try{
+    const snap=await getDocs(query(collection(db,'orgs',ORG_ID,'auditLog'),orderBy('at','desc'),limit(300)));
+    auditRows=snap.docs.map(d=>({id:d.id,...d.data()}));renderAudit();
+  }catch(e){console.error(e);$('audit-list').innerHTML='<div style="color:var(--muted);padding:30px 0;text-align:center;">Historii se nepodařilo načíst.</div>';}
+});
+$('audit-filter').addEventListener('change',renderAudit);
 
 async function saveRates(entries){
   entries.sort((a,b)=>String(a.from).localeCompare(String(b.from)));

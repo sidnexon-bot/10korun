@@ -509,6 +509,10 @@
     .accordion-btn.pdf    { background: var(--accent-soft); color: var(--accent); }
     .accordion-btn.edit   { background: var(--btn-bg); color: var(--text); }
     .accordion-btn.delete { background: var(--expense-bg); color: var(--expense); }
+    .doc-row.cancelled .doc-row-main { opacity: .55; }
+    .doc-row.cancelled .doc-desc, .doc-row.cancelled .doc-amount, .doc-row.cancelled .doc-num { text-decoration: line-through; }
+    .badge-cancel { background: var(--expense-bg); color: var(--expense); }
+    .cancel-note { font-size: 12px; color: var(--muted); padding: 8px 12px; }
 
     .doc-type {
       font-size: 10px; font-weight: 700; padding: 3px 7px;
@@ -1067,7 +1071,7 @@
       </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
-      <button class="btn-danger" id="btn-tx-delete">Smazat</button>
+      <button class="btn-danger" id="btn-tx-delete">Stornovat</button>
       <div style="display:flex;gap:8px;">
         <button class="btn-secondary" data-close="modal-tx-edit">Zrušit</button>
         <button class="btn-primary" id="btn-tx-update">Uložit změny</button>
@@ -1135,7 +1139,7 @@
       </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
-      <button class="btn-danger" id="btn-invoice-delete">Smazat</button>
+      <button class="btn-danger" id="btn-invoice-delete">Stornovat</button>
       <div style="display:flex;gap:8px;">
         <button class="btn-secondary" data-close="modal-invoice-edit">Zrušit</button>
         <button class="btn-primary" id="btn-invoice-update">Uložit změny</button>
@@ -1373,6 +1377,53 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 document.querySelectorAll('[data-view]').forEach(item=>item.addEventListener('click',()=>showView(item.dataset.view)));
 
 /* ── PERIOD HELPERS ── */
+// Stornované doklady zůstávají v řadě i v seznamech, ale do zůstatků a statistik se nepočítají.
+const liveTx=()=>allTx.filter(t=>!t.cancelled);
+function askCancelReason(what){
+  const r=prompt(`Důvod storna (${what}) – doklad zůstane v číselné řadě jako stornovaný:`);
+  if(r===null)return null;
+  const reason=r.trim();
+  if(reason.length<3){toast('Napiš prosím důvod storna.');return null;}
+  return reason.slice(0,200);
+}
+const cancelFields=reason=>({cancelled:true,cancelReason:reason,cancelledAt:serverTimestamp(),cancelledBy:(currentUser&&currentUser.email)||null});
+// Storno úhrady vrací spárovanou fakturu mezi neuhrazené; vše v jedné transakci.
+async function cancelTx(id){
+  const t=allTx.find(x=>x.id===id); if(!t)return false;
+  if(!t.docNumber){ // starý záznam bez čísla v řadě – lze smazat
+    if(!confirm('Opravdu smazat?'))return false;
+    await deleteDoc(txDoc(id));toast('Záznam smazán.');return true;
+  }
+  const reason=askCancelReason(t.docNumber); if(!reason)return false;
+  try{
+    await runTransaction(db,async tx=>{
+      const cur=await tx.get(txDoc(id));
+      if(!cur.exists()||cur.data().cancelled)throw new Error('ALREADY_CANCELLED');
+      const pid=cur.data().pairedInvoice, inv=pid?await tx.get(invDoc(pid)):null;
+      tx.update(txDoc(id),cancelFields(reason));
+      if(inv&&inv.exists()&&inv.data().paid)tx.update(invDoc(pid),{paid:false,paidDate:null});
+    });
+    toast('Doklad stornován.');return true;
+  }catch(e){console.error(e);toast(e.message==='ALREADY_CANCELLED'?'Doklad už je stornovaný.':'Storno se nezdařilo.');return false;}
+}
+async function cancelInv(id){
+  const inv=allInvoices.find(x=>x.id===id); if(!inv)return false;
+  if(!inv.invNumber){
+    if(!confirm('Opravdu smazat?'))return false;
+    await deleteDoc(invDoc(id));toast('Faktura smazána.');return true;
+  }
+  if(inv.paid){toast('Faktura je uhrazena – nejdřív stornuj doklad o úhradě.');return false;}
+  const reason=askCancelReason(inv.invNumber); if(!reason)return false;
+  try{
+    await runTransaction(db,async tx=>{
+      const cur=await tx.get(invDoc(id));
+      if(!cur.exists()||cur.data().cancelled)throw new Error('ALREADY_CANCELLED');
+      if(cur.data().paid)throw new Error('INVOICE_PAID');
+      tx.update(invDoc(id),cancelFields(reason));
+    });
+    toast('Faktura stornována.');return true;
+  }catch(e){console.error(e);toast(e.message==='ALREADY_CANCELLED'?'Faktura už je stornovaná.':e.message==='INVOICE_PAID'?'Faktura je mezitím uhrazena – nejdřív stornuj úhradu.':'Storno se nezdařilo.');return false;}
+}
 function txCol()  { return collection(db,'orgs',ORG_ID,'periods',activePeriod,'transactions'); }
 function invCol() { return collection(db,'orgs',ORG_ID,'periods',activePeriod,'invoices'); }
 function txDoc(id)  { return doc(db,'orgs',ORG_ID,'periods',activePeriod,'transactions',id); }
@@ -1530,7 +1581,7 @@ const REP_STATUS={
 function syncSummary(){
   if(userRole!=='treasurer'||activePeriod!==new Date().getFullYear().toString())return;
   // POZOR: po zavedení periodInit() nahradit orgData.cashInit/bankInit stejně jako v renderLedger
-  const calc=a=>allTx.filter(t=>t.account===a).reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),a==='cash'?(orgData.cashInit||0):(orgData.bankInit||0));
+  const calc=a=>liveTx().filter(t=>t.account===a).reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),a==='cash'?(orgData.cashInit||0):(orgData.bankInit||0));
   const cash=calc('cash'), bank=calc('bank'), key=cash+'|'+bank+'|'+activePeriod;
   if(key===lastSummary)return;
   lastSummary=key;
@@ -1987,7 +2038,7 @@ function subscribeTransactions(){
 }
 
 function renderLedger(account){
-  const list=allTx.filter(t=>t.account===account);
+  const list=liveTx().filter(t=>t.account===account);
   const init=account==='cash'?(orgData.cashInit||0):(orgData.bankInit||0);
   const bal=list.reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),init);
   $('balance-'+account).textContent=fmt(bal);
@@ -2006,8 +2057,8 @@ function renderLedger(account){
 }
 
 function renderStats(){
-  const inc=allTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const exp=allTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const inc=liveTx().filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=liveTx().filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const res=inc-exp;
   $('stat-income').textContent=fmt(inc);$('stat-expense').textContent=fmt(exp);
   $('stat-result').textContent=fmt(res);
@@ -2015,6 +2066,7 @@ function renderStats(){
 }
 
 function openTxEditModal(tx){
+  if(tx.cancelled){toast('Stornovaný doklad nelze upravit.');return;}
   editTxId=tx.id;editTxType=tx.type;
   $('tx-edit-docnumber').value=tx.docNumber||'';
   $('tx-edit-docnumber').readOnly=!!tx.docNumber; // přidělené číslo se nemění (ochrana číselné řady)
@@ -2048,10 +2100,7 @@ $('btn-tx-update').addEventListener('click',async()=>{
   $('btn-tx-update').disabled=false;
 });
 $('btn-tx-delete').addEventListener('click',async()=>{
-  const num=$('tx-edit-docnumber').value.trim();
-  if(!confirm(num?`Opravdu smazat? Číslo dokladu ${num} zůstane v číselné řadě nevyužité (vznikne mezera).`:'Opravdu smazat?'))return;
-  try{await deleteDoc(txDoc(editTxId));closeModal('modal-tx-edit');toast('Záznam smazán.');}
-  catch(e){console.error(e);toast('Chyba.');}
+  try{if(await cancelTx(editTxId))closeModal('modal-tx-edit');}catch(e){console.error(e);toast('Chyba.');}
 });
 
 /* ── INVOICES ── */
@@ -2063,6 +2112,7 @@ function subscribeInvoices(){
 }
   
 function invoiceStatus(inv){
+  if(inv.cancelled)return'cancelled';
   if(inv.paid)return'paid';
   const now=new Date();now.setHours(0,0,0,0);const due=new Date(inv.dueDate);
   if(due<now)return'overdue';
@@ -2075,9 +2125,9 @@ function renderInvoices(){
   let list=invFilter==='all'?allInvoices:allInvoices.filter(i=>i.invType===invFilter);
   if(!list.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné faktury</div>';return;}
 
-  const sL={paid:'Uhrazena',unpaid:'Nezaplacena',due:'Brzy splatná',overdue:'Po splatnosti'};
-  const bC={paid:'badge-paid',unpaid:'badge-unpaid',due:'badge-due',overdue:'badge-unpaid'};
-  const dC={paid:'paid',unpaid:'unpaid',due:'due',overdue:'unpaid'};
+  const sL={cancelled:'Stornována',paid:'Uhrazena',unpaid:'Nezaplacena',due:'Brzy splatná',overdue:'Po splatnosti'};
+  const bC={cancelled:'badge-cancel',paid:'badge-paid',unpaid:'badge-unpaid',due:'badge-due',overdue:'badge-unpaid'};
+  const dC={cancelled:'paid',paid:'paid',unpaid:'unpaid',due:'due',overdue:'unpaid'};
 
   const header=`<div class="list-header" style="grid-template-columns:90px 50px 90px 1fr 110px;">
     <span>Datum</span><span>Typ</span><span>Číslo</span><span>Dodavatel / Popis</span><span style="text-align:right;">Částka</span>
@@ -2086,7 +2136,8 @@ function renderInvoices(){
   const rows=list.map(inv=>{
     const st=invoiceStatus(inv);
     const isFav=inv.invType==='fav';
-    return`<div class="doc-row" data-inv-id="${escHtml(inv.id)}">
+    const cx=!!inv.cancelled;
+    return`<div class="doc-row${cx?' cancelled':''}" data-inv-id="${escHtml(inv.id)}">
       <div class="doc-row-main" style="grid-template-columns:90px 50px 90px 1fr 110px;">
         <div class="doc-date">${fmtDate(inv.date)}</div>
         <div class="doc-type">${inv.invType==='fav'?'FAV':'FAP'}</div>
@@ -2098,10 +2149,11 @@ function renderInvoices(){
         <div class="doc-amount" style="text-align:right;">${fmt(inv.amount)}</div>
       </div>
       <div class="doc-row-accordion">
+        ${cx?`<div class="cancel-note">Stornováno${inv.cancelledBy?' – '+escHtml(inv.cancelledBy):''}: ${escHtml(inv.cancelReason||'')}</div>`:`
         ${isFav?`<button class="accordion-btn pdf" data-action="pdf-fav" data-inv-id="${escHtml(inv.id)}">Zobrazit PDF</button>`:''}
         ${inv.url?`<button class="accordion-btn pdf" data-action="open-url" data-url="${escHtml(inv.url)}">Otevřít PDF</button>`:''}
         <button class="accordion-btn edit" data-action="edit-inv" data-inv-id="${escHtml(inv.id)}">Upravit</button>
-        <button class="accordion-btn delete" data-action="delete-inv" data-inv-id="${escHtml(inv.id)}">Smazat</button>
+        <button class="accordion-btn delete" data-action="delete-inv" data-inv-id="${escHtml(inv.id)}">${inv.invNumber?'Stornovat':'Smazat'}</button>`}
       </div>
     </div>`;
   }).join('');
@@ -2130,15 +2182,14 @@ function renderInvoices(){
         if(inv) openInvEditModal(inv);
       }
       if(btn.dataset.action==='delete-inv'){
-        if(!confirm('Opravdu smazat tuto fakturu?'))return;
-        try{ await deleteDoc(invDoc(btn.dataset.invId)); toast('Faktura smazána.'); }
-        catch(e){ toast('Chyba při mazání.'); }
+        try{ await cancelInv(btn.dataset.invId); }catch(e){ console.error(e); toast('Chyba.'); }
       }
     });
   });
 }
 
 function openInvEditModal(inv){
+  if(inv.cancelled){toast('Stornovanou fakturu nelze upravit.');return;}
   editInvId=inv.id;
   $('inv-edit-ico').value=inv.ico||'';$('inv-edit-vendor').value=inv.vendor||'';
   $('inv-edit-number').value=inv.origNumber||inv.number||'';$('inv-edit-amount').value=inv.amount||'';
@@ -2171,18 +2222,20 @@ function renderDocuments(){
   const rows=list.map(t=>{
     const dt=t.account==='bank'?'BANK':(t.type==='income'?'PPD':'VPD');
     const isPdf=t.account==='cash';
-    return`<div class="doc-row" data-tx-id="${escHtml(t.id)}">
+    const cx=!!t.cancelled;
+    return`<div class="doc-row${cx?' cancelled':''}" data-tx-id="${escHtml(t.id)}">
       <div class="doc-row-main">
         <div class="doc-date">${fmtDate(t.date)}</div>
         <div class="doc-type">${dt}</div>
         <div class="doc-num">${escHtml(t.docNumber||'–')}</div>
-        <div class="doc-desc">${escHtml(t.desc)}</div>
+        <div class="doc-desc">${cx?'<span class="badge badge-cancel">STORNO</span> ':''}${escHtml(t.desc)}</div>
         <div class="doc-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div>
       </div>
       <div class="doc-row-accordion">
+        ${cx?`<div class="cancel-note">Stornováno${t.cancelledBy?' – '+escHtml(t.cancelledBy):''}: ${escHtml(t.cancelReason||'')}</div>`:`
         ${isPdf?`<button class="accordion-btn pdf" data-action="pdf" data-tx-id="${escHtml(t.id)}">Zobrazit PDF</button>`:''}
         <button class="accordion-btn edit" data-action="edit" data-tx-id="${escHtml(t.id)}">Upravit záznam</button>
-        <button class="accordion-btn delete" data-action="delete" data-tx-id="${escHtml(t.id)}">Smazat záznam</button>
+        <button class="accordion-btn delete" data-action="delete" data-tx-id="${escHtml(t.id)}">${t.docNumber?'Stornovat':'Smazat záznam'}</button>`}
       </div>
     </div>`;
   }).join('');
@@ -2208,9 +2261,7 @@ function renderDocuments(){
       if(btn.dataset.action==='pdf')  { generateReceiptPDF(tx); }
       if(btn.dataset.action==='edit') { openTxEditModal(tx); }
       if(btn.dataset.action==='delete') {
-        if(!confirm('Opravdu smazat tento záznam?'))return;
-        try{ await deleteDoc(txDoc(tx.id)); toast('Záznam smazán.'); }
-        catch(e){ toast('Chyba při mazání.'); }
+        try{ await cancelTx(tx.id); }catch(e){ console.error(e); toast('Chyba.'); }
       }
     });
   });
@@ -2225,10 +2276,10 @@ function openTxModal(){
   setCatOptions('income');txType='income';renderPairList();openModal('modal-tx');
 }
 $('tx-type-income').addEventListener('click',()=>{txType='income';$('tx-type-income').classList.add('active-income');$('tx-type-expense').classList.remove('active-expense');setCatOptions('income');$('tx-pair-wrap').style.display='none';selectedPairId=null;});
-$('tx-type-expense').addEventListener('click',()=>{txType='expense';$('tx-type-expense').classList.add('active-expense');$('tx-type-income').classList.remove('active-income');setCatOptions('expense');const u=allInvoices.filter(i=>!i.paid);$('tx-pair-wrap').style.display=u.length?'block':'none';renderPairList();});
+$('tx-type-expense').addEventListener('click',()=>{txType='expense';$('tx-type-expense').classList.add('active-expense');$('tx-type-income').classList.remove('active-income');setCatOptions('expense');const u=allInvoices.filter(i=>!i.paid&&!i.cancelled);$('tx-pair-wrap').style.display=u.length?'block':'none';renderPairList();});
 
 function renderPairList(){
-  const unpaid=allInvoices.filter(i=>!i.paid),wrap=$('tx-pair-list');
+  const unpaid=allInvoices.filter(i=>!i.paid&&!i.cancelled),wrap=$('tx-pair-list');
   if(!unpaid.length){wrap.innerHTML='';return;}
   wrap.innerHTML=unpaid.map(inv=>`<div class="pair-item${selectedPairId===inv.id?' selected':''}" data-pair-id="${escHtml(inv.id)}"><div class="pair-item-vendor">${escHtml(inv.vendor)}${inv.invNumber?' – '+escHtml(inv.invNumber):''}</div><div>${fmt(inv.amount)}</div><span class="badge badge-unpaid">nezaplacena</span></div>`).join('');
   wrap.querySelectorAll('.pair-item').forEach(item=>item.addEventListener('click',()=>{
@@ -2316,9 +2367,7 @@ $('btn-invoice-update').addEventListener('click',async()=>{
   $('btn-invoice-update').disabled=false;
 });
 $('btn-invoice-delete').addEventListener('click',async()=>{
-  if(!confirm('Opravdu smazat?'))return;
-  try{await deleteDoc(invDoc(editInvId));closeModal('modal-invoice-edit');toast('Faktura smazána.');}
-  catch(e){console.error(e);toast('Chyba.');}
+  try{if(await cancelInv(editInvId))closeModal('modal-invoice-edit');}catch(e){console.error(e);toast('Chyba.');}
 });
 
 /* ── FAV ITEMS ── */
@@ -2487,8 +2536,8 @@ $('btn-new-period').addEventListener('click',async()=>{
   const nextYear = (parseInt(activePeriod)+1).toString();
   if(!confirm(`Otevřít účetní období ${nextYear}?`))return;
   // zjisti konečné stavy aktuálního roku
-  const cashBal = allTx.filter(t=>t.account==='cash').reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),orgData.cashInit||0);
-  const bankBal = allTx.filter(t=>t.account==='bank').reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),orgData.bankInit||0);
+  const cashBal = liveTx().filter(t=>t.account==='cash').reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),orgData.cashInit||0);
+  const bankBal = liveTx().filter(t=>t.account==='bank').reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),orgData.bankInit||0);
   // ulož metadata nového období
   await setDoc(doc(db,'orgs',ORG_ID,'periods',nextYear),{
     year: nextYear,

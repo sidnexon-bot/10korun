@@ -198,8 +198,8 @@
       <button class="modal-close" data-close="modal-exp">✕</button>
     </div>
     <div class="field"><label>Datum (z účtenky)</label><input id="f-date" type="date" /></div>
-    <div class="field"><label>Popis</label><input id="f-desc" type="text" placeholder="Např. nákup not" /></div>
-    <div class="field"><label>Částka (Kč)</label><input id="f-amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" /></div>
+    <div class="field"><label>Popis</label><input id="f-desc" type="text" maxlength="300" placeholder="Např. nákup not" /></div>
+    <div class="field"><label>Částka (Kč)</label><input id="f-amount" type="number" inputmode="decimal" min="0" max="999999" step="0.01" placeholder="0" /></div>
     <div class="field"><label>Účtenka (foto nebo PDF)</label><input id="f-file" type="file" accept="image/*,application/pdf" />
       <div class="stat-note" id="f-file-note" style="margin:4px 0 0;display:none;"></div>
     </div>
@@ -242,10 +242,10 @@
     <div class="note-red" id="fu-rej-note" style="display:none;margin:0 0 12px;"></div>
     <div class="field"><label>Řidič</label><input id="fu-driver" type="text" readonly /></div>
     <div class="field"><label>Datum akce</label><input id="fu-date" type="date" /></div>
-    <div class="field"><label>Místo konání akce</label><input id="fu-place" type="text" placeholder="Např. Kladno, kostel sv. Vavřince" /></div>
-    <div class="field"><label>Účel cesty</label><input id="fu-purpose" type="text" placeholder="Např. koncert" /></div>
-    <div class="field"><label>Ujeté km (celkem tam i zpět)</label><input id="fu-km" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" /></div>
-    <div class="field"><label>Průměrná spotřeba dle technického průkazu (l/100 km, u elektřiny kWh/100 km)</label><input id="fu-cons" type="number" inputmode="decimal" min="0" step="0.1" placeholder="0" /></div>
+    <div class="field"><label>Místo konání akce</label><input id="fu-place" type="text" maxlength="200" placeholder="Např. Kladno, kostel sv. Vavřince" /></div>
+    <div class="field"><label>Účel cesty</label><input id="fu-purpose" type="text" maxlength="200" placeholder="Např. koncert" /></div>
+    <div class="field"><label>Ujeté km (celkem tam i zpět)</label><input id="fu-km" type="number" inputmode="decimal" min="0" max="4999" step="0.1" placeholder="0" /></div>
+    <div class="field"><label>Průměrná spotřeba dle technického průkazu (l/100 km, u elektřiny kWh/100 km)</label><input id="fu-cons" type="number" inputmode="decimal" min="0" max="59" step="0.1" placeholder="0" /></div>
     <div class="field"><label>Druh paliva</label><select id="fu-fuel"></select></div>
     <table class="rep">
       <tbody>
@@ -342,7 +342,7 @@ const fmt = n => Number(n).toLocaleString('cs-CZ', {minimumFractionDigits:2, max
 const fmtDate = d => d ? new Date(d).toLocaleDateString('cs-CZ') : '';
 const today = () => new Date().toISOString().slice(0,10);
 const r2 = n => Math.round(n*100)/100;
-const escHtml = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
 function toast(msg, dur=2800){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),dur); }
@@ -448,7 +448,7 @@ function subscribe(){
 /* ── VYKRESLENÍ ── */
 function draftCard(e){
   return `<div class="exp-card"><div class="draft-row">
-    <input type="checkbox" data-sel="${e.id}" ${selected.has(e.id)?'checked':''} />
+    <input type="checkbox" data-sel="${escHtml(e.id)}" ${selected.has(e.id)?'checked':''} />
     <div class="draft-main">
       <div class="exp-top">
         <div style="min-width:0;"><div class="exp-title">${escHtml(e.desc)}</div><div class="exp-sub">${fmtDate(e.date)}</div></div>
@@ -456,9 +456,9 @@ function draftCard(e){
       </div>
       ${e.returnNote ? `<div class="note-red">Vráceno: ${escHtml(e.returnNote)}</div>` : ''}
       <div class="exp-actions">
-        ${e.receiptPath ? `<button class="a-neutral" data-act="receipt" data-id="${e.id}">Účtenka</button>` : ''}
-        <button class="a-neutral" data-act="edit" data-id="${e.id}">Upravit</button>
-        <button class="a-no" data-act="delete" data-id="${e.id}">Smazat</button>
+        ${e.receiptPath ? `<button class="a-neutral" data-act="receipt" data-id="${escHtml(e.id)}">Účtenka</button>` : ''}
+        <button class="a-neutral" data-act="edit" data-id="${escHtml(e.id)}">Upravit</button>
+        <button class="a-no" data-act="delete" data-id="${escHtml(e.id)}">Smazat</button>
       </div>
     </div>
   </div></div>`;
@@ -470,10 +470,10 @@ function reportCard(r){
   const isFuel = r.kind==='palivo' && r.fuel;
   const title = isFuel ? `Palivo – ${escHtml(r.fuel.place)}` : `Žádost z ${fmtDate(created)}`;
   const sub = isFuel
-    ? `${fmtDate(r.fuel.date)} · ${r.fuel.km} km${r.docNumber?' · '+escHtml(r.docNumber):''}`
-    : `${r.count} ${r.count===1?'položka':(r.count<5?'položky':'položek')}${r.docNumber?' · '+escHtml(r.docNumber):''}`;
+    ? `${fmtDate(r.fuel.date)} · ${escHtml(r.fuel.km)} km${r.docNumber?' · '+escHtml(r.docNumber):''}`
+    : `${escHtml(r.count)} ${r.count===1?'položka':(r.count<5?'položky':'položek')}${r.docNumber?' · '+escHtml(r.docNumber):''}`;
   const rej = r.status==='rejected';
-  return `<div class="exp-card"${rej?` data-open="${r.id}" style="cursor:pointer;"`:''}>
+  return `<div class="exp-card"${rej?` data-open="${escHtml(r.id)}" style="cursor:pointer;"`:''}>
     <div class="exp-top">
       <div style="min-width:0;"><div class="exp-title">${title}</div>
         <div class="exp-sub">${sub}</div></div>
@@ -481,9 +481,9 @@ function reportCard(r){
     </div>
     ${r.status==='rejected' && r.rejectNote ? `<div class="note-red">Důvod: ${escHtml(r.rejectNote)}</div>` : ''}
     <div class="exp-actions">
-      ${r.pdfPath ? `<button class="a-neutral" data-ract="pdf" data-id="${r.id}">PDF</button>` : ''}
-      <button class="a-neutral" data-ract="xlsx" data-id="${r.id}">Excel</button>
-      ${rej ? `<button class="a-neutral" data-ract="open" data-id="${r.id}">${isFuel?'Opravit a poslat znovu':'Detail'}</button>` : ''}
+      ${r.pdfPath ? `<button class="a-neutral" data-ract="pdf" data-id="${escHtml(r.id)}">PDF</button>` : ''}
+      <button class="a-neutral" data-ract="xlsx" data-id="${escHtml(r.id)}">Excel</button>
+      ${rej ? `<button class="a-neutral" data-ract="open" data-id="${escHtml(r.id)}">${isFuel?'Opravit a poslat znovu':'Detail'}</button>` : ''}
     </div>
   </div>`;
 }
@@ -761,7 +761,7 @@ let fuelBusy = false;
 function renderFuelOptions(){
   const cur = $('fu-fuel').value || FUELS[0].key;
   const pr = ratesFor($('fu-date').value).prices;
-  $('fu-fuel').innerHTML = FUELS.map(f=>`<option value="${f.key}">${f.label} – ${String(pr[f.key]).replace('.',',')} Kč</option>`).join('');
+  $('fu-fuel').innerHTML = FUELS.map(f=>`<option value="${f.key}">${f.label} – ${escHtml(String(pr[f.key]).replace('.',','))} Kč</option>`).join('');
   $('fu-fuel').value = cur;
 }
 $('fu-date').addEventListener('change', ()=>{ renderFuelOptions(); updateFuelSummary(); });
@@ -865,10 +865,10 @@ async function buildFuelPdf(f, name){
     </table>
     <div style="font-size:13px;font-weight:bold;margin:24px 0 6px;">Náhrada za ujeté kilometry</div>
     <table style="border-collapse:collapse;"><tr><th style="${th}width:120px;">Ujeté km</th><th style="${th}width:100px;">Sazba</th><th style="${th}width:140px;">Celkem Kč</th></tr>
-      <tr><td style="${td}">${String(f.km).replace('.',',')}</td><td style="${td}">${fmt(f.rate)}</td><td style="${td}">${fmt(f.kmAmount)}</td></tr></table>
+      <tr><td style="${td}">${escHtml(String(f.km).replace('.',','))}</td><td style="${td}">${fmt(f.rate)}</td><td style="${td}">${fmt(f.kmAmount)}</td></tr></table>
     <div style="font-size:13px;font-weight:bold;margin:24px 0 6px;">Náhrada za spotřebované pohonné hmoty</div>
     <table style="border-collapse:collapse;"><tr><th style="${th}width:200px;">Průměrná spotřeba dle TP</th><th style="${th}width:150px;">Palivo</th><th style="${th}width:110px;">Cena</th><th style="${th}width:140px;">Celkem Kč</th></tr>
-      <tr><td style="${td}">${String(f.consumption).replace('.',',')} / 100 km</td><td style="${td}">${escHtml(f.fuelLabel)}</td><td style="${td}">${fmt(f.price)}</td><td style="${td}">${fmt(f.phmAmount)}</td></tr></table>
+      <tr><td style="${td}">${escHtml(String(f.consumption).replace('.',','))} / 100 km</td><td style="${td}">${escHtml(f.fuelLabel)}</td><td style="${td}">${fmt(f.price)}</td><td style="${td}">${fmt(f.phmAmount)}</td></tr></table>
     <table style="border-collapse:collapse;margin-top:26px;width:100%;"><tr>
       <td style="border:1px solid #000;padding:8px 10px;font-size:13px;font-weight:bold;background:#c0c0c0;">Celkem náhrada</td>
       <td style="border:1px solid #000;padding:8px 10px;font-size:14px;font-weight:bold;background:#c0c0c0;text-align:right;width:200px;">${fmt(f.total)}</td></tr></table>

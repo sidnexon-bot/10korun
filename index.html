@@ -1462,9 +1462,9 @@ $('ob-back-1').addEventListener('click',()=>showObStep(0));
 $('ob-next-1').addEventListener('click',()=>{
   if(!$('ob-period-from').value||!$('ob-period-to').value){toast('Zadej účetní období.');return;}
   $('ob-summary').innerHTML=`
-    <span style="color:var(--muted)">Organizace:</span> <strong>${$('ob-name').value}</strong><br>
-    <span style="color:var(--muted)">IČO:</span> ${$('ob-ico').value}<br>
-    <span style="color:var(--muted)">Adresa:</span> ${$('ob-address').value||'–'}<br>
+    <span style="color:var(--muted)">Organizace:</span> <strong>${escHtml($('ob-name').value)}</strong><br>
+    <span style="color:var(--muted)">IČO:</span> ${escHtml($('ob-ico').value)}<br>
+    <span style="color:var(--muted)">Adresa:</span> ${escHtml($('ob-address').value||'–')}<br>
     <span style="color:var(--muted)">Účetní období:</span> ${fmtDate($('ob-period-from').value)} – ${fmtDate($('ob-period-to').value)}<br>
     <span style="color:var(--muted)">Pokladna:</span> ${fmt($('ob-cash-init').value||0)}<br>
     <span style="color:var(--muted)">Banka:</span> ${fmt($('ob-bank-init').value||0)}
@@ -1496,9 +1496,9 @@ function launchApp(){
     updatePeriodUI();
     renderPeriodSelector();
   $('settings-info').innerHTML=`
-    <div class="settings-row"><span class="settings-label">Organizace</span><span class="settings-value">${orgData.name}</span></div>
-    <div class="settings-row"><span class="settings-label">IČO</span><span class="settings-value">${orgData.ico}</span></div>
-    <div class="settings-row"><span class="settings-label">Adresa</span><span class="settings-value">${orgData.address||'–'}</span></div>
+    <div class="settings-row"><span class="settings-label">Organizace</span><span class="settings-value">${escHtml(orgData.name)}</span></div>
+    <div class="settings-row"><span class="settings-label">IČO</span><span class="settings-value">${escHtml(orgData.ico)}</span></div>
+    <div class="settings-row"><span class="settings-label">Adresa</span><span class="settings-value">${escHtml(orgData.address||'–')}</span></div>
     <div class="settings-row"><span class="settings-label">Účetní období</span><span class="settings-value">${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}</span></div>
   `;
   subscribeContacts();subscribeTransactions();subscribeInvoices();subscribeExpenses();subscribeRates();
@@ -1558,8 +1558,8 @@ function repCard(r){
   const fr=(a,b)=>`<tr><td style="padding:6px 4px;border-bottom:1px solid var(--border);color:var(--muted);">${a}</td><td colspan="4" style="padding:6px 4px;border-bottom:1px solid var(--border);text-align:right;">${b}</td></tr>`;
   const fuelRows=f?(
     fr('Místo',escHtml(f.place))+fr('Účel',escHtml(f.purpose))+
-    fr('Ujeté km',`${String(f.km).replace('.',',')} km × ${fmt(f.rate)} = ${fmt(f.kmAmount)}`)+
-    fr('Pohonné hmoty',`${String(f.consumption).replace('.',',')} l/100 km × ${escHtml(f.fuelLabel)} ${fmt(f.price)} = ${fmt(f.phmAmount)}`)
+    fr('Ujeté km',`${escHtml(String(f.km).replace('.',','))} km × ${fmt(f.rate)} = ${fmt(f.kmAmount)}`)+
+    fr('Pohonné hmoty',`${escHtml(String(f.consumption).replace('.',','))} l/100 km × ${escHtml(f.fuelLabel)} ${fmt(f.price)} = ${fmt(f.phmAmount)}`)
   ):'';
   const rows=(r.items||[]).map((i,n)=>`
     <tr>
@@ -1571,12 +1571,12 @@ function repCard(r){
     </tr>`).join('');
   let act='';
   if(r.pdfPath) act+=`<button class="a-neutral" data-act="pdf" data-path="${escHtml(r.pdfPath)}">Žádost (PDF)</button>`;
-  if(r.status==='submitted') act+=`<button class="a-ok" data-act="pay" data-id="${r.id}">Schválit a proplatit…</button><button class="a-no" data-act="reject" data-id="${r.id}">Vrátit k úpravě</button>`;
+  if(r.status==='submitted') act+=`<button class="a-ok" data-act="pay" data-id="${escHtml(r.id)}">Schválit a proplatit…</button><button class="a-no" data-act="reject" data-id="${escHtml(r.id)}">Vrátit k úpravě</button>`;
   return `<div class="exp-card">
     <div class="exp-top">
       <div style="min-width:0;">
         <div class="exp-title">${escHtml(r.name)}${f?' · palivo':''}</div>
-        <div class="exp-sub">Odesláno ${fmtDate(created)} · ${f?'cesta '+fmtDate(f.date):r.count+' pol.'}${r.docNumber?' · '+escHtml(r.docNumber):''}</div>
+        <div class="exp-sub">Odesláno ${fmtDate(created)} · ${f?'cesta '+fmtDate(f.date):escHtml(r.count)+' pol.'}${r.docNumber?' · '+escHtml(r.docNumber):''}</div>
       </div>
       <div style="text-align:right;">
         <div class="exp-amount">${fmt(r.total)}</div>
@@ -1762,11 +1762,11 @@ function renderContacts(){
   if(!list.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné kontakty</div>';return;}
 
   wrap.innerHTML='<div class="doc-list">'+list.map(c=>`
-    <div class="doc-row" data-contact-id="${c.id}">
+    <div class="doc-row" data-contact-id="${escHtml(c.id)}">
       <div class="doc-row-main" style="grid-template-columns:1fr auto;">
         <div>
           <div style="font-size:14px;font-weight:600;">${escHtml(c.name)}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${c.ico?'IČO: '+c.ico:''}${c.ico&&c.address?' · ':''}${c.address?escHtml(c.address):''}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${c.ico?'IČO: '+escHtml(c.ico):''}${c.ico&&c.address?' · ':''}${c.address?escHtml(c.address):''}</div>
         </div>
         <span class="badge" style="background:var(--bg);color:var(--muted);">${c.type==='customer'?'Odběratel':c.type==='both'?'Oboje':'Dodavatel'}</span>
       </div>
@@ -1775,8 +1775,8 @@ function renderContacts(){
         ${c.email?`<div style="font-size:13px;padding:4px 0;color:var(--muted);">✉️ <a href="mailto:${escHtml(c.email)}" style="color:var(--accent);">${escHtml(c.email)}</a></div>`:''}
         ${c.phone?`<div style="font-size:13px;padding:4px 0;color:var(--muted);">📞 <a href="tel:${escHtml(c.phone)}" style="color:var(--accent);">${escHtml(c.phone)}</a></div>`:''}
         <div style="display:flex;gap:8px;margin-top:8px;">
-          <button class="accordion-btn edit" data-action="edit-contact" data-contact-id="${c.id}">Upravit</button>
-          <button class="accordion-btn delete" data-action="delete-contact" data-contact-id="${c.id}">Smazat</button>
+          <button class="accordion-btn edit" data-action="edit-contact" data-contact-id="${escHtml(c.id)}">Upravit</button>
+          <button class="accordion-btn delete" data-action="delete-contact" data-contact-id="${escHtml(c.id)}">Smazat</button>
         </div>
       </div>
     </div>`).join('')+'</div>';
@@ -1812,7 +1812,7 @@ function renderContactsSettings(){
   wrap.innerHTML=allContacts.map((c,i)=>`
     <div class="settings-row" ${i===allContacts.length-1?'style="border-bottom:none"':''}>
       <span style="font-size:14px;font-weight:500;">${escHtml(c.name)}</span>
-      <span style="font-size:12px;color:var(--muted);">${c.ico||'–'}${c.address?' · '+escHtml(c.address):''}</span>
+      <span style="font-size:12px;color:var(--muted);">${escHtml(c.ico||'–')}${c.address?' · '+escHtml(c.address):''}</span>
     </div>`).join('');
 }
 
@@ -1834,9 +1834,9 @@ function setupAutocomplete(inputId, dropdownId, icoId, onSelect) {
     if(filter) list = list.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
     if(!list.length) { dropdown.classList.remove('open'); return; }
     dropdown.innerHTML = list.map(c => `
-      <div class="autocomplete-item" data-id="${c.id}">
+      <div class="autocomplete-item" data-id="${escHtml(c.id)}">
         <div class="autocomplete-item-name">${escHtml(c.name)}</div>
-        <div class="autocomplete-item-sub">${c.ico?'IČO: '+c.ico:''}${c.ico&&c.address?' · ':''}${c.address?escHtml(c.address):''}</div>
+        <div class="autocomplete-item-sub">${c.ico?'IČO: '+escHtml(c.ico):''}${c.ico&&c.address?' · ':''}${c.address?escHtml(c.address):''}</div>
       </div>
     `).join('');
     dropdown.classList.add('open');
@@ -1972,11 +1972,11 @@ function renderLedger(account){
   const wrap=$('txlist-'+account);
   if(!list.length){wrap.innerHTML='<div class="ledger-empty">Žádné záznamy</div>';return;}
   wrap.innerHTML=list.slice(0,30).map(t=>`
-    <div class="tx-row" data-id="${t.id}">
+    <div class="tx-row" data-id="${escHtml(t.id)}">
       <div class="tx-icon ${t.type==='income'?'income-bg':'expense-bg'}">${t.type==='income'?'↑':'↓'}</div>
       <div class="tx-info">
         <div class="tx-desc">${escHtml(t.desc)}</div>
-        <div class="tx-meta">${t.docNumber?t.docNumber+' · ':''}${fmtDate(t.date)}${t.category?' · '+t.category:''}${t.pairedInvoice?' · ✓':''}</div>
+        <div class="tx-meta">${t.docNumber?escHtml(t.docNumber)+' · ':''}${fmtDate(t.date)}${t.category?' · '+escHtml(t.category):''}${t.pairedInvoice?' · ✓':''}</div>
       </div>
       <div class="tx-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div>
     </div>`).join('');
@@ -2053,11 +2053,11 @@ function renderInvoices(){
   const rows=list.map(inv=>{
     const st=invoiceStatus(inv);
     const isFav=inv.invType==='fav';
-    return`<div class="doc-row" data-inv-id="${inv.id}">
+    return`<div class="doc-row" data-inv-id="${escHtml(inv.id)}">
       <div class="doc-row-main" style="grid-template-columns:90px 50px 90px 1fr 110px;">
         <div class="doc-date">${fmtDate(inv.date)}</div>
         <div class="doc-type">${inv.invType==='fav'?'FAV':'FAP'}</div>
-        <div class="doc-num">${inv.invNumber||'–'}</div>
+        <div class="doc-num">${escHtml(inv.invNumber||'–')}</div>
         <div class="doc-desc">
           <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(inv.vendor)}</div>
           <div style="font-size:11px;margin-top:1px;"><span class="badge ${bC[st]}">${sL[st]}</span>${inv.desc?' · '+escHtml(inv.desc):''}</div>
@@ -2065,10 +2065,10 @@ function renderInvoices(){
         <div class="doc-amount" style="text-align:right;">${fmt(inv.amount)}</div>
       </div>
       <div class="doc-row-accordion">
-        ${isFav?`<button class="accordion-btn pdf" data-action="pdf-fav" data-inv-id="${inv.id}">Zobrazit PDF</button>`:''}
+        ${isFav?`<button class="accordion-btn pdf" data-action="pdf-fav" data-inv-id="${escHtml(inv.id)}">Zobrazit PDF</button>`:''}
         ${inv.url?`<button class="accordion-btn pdf" data-action="open-url" data-url="${escHtml(inv.url)}">Otevřít PDF</button>`:''}
-        <button class="accordion-btn edit" data-action="edit-inv" data-inv-id="${inv.id}">Upravit</button>
-        <button class="accordion-btn delete" data-action="delete-inv" data-inv-id="${inv.id}">Smazat</button>
+        <button class="accordion-btn edit" data-action="edit-inv" data-inv-id="${escHtml(inv.id)}">Upravit</button>
+        <button class="accordion-btn delete" data-action="delete-inv" data-inv-id="${escHtml(inv.id)}">Smazat</button>
       </div>
     </div>`;
   }).join('');
@@ -2138,18 +2138,18 @@ function renderDocuments(){
   const rows=list.map(t=>{
     const dt=t.account==='bank'?'BANK':(t.type==='income'?'PPD':'VPD');
     const isPdf=t.account==='cash';
-    return`<div class="doc-row" data-tx-id="${t.id}">
+    return`<div class="doc-row" data-tx-id="${escHtml(t.id)}">
       <div class="doc-row-main">
         <div class="doc-date">${fmtDate(t.date)}</div>
         <div class="doc-type">${dt}</div>
-        <div class="doc-num">${t.docNumber||'–'}</div>
+        <div class="doc-num">${escHtml(t.docNumber||'–')}</div>
         <div class="doc-desc">${escHtml(t.desc)}</div>
         <div class="doc-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div>
       </div>
       <div class="doc-row-accordion">
-        ${isPdf?`<button class="accordion-btn pdf" data-action="pdf" data-tx-id="${t.id}">Zobrazit PDF</button>`:''}
-        <button class="accordion-btn edit" data-action="edit" data-tx-id="${t.id}">Upravit záznam</button>
-        <button class="accordion-btn delete" data-action="delete" data-tx-id="${t.id}">Smazat záznam</button>
+        ${isPdf?`<button class="accordion-btn pdf" data-action="pdf" data-tx-id="${escHtml(t.id)}">Zobrazit PDF</button>`:''}
+        <button class="accordion-btn edit" data-action="edit" data-tx-id="${escHtml(t.id)}">Upravit záznam</button>
+        <button class="accordion-btn delete" data-action="delete" data-tx-id="${escHtml(t.id)}">Smazat záznam</button>
       </div>
     </div>`;
   }).join('');
@@ -2197,7 +2197,7 @@ $('tx-type-expense').addEventListener('click',()=>{txType='expense';$('tx-type-e
 function renderPairList(){
   const unpaid=allInvoices.filter(i=>!i.paid),wrap=$('tx-pair-list');
   if(!unpaid.length){wrap.innerHTML='';return;}
-  wrap.innerHTML=unpaid.map(inv=>`<div class="pair-item${selectedPairId===inv.id?' selected':''}" data-pair-id="${inv.id}"><div class="pair-item-vendor">${escHtml(inv.vendor)}${inv.invNumber?' – '+inv.invNumber:''}</div><div>${fmt(inv.amount)}</div><span class="badge badge-unpaid">nezaplacena</span></div>`).join('');
+  wrap.innerHTML=unpaid.map(inv=>`<div class="pair-item${selectedPairId===inv.id?' selected':''}" data-pair-id="${escHtml(inv.id)}"><div class="pair-item-vendor">${escHtml(inv.vendor)}${inv.invNumber?' – '+escHtml(inv.invNumber):''}</div><div>${fmt(inv.amount)}</div><span class="badge badge-unpaid">nezaplacena</span></div>`).join('');
   wrap.querySelectorAll('.pair-item').forEach(item=>item.addEventListener('click',()=>{
     const id=item.dataset.pairId;selectedPairId=selectedPairId===id?null:id;
     if(selectedPairId){const inv=allInvoices.find(i=>i.id===selectedPairId);if(inv){$('tx-amount').value=inv.amount;$('tx-desc').value=$('tx-desc').value||'Úhrada FA '+(inv.invNumber||inv.vendor);$('tx-party').value=$('tx-party').value||inv.vendor;}}
@@ -2283,7 +2283,7 @@ $('btn-invoice-delete').addEventListener('click',async()=>{
 /* ── FAV ITEMS ── */
 function renderFavItems(){
   const wrap=$('fav-items-wrap');
-  wrap.innerHTML=favItems.map((item,i)=>`<div class="fav-item-row"><input type="text" placeholder="Popis položky" value="${escHtml(item.desc)}" data-item="${i}" data-field="desc"><input type="number" placeholder="Ks" value="${item.qty}" min="1" data-item="${i}" data-field="qty"><input type="number" placeholder="Cena Kč" value="${item.price||''}" min="0" data-item="${i}" data-field="price"><button class="btn-remove-item" data-remove="${i}">✕</button></div>`).join('');
+  wrap.innerHTML=favItems.map((item,i)=>`<div class="fav-item-row"><input type="text" placeholder="Popis položky" value="${escHtml(item.desc)}" data-item="${i}" data-field="desc"><input type="number" placeholder="Ks" value="${escHtml(item.qty)}" min="1" data-item="${i}" data-field="qty"><input type="number" placeholder="Cena Kč" value="${escHtml(item.price||'')}" min="0" data-item="${i}" data-field="price"><button class="btn-remove-item" data-remove="${i}">✕</button></div>`).join('');
   wrap.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',()=>{const i=parseInt(inp.dataset.item),f=inp.dataset.field;favItems[i][f]=f==='desc'?inp.value:(parseFloat(inp.value)||0);}));
   wrap.querySelectorAll('[data-remove]').forEach(btn=>btn.addEventListener('click',()=>{if(favItems.length===1){toast('Musí být alespoň jedna položka.');return;}favItems.splice(parseInt(btn.dataset.remove),1);renderFavItems();}));
 }
@@ -2322,7 +2322,7 @@ async function generateInvoicePDF(inv){
   const items=inv.items||[{desc:inv.desc||'',qty:1,price:inv.amount}];
   const total=items.reduce((s,i)=>s+(i.qty||1)*(i.price||0),0);
   const vs=inv.vs||inv.invNumber.replace(/\D/g,'');
-  const qrUrl=`https://api.paylibo.com/paylibo/generator/czech/image?compress=false&size=200&accountNumber=348479366&bankCode=0300&amount=${total.toFixed(2)}&currency=CZK&vs=${vs}&ks=${inv.ks||'0308'}`;
+  const qrUrl=`https://api.paylibo.com/paylibo/generator/czech/image?compress=false&size=200&accountNumber=348479366&bankCode=0300&amount=${total.toFixed(2)}&currency=CZK&vs=${encodeURIComponent(vs)}&ks=${encodeURIComponent(inv.ks||'0308')}`;
   const typeLabel=inv.invType==='fav'?'FAKTURA':'PŘIJATÁ FAKTURA';
   const partyLabel=inv.invType==='fav'?'Odběratel':'Dodavatel';
   const html=`<div style="font-family:Arial,sans-serif;font-size:13px;color:#1a1a2e;width:794px;padding:0;margin:0;background:#fff;">
@@ -2330,36 +2330,36 @@ async function generateInvoicePDF(inv){
     <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:24px 40px 16px;">
       <img src="${ORG_LOGO}" style="height:48px;object-fit:contain;" crossorigin="anonymous"/>
       <div style="text-align:right;font-size:11px;color:#7a80a0;line-height:1.8;">
-        <div style="font-weight:bold;font-size:13px;color:#1a1a2e;">${orgData.name}</div>
-        <div>IČO: ${orgData.ico}</div>${orgData.address?`<div>${orgData.address}</div>`:''}
+        <div style="font-weight:bold;font-size:13px;color:#1a1a2e;">${escHtml(orgData.name)}</div>
+        <div>IČO: ${escHtml(orgData.ico)}</div>${orgData.address?`<div>${escHtml(orgData.address)}</div>`:''}
         <div>${ORG_BANK}</div><div>${ORG_IBAN}</div>
       </div>
     </div>
     <div style="height:1px;background:#ee220c;margin:0 40px;"></div>
     <div style="padding:20px 40px 0;">
       <div style="font-size:22px;font-weight:bold;color:#1a1a2e;">${typeLabel}</div>
-      <div style="font-size:12px;color:#7a80a0;margin-top:4px;">${inv.invNumber}</div>
+      <div style="font-size:12px;color:#7a80a0;margin-top:4px;">${escHtml(inv.invNumber)}</div>
     </div>
     <div style="margin:16px 40px;background:#f5f6fa;border-radius:8px;padding:14px 20px;display:flex;gap:0;">
       <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Datum vystavení</div><div style="font-weight:bold;margin-top:2px;">${fmtDate(inv.date)}</div></div>
       <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Datum splatnosti</div><div style="font-weight:bold;margin-top:2px;">${fmtDate(inv.dueDate)}</div></div>
       <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Variabilní symbol</div><div style="font-weight:bold;margin-top:2px;font-family:monospace;">${vs}</div></div>
-      <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Konstantní symbol</div><div style="font-weight:bold;margin-top:2px;font-family:monospace;">${inv.ks||'0308'}</div></div>
+      <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Konstantní symbol</div><div style="font-weight:bold;margin-top:2px;font-family:monospace;">${escHtml(inv.ks||'0308')}</div></div>
       <div style="flex:1;"><div style="font-size:10px;color:#7a80a0;text-transform:uppercase;letter-spacing:.05em;">Forma úhrady</div><div style="font-weight:bold;margin-top:2px;">Bankovní převod</div></div>
     </div>
     <div style="display:flex;gap:16px;margin:0 40px 20px;">
       <div style="flex:1;background:#f5f6fa;border-radius:8px;padding:14px 16px;">
         <div style="font-size:10px;color:#ee220c;text-transform:uppercase;letter-spacing:.06em;font-weight:bold;margin-bottom:6px;">${partyLabel}</div>
-        <div style="font-weight:bold;font-size:14px;">${inv.vendor||'–'}</div>
-        ${inv.ico?`<div style="font-size:11px;color:#7a80a0;margin-top:3px;">IČO: ${inv.ico}</div>`:''}
-        ${inv.address?`<div style="font-size:11px;color:#7a80a0;">Sídlo: ${inv.address}</div>`:''}
-        ${inv.origNumber?`<div style="font-size:11px;color:#7a80a0;">Č. faktury dodavatele: ${inv.origNumber}</div>`:''}
+        <div style="font-weight:bold;font-size:14px;">${escHtml(inv.vendor||'–')}</div>
+        ${inv.ico?`<div style="font-size:11px;color:#7a80a0;margin-top:3px;">IČO: ${escHtml(inv.ico)}</div>`:''}
+        ${inv.address?`<div style="font-size:11px;color:#7a80a0;">Sídlo: ${escHtml(inv.address)}</div>`:''}
+        ${inv.origNumber?`<div style="font-size:11px;color:#7a80a0;">Č. faktury dodavatele: ${escHtml(inv.origNumber)}</div>`:''}
       </div>
       <div style="flex:1;background:#f5f6fa;border-radius:8px;padding:14px 16px;">
         <div style="font-size:10px;color:#ee220c;text-transform:uppercase;letter-spacing:.06em;font-weight:bold;margin-bottom:6px;">${inv.invType==='fav'?'Dodavatel':'Příjemce'}</div>
-        <div style="font-weight:bold;font-size:14px;">${orgData.name}</div>
-        <div style="font-size:11px;color:#7a80a0;margin-top:3px;">IČO: ${orgData.ico}</div>
-        ${orgData.address?`<div style="font-size:11px;color:#7a80a0;">${orgData.address}</div>`:''}
+        <div style="font-weight:bold;font-size:14px;">${escHtml(orgData.name)}</div>
+        <div style="font-size:11px;color:#7a80a0;margin-top:3px;">IČO: ${escHtml(orgData.ico)}</div>
+        ${orgData.address?`<div style="font-size:11px;color:#7a80a0;">${escHtml(orgData.address)}</div>`:''}
       </div>
     </div>
     <div style="margin:0 40px;">
@@ -2385,7 +2385,7 @@ async function generateInvoicePDF(inv){
       <div style="font-size:11px;color:#7a80a0;line-height:2;">
         <div><strong style="color:#1a1a2e;">Číslo účtu:</strong> ${ORG_BANK}</div>
         <div><strong style="color:#1a1a2e;">IBAN:</strong> ${ORG_IBAN}</div>
-        <div><strong style="color:#1a1a2e;">Variabilní symbol:</strong> ${vs}</div>
+        <div><strong style="color:#1a1a2e;">Variabilní symbol:</strong> ${escHtml(vs)}</div>
         <div><strong style="color:#1a1a2e;">Částka:</strong> ${fmt(total)}</div>
       </div>
     </div>
@@ -2444,27 +2444,27 @@ async function generateReceiptPDF(tx) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:24px 40px 16px;">
         <img src="${ORG_LOGO}" style="height:48px;object-fit:contain;" crossorigin="anonymous"/>
         <div style="text-align:right;font-size:11px;color:#7a80a0;line-height:1.8;">
-          <div style="font-weight:bold;font-size:13px;color:#1a1a2e;">${orgData.name}</div>
-          <div>IČO: ${orgData.ico}</div>
-          ${orgData.address?`<div>${orgData.address}</div>`:''}
+          <div style="font-weight:bold;font-size:13px;color:#1a1a2e;">${escHtml(orgData.name)}</div>
+          <div>IČO: ${escHtml(orgData.ico)}</div>
+          ${orgData.address?`<div>${escHtml(orgData.address)}</div>`:''}
         </div>
       </div>
       <div style="height:1px;background:#ee220c;margin:0 40px;"></div>
 
       <div style="padding:20px 40px 0;">
         <div style="font-size:22px;font-weight:bold;color:#1a1a2e;">${typeLabel}</div>
-        <div style="font-size:12px;color:#7a80a0;margin-top:4px;">${tx.docNumber||'–'}</div>
+        <div style="font-size:12px;color:#7a80a0;margin-top:4px;">${escHtml(tx.docNumber||'–')}</div>
       </div>
 
       <div style="margin:24px 40px;background:#f5f6fa;border-radius:8px;overflow:hidden;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <tr style="border-bottom:1px solid #e5e5ea;">
             <td style="padding:12px 16px;color:#7a80a0;width:40%;">${partyLabel}</td>
-            <td style="padding:12px 16px;font-weight:600;">${tx.party||'–'}</td>
+            <td style="padding:12px 16px;font-weight:600;">${escHtml(tx.party||'–')}</td>
           </tr>
           <tr style="border-bottom:1px solid #e5e5ea;">
             <td style="padding:12px 16px;color:#7a80a0;">Účel platby</td>
-            <td style="padding:12px 16px;font-weight:600;">${tx.desc||'–'}</td>
+            <td style="padding:12px 16px;font-weight:600;">${escHtml(tx.desc||'–')}</td>
           </tr>
           <tr style="border-bottom:1px solid #e5e5ea;">
             <td style="padding:12px 16px;color:#7a80a0;">Datum</td>
@@ -2472,7 +2472,7 @@ async function generateReceiptPDF(tx) {
           </tr>
           <tr>
             <td style="padding:12px 16px;color:#7a80a0;">Číslo dokladu</td>
-            <td style="padding:12px 16px;font-family:monospace;">${tx.docNumber||'–'}</td>
+            <td style="padding:12px 16px;font-family:monospace;">${escHtml(tx.docNumber||'–')}</td>
           </tr>
         </table>
       </div>
@@ -2489,8 +2489,8 @@ async function generateReceiptPDF(tx) {
       </div>
 
       <div style="margin:0 40px;margin-top:16px;padding-top:16px;border-top:1px solid #e5e5ea;font-size:11px;color:#7a80a0;display:flex;justify-content:space-between;">
-        <div>Vystavil: ${orgData.name}</div>
-        <div>IČO: ${orgData.ico}</div>
+        <div>Vystavil: ${escHtml(orgData.name)}</div>
+        <div>IČO: ${escHtml(orgData.ico)}</div>
       </div>
 
       <div style="height:280px;"></div>
@@ -2537,7 +2537,7 @@ function formatAddress(sid){
   return [uliceCislo, [psc, obec].filter(Boolean).join(' ')].filter(Boolean).join(', ');
 }
 
-function escHtml(str){return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escHtml(str){return String(str??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 </script>
 </body>
 </html>

@@ -1303,7 +1303,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { initializeFirestore, doc, getDoc, setDoc, collection, addDoc,
-  query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs, writeBatch }
+  query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs, writeBatch, runTransaction }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref as sRef, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -1405,7 +1405,7 @@ function setCatOptions(type,selId='tx-category'){
 
 /* ── AUTH ── */
 $('btn-google-login').addEventListener('click',async()=>{
-  try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){toast('Přihlášení se nezdařilo.');}
+  try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){console.error(e);toast('Přihlášení se nezdařilo.');}
 });
 ['btn-signout-desk','btn-signout-mob'].forEach(id=>{
   const el=$(id); if(el) el.addEventListener('click',()=>signOut(auth));
@@ -1483,7 +1483,7 @@ $('ob-finish').addEventListener('click',async()=>{
     createdAt:serverTimestamp(),
   };
   try{await setDoc(doc(db,'orgs',ORG_ID),data);orgData=data;launchApp();}
-  catch(e){toast('Chyba při ukládání.');$('ob-finish').disabled=false;}
+  catch(e){console.error(e);toast('Chyba při ukládání.');$('ob-finish').disabled=false;}
 });
 
 /* ── LAUNCH ── */
@@ -1615,13 +1615,24 @@ $('exp-list').addEventListener('click',async ev=>{
       const note=prompt('Který výdaj je třeba opravit a proč?');
       if(note===null)return;
       if(!note.trim()){toast('Napiš prosím důvod.');return;}
-      const batch=writeBatch(db);
-      if(r.kind==='palivo') batch.update(doc(db,'orgs',ORG_ID,'expenseReports',r.id),{status:'rejected',rejectNote:note.trim(),rejectedAt:serverTimestamp()});
-      else batch.delete(doc(db,'orgs',ORG_ID,'expenseReports',r.id));
-      (r.items||[]).forEach(i=>batch.update(doc(db,'orgs',ORG_ID,'expenses',i.id),{status:'draft',reportId:null,returnNote:note.trim()}));
-      await batch.commit();toast('Vráceno členovi.');
+      const repRef=doc(db,'orgs',ORG_ID,'expenseReports',r.id);
+      await runTransaction(db,async tx=>{
+        // vždy z aktuálních dat: kdo mezitím žádost proplatil nebo vrátil, ten vyhrál
+        const cur=await tx.get(repRef);
+        if(!cur.exists()||cur.data().status!=='submitted')throw new Error('REPORT_NOT_SUBMITTED');
+        const rd=cur.data(), own=[];
+        // položky v žádosti zapisuje člen – vrátí se jen výdaje, které opravdu patří této žádosti a tomuto členovi
+        for(const i of (rd.items||[])){
+          const eRef=doc(db,'orgs',ORG_ID,'expenses',i.id), e=await tx.get(eRef);
+          if(e.exists()&&e.data().uid===rd.uid&&e.data().reportId===r.id)own.push(eRef);
+        }
+        if(rd.kind==='palivo') tx.update(repRef,{status:'rejected',rejectNote:note.trim(),rejectedAt:serverTimestamp()});
+        else tx.delete(repRef);
+        own.forEach(eRef=>tx.update(eRef,{status:'draft',reportId:null,returnNote:note.trim()}));
+      });
+      toast('Vráceno členovi.');
     }
-  }catch(err){console.error(err);toast('Akce se nezdařila.');}
+  }catch(err){console.error(err);toast(err&&err.message==='REPORT_NOT_SUBMITTED'?'Žádost už byla vyřízena nebo vrácena.':'Akce se nezdařila.');}
 });
 
 function openRepPay(id){
@@ -1642,21 +1653,33 @@ $('btn-exp-pay-save').addEventListener('click',async()=>{
   const btn=$('btn-exp-pay-save');
   btn.disabled=true;
   try{
-    const docNumber=await generateDocNumber(account);
-    const txRef=await addDoc(txCol(),{
-      desc:r.kind==='palivo'&&r.fuel?`Náhrada za palivo – ${r.name}, ${r.fuel.place}`:`Náhrada výdajů – ${r.name} (${r.count} pol.)`,amount:r.total,date,account,type:'expense',
-      category:$('exp-pay-category').value,party:r.name,pairedInvoice:null,docNumber,
-      reportId:r.id,pdfPath:r.pdfPath||null,createdAt:serverTimestamp()
+    const series=(account==='cash'?'PD':'BV')+activePeriod;
+    const txRef=doc(txCol()), repRef=doc(db,'orgs',ORG_ID,'expenseReports',r.id);
+    const docNumber=await withNumber(series,'tx',async tx=>{
+      // žádost znovu načíst: kdo mezitím schválil nebo vrátil, ten vyhrál (ochrana proti dvojímu proplacení)
+      const cur=await tx.get(repRef);
+      if(!cur.exists()||cur.data().status!=='submitted')throw new Error('REPORT_NOT_SUBMITTED');
+      // položky v žádosti zapisuje člen – upraví se jen výdaje, které opravdu patří této žádosti a tomuto členovi
+      const own=[];
+      for(const i of (r.items||[])){
+        const eRef=doc(db,'orgs',ORG_ID,'expenses',i.id), e=await tx.get(eRef);
+        if(e.exists()&&e.data().uid===r.uid&&e.data().reportId===r.id)own.push(eRef);
+      }
+      return own;
+    },(tx,docNumber,own)=>{
+      tx.set(txRef,{
+        desc:r.kind==='palivo'&&r.fuel?`Náhrada za palivo – ${r.name}, ${r.fuel.place}`:`Náhrada výdajů – ${r.name} (${r.count} pol.)`,amount:r.total,date,account,type:'expense',
+        category:$('exp-pay-category').value,party:r.name,pairedInvoice:null,docNumber,
+        reportId:r.id,pdfPath:r.pdfPath||null,createdAt:serverTimestamp()
+      });
+      tx.update(repRef,{
+        status:'paid',paidAt:serverTimestamp(),paidDate:date,paidAccount:account,
+        docNumber,txId:txRef.id,txPeriod:activePeriod
+      });
+      own.forEach(eRef=>tx.update(eRef,{status:'paid',docNumber}));
     });
-    const batch=writeBatch(db);
-    batch.update(doc(db,'orgs',ORG_ID,'expenseReports',r.id),{
-      status:'paid',paidAt:serverTimestamp(),paidDate:date,paidAccount:account,
-      docNumber,txId:txRef.id,txPeriod:activePeriod
-    });
-    (r.items||[]).forEach(i=>batch.update(doc(db,'orgs',ORG_ID,'expenses',i.id),{status:'paid',docNumber}));
-    await batch.commit();
     closeModal('modal-exp-pay');toast(`Zaúčtováno ${docNumber} ✓`);
-  }catch(err){console.error('REPORT PAY:',err);toast('Zaúčtování se nezdařilo.');}
+  }catch(err){console.error('REPORT PAY:',err);toast(err&&err.message==='REPORT_NOT_SUBMITTED'?'Žádost už byla vyřízena nebo vrácena.':'Zaúčtování se nezdařilo.');}
   btn.disabled=false;
 });
 
@@ -1897,7 +1920,7 @@ $('btn-ares-contact').addEventListener('click',async()=>{
     const sid=data.sidlo;
     if(sid)$('contact-address').value=formatAddress(sid);
     toast('Údaje doplněny z ARES ✓');
-  }catch(e){toast('IČO nenalezeno v ARES.');}
+  }catch(e){console.error(e);toast('IČO nenalezeno v ARES.');}
   $('btn-ares-contact').textContent=orig;$('btn-ares-contact').disabled=false;
 });
 
@@ -1922,7 +1945,7 @@ $('btn-contact-save').addEventListener('click',async()=>{
       toast('Kontakt uložen ✓');
     }
     closeModal('modal-contact');
-  }catch(e){toast('Chyba při ukládání.');}
+  }catch(e){console.error(e);toast('Chyba při ukládání.');}
   $('btn-contact-save').disabled=false;
 });
 
@@ -1931,7 +1954,7 @@ $('btn-contact-delete').addEventListener('click',async()=>{
   try{
     await deleteDoc(doc(db,'orgs',ORG_ID,'contacts',editContactId));
     closeModal('modal-contact');toast('Kontakt smazán.');
-  }catch(e){toast('Chyba.');}
+  }catch(e){console.error(e);toast('Chyba.');}
 });
 
 document.querySelectorAll('[data-contact-filter]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -1994,6 +2017,7 @@ function renderStats(){
 function openTxEditModal(tx){
   editTxId=tx.id;editTxType=tx.type;
   $('tx-edit-docnumber').value=tx.docNumber||'';
+  $('tx-edit-docnumber').readOnly=!!tx.docNumber; // přidělené číslo se nemění (ochrana číselné řady)
   $('tx-edit-desc').value=tx.desc||'';$('tx-edit-amount').value=tx.amount||'';
   $('tx-edit-date').value=tx.date||'';$('tx-edit-party').value=tx.party||'';
   const iB=$('tx-edit-type-income'),eB=$('tx-edit-type-expense');
@@ -2010,15 +2034,24 @@ $('tx-edit-type-expense').addEventListener('click',()=>{editTxType='expense';$('
 $('btn-tx-update').addEventListener('click',async()=>{
   const desc=$('tx-edit-desc').value.trim(),amount=parseFloat($('tx-edit-amount').value),date=$('tx-edit-date').value;
   if(!desc){toast('Zadej popis.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!date){toast('Zadej datum.');return;}
+  const yr=String(new Date(date).getFullYear());
+  if(yr!==activePeriod){toast(`Datum patří do roku ${yr} – záznam patří do období ${activePeriod}.`);return;}
   $('btn-tx-update').disabled=true;
-  try{await updateDoc(txDoc(editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),docNumber:$('tx-edit-docnumber').value.trim()});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
-  catch(e){toast('Chyba při ukládání.');}
+  try{
+    const locked=$('tx-edit-docnumber').readOnly, typed=$('tx-edit-docnumber').value.trim();
+    if(!locked&&typed){ // ručně zadané číslo nesmí kolidovat s existujícím
+      const dup=await getDocs(query(txCol(),where('docNumber','==',typed)));
+      if(dup.docs.some(d=>d.id!==editTxId)){toast('Toto číslo dokladu už existuje.');$('btn-tx-update').disabled=false;return;}
+    }
+    await updateDoc(txDoc(editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),...(locked?{}:{docNumber:typed})});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
+  catch(e){console.error(e);toast('Chyba při ukládání.');}
   $('btn-tx-update').disabled=false;
 });
 $('btn-tx-delete').addEventListener('click',async()=>{
-  if(!confirm('Opravdu smazat?'))return;
+  const num=$('tx-edit-docnumber').value.trim();
+  if(!confirm(num?`Opravdu smazat? Číslo dokladu ${num} zůstane v číselné řadě nevyužité (vznikne mezera).`:'Opravdu smazat?'))return;
   try{await deleteDoc(txDoc(editTxId));closeModal('modal-tx-edit');toast('Záznam smazán.');}
-  catch(e){toast('Chyba.');}
+  catch(e){console.error(e);toast('Chyba.');}
 });
 
 /* ── INVOICES ── */
@@ -2207,13 +2240,17 @@ function renderPairList(){
 $('btn-tx-save').addEventListener('click',async()=>{
   const desc=$('tx-desc').value.trim(),amount=parseFloat($('tx-amount').value),date=$('tx-date').value;
   if(!desc){toast('Zadej popis.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!date){toast('Zadej datum.');return;}
+  const yr=String(new Date(date).getFullYear());
+  if(yr!==activePeriod){toast(`Datum patří do roku ${yr} – přepni aktivní období.`);return;}
   $('btn-tx-save').disabled=true;
   try{
-    const docNumber=await generateDocNumber(txAccount);
-    await addDoc(txCol(),{desc,amount,date,account:txAccount,type:txType,category:$('tx-category').value,party:$('tx-party').value.trim(),pairedInvoice:selectedPairId||null,docNumber,createdAt:serverTimestamp()});
-    if(selectedPairId)await updateDoc(invDoc(selectedPairId),{paid:true,paidDate:date});
+    const series=(txAccount==='cash'?'PD':'BV')+activePeriod, txRef=doc(txCol());
+    await withNumber(series,'tx',null,(tx,docNumber)=>{
+      tx.set(txRef,{desc,amount,date,account:txAccount,type:txType,category:$('tx-category').value,party:$('tx-party').value.trim(),pairedInvoice:selectedPairId||null,docNumber,createdAt:serverTimestamp()});
+      if(selectedPairId)tx.update(invDoc(selectedPairId),{paid:true,paidDate:date});
+    });
     closeModal('modal-tx');toast('Záznam uložen ✓');
-  }catch(e){toast('Chyba při ukládání.');}
+  }catch(e){console.error(e);toast('Chyba při ukládání.');}
   $('btn-tx-save').disabled=false;
 });
 
@@ -2247,7 +2284,7 @@ async function aresLookup(ico,nameEl,addrEl){
     const ico=$(icoId).value.trim();if(!ico||ico.length<6){toast('Zadej IČO.');return;}
     const orig=btn.textContent;btn.textContent='…';btn.disabled=true;
     try{await aresLookup(ico,$(nameId));toast('Údaje doplněny z ARES ✓');}
-    catch(e){toast('IČO nenalezeno v ARES.');}
+    catch(e){console.error(e);toast('IČO nenalezeno v ARES.');}
     btn.textContent=orig;btn.disabled=false;
   });
 });
@@ -2257,10 +2294,14 @@ $('btn-invoice-save').addEventListener('click',async()=>{
   if(!vendor){toast('Zadej dodavatele.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}
   $('btn-invoice-save').disabled=true;
   try{
-    await addDoc(invCol(),{invType:'fap',invNumber:$('inv-number').value.trim(),vendor,amount,ico:$('inv-ico').value.trim(),origNumber:$('inv-orig-number').value.trim(),date:$('inv-date').value,dueDate,vs:$('inv-vs').value.trim(),ks:$('inv-ks').value.trim(),url:$('inv-url').value.trim(),desc:$('inv-desc').value.trim(),paid:false,createdAt:serverTimestamp()});
+    const invRef=doc(invCol());
+    const invNumber=await withNumber('FAP'+activePeriod,'inv',null,(tx,num)=>{
+      tx.set(invRef,{invType:'fap',invNumber:num,vendor,amount,ico:$('inv-ico').value.trim(),origNumber:$('inv-orig-number').value.trim(),date:$('inv-date').value,dueDate,vs:$('inv-vs').value.trim(),ks:$('inv-ks').value.trim(),url:$('inv-url').value.trim(),desc:$('inv-desc').value.trim(),paid:false,createdAt:serverTimestamp()});
+    });
+    if(invNumber!==$('inv-number').value.trim())toast(`Přiděleno číslo ${invNumber}.`);
     await saveContactIfNew(vendor,$('inv-ico').value.trim(),$('inv-vendor').dataset.address||'');
     closeModal('modal-invoice');toast('Faktura uložena ✓');
-  }catch(e){toast('Chyba při ukládání.');}
+  }catch(e){console.error(e);toast('Chyba při ukládání.');}
   $('btn-invoice-save').disabled=false;
 });
 $('btn-invoice-update').addEventListener('click',async()=>{
@@ -2268,16 +2309,16 @@ $('btn-invoice-update').addEventListener('click',async()=>{
   if(!vendor){toast('Zadej dodavatele.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}
   $('btn-invoice-update').disabled=true;
   try{
-    await updateDoc(invDoc(editInvId),{vendor,amount,dueDate,ico:$('inv-edit-ico').value.trim(),number:$('inv-edit-number').value.trim(),date:$('inv-edit-date').value,url:$('inv-edit-url').value.trim(),desc:$('inv-edit-desc').value.trim()});
+    await updateDoc(invDoc(editInvId),{vendor,amount,dueDate,ico:$('inv-edit-ico').value.trim(),origNumber:$('inv-edit-number').value.trim(),date:$('inv-edit-date').value,url:$('inv-edit-url').value.trim(),desc:$('inv-edit-desc').value.trim()});
     await saveContactIfNew(vendor,$('inv-edit-ico').value.trim(),$('inv-edit-vendor').dataset.address||'');
     closeModal('modal-invoice-edit');toast('Faktura upravena ✓');
-  }catch(e){toast('Chyba.');}
+  }catch(e){console.error(e);toast('Chyba.');}
   $('btn-invoice-update').disabled=false;
 });
 $('btn-invoice-delete').addEventListener('click',async()=>{
   if(!confirm('Opravdu smazat?'))return;
   try{await deleteDoc(invDoc(editInvId));closeModal('modal-invoice-edit');toast('Faktura smazána.');}
-  catch(e){toast('Chyba.');}
+  catch(e){console.error(e);toast('Chyba.');}
 });
 
 /* ── FAV ITEMS ── */
@@ -2294,8 +2335,15 @@ $('btn-fav-save').addEventListener('click',async()=>{
   if(!vendor){toast('Zadej odběratele.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}if(total<=0){toast('Zadej ceny položek.');return;}
   $('btn-fav-save').disabled=true;
   try{
-    const invData={invType:'fav',invNumber:$('fav-number').value,vendor,ico:$('fav-ico').value.trim(),address:$('fav-vendor').dataset.address||'',date:$('fav-date').value,dueDate,vs:$('fav-vs').value.trim(),ks:$('fav-ks').value.trim(),desc:$('fav-desc').value.trim(),items:favItems,amount:total,paid:false,createdAt:serverTimestamp()};
-    await addDoc(invCol(),invData);
+    const proposed=$('fav-number').value, proposedVs=proposed.replace(/\D/g,'');
+    const baseData={invType:'fav',vendor,ico:$('fav-ico').value.trim(),address:$('fav-vendor').dataset.address||'',date:$('fav-date').value,dueDate,vs:$('fav-vs').value.trim(),ks:$('fav-ks').value.trim(),desc:$('fav-desc').value.trim(),items:favItems,amount:total,paid:false,createdAt:serverTimestamp()};
+    const invRef=doc(invCol());
+    let invData=null;
+    await withNumber('FAV'+activePeriod,'inv',null,(tx,num)=>{
+      invData={...baseData,invNumber:num,vs:baseData.vs===proposedVs?num.replace(/\D/g,''):baseData.vs};
+      tx.set(invRef,invData);
+    });
+    if(invData.invNumber!==proposed)toast(`Přiděleno číslo ${invData.invNumber}.`);
     await saveContactIfNew(vendor,$('fav-ico').value.trim(),$('fav-vendor').dataset.address||'');
     await generateInvoicePDF({...invData});
     closeModal('modal-fav');toast('Faktura uložena ✓');
@@ -2304,17 +2352,38 @@ $('btn-fav-save').addEventListener('click',async()=>{
 });
 
 /* ── NUMBERING ── */
-async function generateInvNumber(type){
-  const prefix=type==='fap'?'FAP':'FAV',year=activePeriod;
-  const snap=await getDocs(query(invCol(),where('invType','==',type)));
-  const count=snap.docs.filter(d=>(d.data().invNumber||'').startsWith(`${prefix}${year}`)).length;
-  return`${prefix}${year}${String(count+1).padStart(3,'0')}`;
+// Číselné řady (PD/BV – doklady, FAP/FAV – faktury) mají čítač v orgs/10men/counters/{řada+rok}.
+// Číslo se přiděluje v transakci společně se zápisem dokladu → žádné duplicity při souběhu dvou zařízení
+// a žádné „díry“ po neúspěšném zápisu.
+const counterRef=series=>doc(db,'orgs',ORG_ID,'counters',series);
+const fmtSeries=(series,n)=>`${series}${String(n).padStart(3,'0')}`;
+const seriesSuffix=(series,value)=>{const m=String(value||'').match(new RegExp('^'+series+'(\\d+)$'));return m?parseInt(m[1],10):0;};
+// Jen pro první použití čítače: nejvyšší číslo, které už v řadě existuje (čítače vznikají při prvním přidělení).
+async function seriesSeed(series,kind){
+  const snap=await getDocs(kind==='inv'?invCol():txCol());
+  const field=kind==='inv'?'invNumber':'docNumber';
+  return snap.docs.reduce((m,d)=>Math.max(m,seriesSuffix(series,d.data()[field])),0);
 }
-async function generateDocNumber(account){
-  const prefix=account==='cash'?'PD':'BV',year=activePeriod;
-  const snap=await getDocs(query(txCol(),where('account','==',account)));
-  const count=snap.docs.filter(d=>(d.data().docNumber||'').startsWith(`${prefix}${year}`)).length;
-  return`${prefix}${year}${String(count+1).padStart(3,'0')}`;
+async function seriesNext(series,kind){ // jen náhled, nic nerezervuje
+  const c=await getDoc(counterRef(series));
+  return (c.exists()?c.data().last:await seriesSeed(series,kind))+1;
+}
+// prepare(tx) provede všechna čtení, write(tx,číslo,výsledekPrepare) provede zápisy.
+// Obě funkce se mohou při souběhu zopakovat, proto nesmí mít vedlejší účinky mimo transakci.
+async function withNumber(series,kind,prepare,write){
+  const seed=(await getDoc(counterRef(series))).exists()?0:await seriesSeed(series,kind);
+  return runTransaction(db,async tx=>{
+    const pre=prepare?await prepare(tx):null;
+    const c=await tx.get(counterRef(series));
+    const n=(c.exists()?c.data().last:seed)+1;
+    tx.set(counterRef(series),{last:n,updatedAt:serverTimestamp()});
+    write(tx,fmtSeries(series,n),pre);
+    return fmtSeries(series,n);
+  });
+}
+async function generateInvNumber(type){ // návrh čísla do formuláře; závazné číslo se přidělí při uložení
+  const series=(type==='fap'?'FAP':'FAV')+activePeriod;
+  return fmtSeries(series,await seriesNext(series,'inv'));
 }
 
 /* ── PDF ── */

@@ -371,7 +371,7 @@
 
     .tx-info    { flex: 1; min-width: 0; }
     .tx-desc    { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tx-meta    { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .tx-meta    { font-size: 11px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tx-amount  { font-size: 14px; font-weight: 700; white-space: nowrap; }
     .income-color  { color: var(--income); }
     .expense-color { color: var(--expense); }
@@ -448,7 +448,7 @@
     /* ── TABLE HEADER ── */
     .list-header {
       display: grid;
-      grid-template-columns: 90px 50px 90px 1fr 100px;
+      grid-template-columns: 90px 50px 90px 1fr 130px;
       gap: 8px;
       padding: 6px 14px;
       font-size: 11px;
@@ -469,7 +469,7 @@
     
     .doc-row-main {
       display: grid;
-      grid-template-columns: 90px 50px 90px 1fr 100px;
+      grid-template-columns: 90px 50px 90px 1fr 130px;
       gap: 8px;
       padding: 11px 14px;
       align-items: center;
@@ -492,6 +492,8 @@
       gap: 8px;
     }
     .doc-row-accordion.open { display: flex; }
+    .doc-row-accordion.col { flex-direction: column; align-items: stretch; }
+    .doc-row-accordion.col a { overflow-wrap: anywhere; }
     
     .accordion-btn {
       flex: 1;
@@ -570,8 +572,9 @@
     .modal-body   { padding: 20px; }
     .modal-footer {
       padding: 14px 20px; border-top: 1px solid var(--border);
-      display: flex; gap: 10px; justify-content: flex-end;
+      display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
     }
+    .modal-footer > div { display: flex; gap: 8px; margin-left: auto; }
 
     /* ── TYPE TOGGLE ── */
     .btn-group { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -677,6 +680,19 @@
       .split-panel { grid-template-columns: 1fr; }
       .stats-row   { grid-template-columns: 1fr 1fr; }
       main { padding-bottom: 120px; }
+      /* seznamy dokladů a faktur: dva řádky (datum · typ · číslo · částka / popis), jinak se pětisloupcová mřížka nevejde */
+      .list-header { display: none; }
+      .doc-row-main:has(.doc-date) {
+        grid-template-columns: auto auto minmax(0, 1fr) auto !important;
+        grid-template-areas: "date type num amount" "desc desc desc desc";
+        row-gap: 4px;
+      }
+      .doc-row-main .doc-date   { grid-area: date; }
+      .doc-row-main .doc-type   { grid-area: type; }
+      .doc-row-main .doc-num    { grid-area: num; }
+      .doc-row-main .doc-amount { grid-area: amount; }
+      .doc-row-main .doc-desc   { grid-area: desc; white-space: normal; overflow-wrap: anywhere; }
+      .doc-row-main .doc-desc > div:first-child { white-space: normal !important; overflow: visible !important; }
     }
 
       /* ── SKELETON ── */
@@ -1280,11 +1296,11 @@
       <button class="modal-close" data-close="modal-audit">✕</button>
     </div>
     <div class="modal-body">
-      <select id="audit-filter" class="field" style="margin-bottom:12px;">
+      <div class="field" style="margin-bottom:12px;"><select id="audit-filter">
         <option value="">Vše</option><option value="transactions">Doklady (PD, BV)</option><option value="invoices">Faktury</option>
         <option value="expenseReports">Žádosti o proplacení</option><option value="counters">Čítače čísel</option>
         <option value="members">Členové a role</option><option value="contacts">Kontakty</option><option value="config">Sazby</option><option value="org">Organizace</option>
-      </select>
+      </select></div>
       <div id="audit-list" style="max-height:60vh;overflow-y:auto;"></div>
     </div>
   </div>
@@ -1896,7 +1912,7 @@ function renderContacts(){
         </div>
         <span class="badge" style="background:var(--bg);color:var(--muted);">${c.type==='customer'?'Odběratel':c.type==='both'?'Oboje':'Dodavatel'}</span>
       </div>
-      <div class="doc-row-accordion">
+      <div class="doc-row-accordion col">
         ${c.person?`<div style="font-size:13px;padding:4px 0;color:var(--muted);">👤 ${escHtml(c.person)}</div>`:''}
         ${c.email?`<div style="font-size:13px;padding:4px 0;color:var(--muted);">✉️ <a href="mailto:${escHtml(c.email)}" style="color:var(--accent);">${escHtml(c.email)}</a></div>`:''}
         ${c.phone?`<div style="font-size:13px;padding:4px 0;color:var(--muted);">📞 <a href="tel:${escHtml(c.phone)}" style="color:var(--accent);">${escHtml(c.phone)}</a></div>`:''}
@@ -2181,7 +2197,7 @@ function renderInvoices(){
   const bC={cancelled:'badge-cancel',paid:'badge-paid',unpaid:'badge-unpaid',due:'badge-due',overdue:'badge-unpaid'};
   const dC={cancelled:'paid',paid:'paid',unpaid:'unpaid',due:'due',overdue:'unpaid'};
 
-  const header=`<div class="list-header" style="grid-template-columns:90px 50px 90px 1fr 110px;">
+  const header=`<div class="list-header" style="grid-template-columns:90px 50px 90px 1fr 130px;">
     <span>Datum</span><span>Typ</span><span>Číslo</span><span>Dodavatel / Popis</span><span style="text-align:right;">Částka</span>
   </div>`;
 
@@ -2190,7 +2206,7 @@ function renderInvoices(){
     const isFav=inv.invType==='fav';
     const cx=!!inv.cancelled;
     return`<div class="doc-row${cx?' cancelled':''}" data-inv-id="${escHtml(inv.id)}">
-      <div class="doc-row-main" style="grid-template-columns:90px 50px 90px 1fr 110px;">
+      <div class="doc-row-main" style="grid-template-columns:90px 50px 90px 1fr 130px;">
         <div class="doc-date">${fmtDate(inv.date)}</div>
         <div class="doc-type">${inv.invType==='fav'?'FAV':'FAP'}</div>
         <div class="doc-num">${escHtml(inv.invNumber||'–')}</div>

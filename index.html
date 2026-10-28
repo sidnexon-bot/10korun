@@ -353,6 +353,14 @@
     .ledger-footer  { padding: 10px 12px; border-top: 1px solid var(--border); }
     .ledger-empty   { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 14px; }
 
+    .kd-chip { display:inline-block; margin-left:6px; padding:1px 7px; border-radius:999px; font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace; color:#2563eb; background:rgba(37,99,235,.1); white-space:nowrap; }
+    .kd-chip.none { color:var(--muted); background:rgba(128,128,128,.14); font-family:inherit; }
+    .kd-sum-row { display:grid; grid-template-columns:minmax(0,1fr) 92px 92px 92px; gap:8px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border); font-size:13px; }
+    .kd-sum-row:last-child { border-bottom:none; }
+    .kd-sum-row.head { color:var(--muted); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+    .kd-sum-row .n { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .kd-sum-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    @media (max-width:600px){ .kd-sum-row { grid-template-columns:minmax(0,1fr) 78px 78px; } .kd-sum-row .inc { display:none; } }
     .tx-row {
       display: flex; align-items: center;
       padding: 11px 16px; border-bottom: 1px solid var(--border);
@@ -916,6 +924,7 @@
           <div class="ledger-footer"><button class="btn-add" data-account="bank">+ Nový záznam</button></div>
         </div>
       </div>
+      <div id="code-summary"></div>
     </div>
 
     <!-- ── FAKTURY ── -->
@@ -1055,6 +1064,7 @@
         <div class="field"><label>Částka (Kč)</label><input id="tx-amount" type="number" min="0" placeholder="0" /></div>
         <div class="field"><label>Datum</label><input id="tx-date" type="date" /></div>
         <div class="field"><label>Kategorie</label><select id="tx-category"><option value="">— vyber —</option></select></div>
+        <div class="field"><label>Projekt / kód *</label><select id="tx-code"></select></div>
         <div class="field"><label>Protistrana (nepovinné)</label><input id="tx-party" type="text" placeholder="Název organizace nebo osoby" /></div>
         <div class="field" id="tx-pair-wrap" style="display:none;">
           <label>Spárovat s fakturou (nepovinné)</label>
@@ -1087,6 +1097,7 @@
         <div class="field"><label>Částka (Kč)</label><input id="tx-edit-amount" type="number" min="0" /></div>
         <div class="field"><label>Datum</label><input id="tx-edit-date" type="date" /></div>
         <div class="field"><label>Kategorie</label><select id="tx-edit-category"></select></div>
+        <div class="field"><label>Projekt / kód *</label><select id="tx-edit-code"></select></div>
         <div class="field"><label>Protistrana</label><input id="tx-edit-party" type="text" /></div>
       </div>
     </div>
@@ -1127,6 +1138,7 @@
         <div class="field"><label>Konstantní symbol</label><input id="inv-ks" type="text" placeholder="0308" /></div>
         <div class="field"><label>Odkaz na PDF (Google Drive)</label><input id="inv-url" type="url" placeholder="https://drive.google.com/..." /></div>
         <div class="field"><label>Popis / poznámka</label><input id="inv-desc" type="text" placeholder="Např. FA za nahrávání CD" /></div>
+        <div class="field"><label>Projekt / kód *</label><select id="inv-code"></select></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1156,6 +1168,7 @@
         <div class="field"><label>Datum splatnosti</label><input id="inv-edit-due" type="date" /></div>
         <div class="field"><label>Odkaz na PDF (Google Drive)</label><input id="inv-edit-url" type="url" /></div>
         <div class="field"><label>Popis / poznámka</label><input id="inv-edit-desc" type="text" /></div>
+        <div class="field"><label>Projekt / kód *</label><select id="inv-edit-code"></select></div>
       </div>
     </div>
     <div class="modal-footer" style="justify-content:space-between;">
@@ -1192,6 +1205,7 @@
         <div class="field"><label>Variabilní symbol</label><input id="fav-vs" type="text" /></div>
         <div class="field"><label>Konstantní symbol</label><input id="fav-ks" type="text" placeholder="0308" /></div>
         <div class="field"><label>Poznámka / popis</label><input id="fav-desc" type="text" placeholder="Např. Umělecké vystoupení" /></div>
+        <div class="field"><label>Projekt / kód *</label><select id="fav-code"></select></div>
         <div class="field">
           <label>Položky</label>
           <div id="fav-items-wrap"></div>
@@ -1278,6 +1292,7 @@
           </select>
         </div>
         <div class="field"><label>Kategorie</label><select id="exp-pay-category"><option value="">— vyber —</option></select></div>
+        <div class="field"><label>Projekt / kód *</label><select id="exp-pay-code"></select></div>
         <div class="field"><label>Datum proplacení</label><input id="exp-pay-date" type="date" /></div>
       </div>
     </div>
@@ -1348,9 +1363,13 @@ import { initializeFirestore, doc, getDoc, setDoc, collection, addDoc,
 import { getStorage, ref as sRef, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+import { getDatabase, ref as dbRef, onValue }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAjDCB3gpqytTHnG7zKLKJGXMNeW5vyC_I",
   authDomain: "base-39f52.firebaseapp.com",
+  databaseURL: "https://base-39f52-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "base-39f52",
   storageBucket: "base-39f52.firebasestorage.app",
   messagingSenderId: "20753597026",
@@ -1360,6 +1379,7 @@ const ORG_ID = '10men';
 let userRole = null;
 
 const app  = initializeApp(firebaseConfig);
+const rdb = getDatabase(app);
 const auth = getAuth(app);
 const db   = initializeFirestore(app, { experimentalForceLongPolling: true, useFetchStreams: false }, 'korun');
 const storage = getStorage(app);
@@ -1625,6 +1645,7 @@ function syncSummary(){
 }
 
 function subscribeExpenses(){
+  startKody();
   if(unsubRep)unsubRep();
   unsubRep=onSnapshot(collection(db,'orgs',ORG_ID,'expenseReports'),snap=>{
     allRep=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -1663,7 +1684,7 @@ function repCard(r){
     <div class="exp-top">
       <div style="min-width:0;">
         <div class="exp-title">${escHtml(r.name)}${f?' · palivo':''}</div>
-        <div class="exp-sub">Odesláno ${fmtDate(created)} · ${f?'cesta '+fmtDate(f.date):escHtml(r.count)+' pol.'}${r.docNumber?' · '+escHtml(r.docNumber):''}</div>
+        <div class="exp-sub">Odesláno ${fmtDate(created)} · ${f?'cesta '+fmtDate(f.date):escHtml(r.count)+' pol.'}${r.docNumber?' · '+escHtml(r.docNumber):''}${r.projectCode?`<span class="kd-chip">${escHtml(r.projectCode)}</span>`:''}</div>
       </div>
       <div style="text-align:right;">
         <div class="exp-amount">${fmt(r.total)}</div>
@@ -1728,6 +1749,7 @@ function openRepPay(id){
   $('exp-pay-info').textContent=`${r.name} · ${r.count} pol. · ${fmt(r.total)}`;
   setCatOptions('expense','exp-pay-category');
   $('exp-pay-account').value='cash';
+  fillCodeSelect('exp-pay-code',r.projectCode||'');
   $('exp-pay-date').value=today();
   openModal('modal-exp-pay');
 }
@@ -1735,7 +1757,8 @@ function openRepPay(id){
 $('btn-exp-pay-save').addEventListener('click',async()=>{
   const r=allRep.find(x=>x.id===payRepId); if(!r)return;
   const account=$('exp-pay-account').value, date=$('exp-pay-date').value||today();
-  const yr=String(new Date(date).getFullYear());
+  const pc=pickedCode('exp-pay-code');if(!pc){toast('Vyber projekt / kód.');return;}
+    const yr=String(new Date(date).getFullYear());
   if(yr!==activePeriod){toast(`Datum patří do roku ${yr} – přepni aktivní období.`);return;}
   const btn=$('btn-exp-pay-save');
   btn.disabled=true;
@@ -1757,11 +1780,11 @@ $('btn-exp-pay-save').addEventListener('click',async()=>{
       tx.set(txRef,{
         desc:r.kind==='palivo'&&r.fuel?`Náhrada za palivo – ${r.name}, ${r.fuel.place}`:`Náhrada výdajů – ${r.name} (${r.count} pol.)`,amount:r.total,date,account,type:'expense',
         category:$('exp-pay-category').value,party:r.name,pairedInvoice:null,docNumber,
-        reportId:r.id,pdfPath:r.pdfPath||null,createdAt:serverTimestamp()
+        reportId:r.id,pdfPath:r.pdfPath||null,...pc,createdAt:serverTimestamp()
       });
       tx.update(repRef,{
         status:'paid',paidAt:serverTimestamp(),paidDate:date,paidAccount:account,
-        docNumber,txId:txRef.id,txPeriod:activePeriod
+        docNumber,txId:txRef.id,txPeriod:activePeriod,...pc
       });
       own.forEach(eRef=>tx.update(eRef,{status:'paid',docNumber}));
     });
@@ -2118,7 +2141,7 @@ function renderLedger(account){
       <div class="tx-icon ${t.type==='income'?'income-bg':'expense-bg'}">${t.type==='income'?'↑':'↓'}</div>
       <div class="tx-info">
         <div class="tx-desc">${escHtml(t.desc)}</div>
-        <div class="tx-meta">${t.docNumber?escHtml(t.docNumber)+' · ':''}${fmtDate(t.date)}${t.category?' · '+escHtml(t.category):''}${t.pairedInvoice?' · ✓':''}</div>
+        <div class="tx-meta">${t.docNumber?escHtml(t.docNumber)+' · ':''}${fmtDate(t.date)}${t.category?' · '+escHtml(t.category):''}${t.projectCode?' · '+escHtml(t.projectCode):''}${t.pairedInvoice?' · ✓':''}</div>
       </div>
       <div class="tx-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div>
     </div>`).join('');
@@ -2129,7 +2152,7 @@ function renderStats(){
   const exp=liveTx().filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const res=inc-exp;
   $('stat-income').textContent=fmt(inc);$('stat-expense').textContent=fmt(exp);
-  $('stat-result').textContent=fmt(res);
+  $('stat-result').textContent=fmt(res);renderCodeSummary();
   $('stat-result').className='stat-value '+(res>=0?'positive':'negative');
 }
 
@@ -2144,6 +2167,7 @@ function openTxEditModal(tx){
   if(tx.type==='income'){iB.classList.add('active-income');eB.classList.remove('active-expense');}
   else{eB.classList.add('active-expense');iB.classList.remove('active-income');}
   $('tx-edit-category').innerHTML='<option value="">— vyber —</option>'+(tx.type==='income'?INCOME_CATS:EXPENSE_CATS).map(c=>`<option value="${c}"${c===tx.category?' selected':''}>${c}</option>`).join('');
+  fillCodeSelect('tx-edit-code',tx.projectCode||'');
   openModal('modal-tx-edit');
 }
 document.addEventListener('click',e=>{const r=e.target.closest('.tx-row');if(!r)return;const t=allTx.find(t=>t.id===r.dataset.id);if(t)openTxEditModal(t);});
@@ -2156,6 +2180,7 @@ $('btn-tx-update').addEventListener('click',async()=>{
   if(!desc){toast('Zadej popis.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!date){toast('Zadej datum.');return;}
   const yr=String(new Date(date).getFullYear());
   if(yr!==activePeriod){toast(`Datum patří do roku ${yr} – záznam patří do období ${activePeriod}.`);return;}
+  const pc=pickedCode('tx-edit-code');if(!pc){toast('Vyber projekt / kód.');return;}
   $('btn-tx-update').disabled=true;
   try{
     const locked=$('tx-edit-docnumber').readOnly, typed=$('tx-edit-docnumber').value.trim();
@@ -2163,7 +2188,7 @@ $('btn-tx-update').addEventListener('click',async()=>{
       const dup=await getDocs(query(txCol(),where('docNumber','==',typed)));
       if(dup.docs.some(d=>d.id!==editTxId)){toast('Toto číslo dokladu už existuje.');$('btn-tx-update').disabled=false;return;}
     }
-    await updateDoc(txDoc(editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),...(locked?{}:{docNumber:typed})});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
+    await updateDoc(txDoc(editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),...pc,...(locked?{}:{docNumber:typed})});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
   catch(e){console.error(e);toast('Chyba při ukládání.');}
   $('btn-tx-update').disabled=false;
 });
@@ -2212,7 +2237,7 @@ function renderInvoices(){
         <div class="doc-num">${escHtml(inv.invNumber||'–')}</div>
         <div class="doc-desc">
           <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(inv.vendor)}</div>
-          <div style="font-size:11px;margin-top:1px;"><span class="badge ${bC[st]}">${sL[st]}</span>${inv.desc?' · '+escHtml(inv.desc):''}</div>
+          <div style="font-size:11px;margin-top:1px;"><span class="badge ${bC[st]}">${sL[st]}</span>${inv.desc?' · '+escHtml(inv.desc):''}${inv.projectCode?`<span class="kd-chip">${escHtml(inv.projectCode)}</span>`:''}</div>
         </div>
         <div class="doc-amount" style="text-align:right;">${fmt(inv.amount)}</div>
       </div>
@@ -2263,6 +2288,7 @@ function openInvEditModal(inv){
   $('inv-edit-number').value=inv.origNumber||inv.number||'';$('inv-edit-amount').value=inv.amount||'';
   $('inv-edit-date').value=inv.date||'';$('inv-edit-due').value=inv.dueDate||'';
   $('inv-edit-url').value=inv.url||'';$('inv-edit-desc').value=inv.desc||'';
+  fillCodeSelect('inv-edit-code',inv.projectCode||'');
   openModal('modal-invoice-edit');
 }
 document.querySelectorAll('[data-inv-filter]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -2296,7 +2322,7 @@ function renderDocuments(){
         <div class="doc-date">${fmtDate(t.date)}</div>
         <div class="doc-type">${dt}</div>
         <div class="doc-num">${escHtml(t.docNumber||'–')}</div>
-        <div class="doc-desc">${cx?'<span class="badge badge-cancel">STORNO</span> ':''}${escHtml(t.desc)}</div>
+        <div class="doc-desc">${cx?'<span class="badge badge-cancel">STORNO</span> ':''}${escHtml(t.desc)}${t.projectCode?`<span class="kd-chip">${escHtml(t.projectCode)}</span>`:''}</div>
         <div class="doc-amount ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</div>
       </div>
       <div class="doc-row-accordion">
@@ -2335,13 +2361,62 @@ function renderDocuments(){
   });
 }
 
+
+/* ── KÓDY PROJEKTŮ (nákladová čísla zakládaná v 10space; zde se jen vybírají) ── */
+let kodyRaw=null, kodyOn=false; const kodySelects=new Set();
+function startKody(){
+  if(kodyOn)return; kodyOn=true;
+  onValue(dbRef(rdb,'/projektKody'),s=>{kodyRaw=s.val()||{};refreshCodeSelects();if(typeof renderCodeSummary==='function')renderCodeSummary();},err=>{console.error('KÓDY:',err);kodyRaw=null;refreshCodeSelects();});
+}
+function codeList(){
+  const out=[],c=(kodyRaw&&kodyRaw.cisla)||{},p=(kodyRaw&&kodyRaw.polozky)||{};
+  Object.keys(c).forEach(cislo=>Object.keys(p[cislo]||{}).sort().forEach(k=>{const x=p[cislo][k];out.push({kod:x.kod,cislo,typ:c[cislo].typ,datum:c[cislo].datum||'',nazev:c[cislo].nazev||'',polozka:x.nazev||'',stav:x.stav});}));
+  return out;
+}
+const codeLabel=o=>`${o.nazev} – ${o.polozka}`;
+function codeOptions(selected){
+  const all=codeList().filter(o=>o.stav!=='uzavrena'||o.kod===selected);
+  const opt=o=>`<option value="${escHtml(o.kod)}"${o.kod===selected?' selected':''}>${escHtml(o.kod)} · ${escHtml(codeLabel(o))}${o.stav==='uzavrena'?' (uzavřená)':''}</option>`;
+  const g=all.filter(o=>o.typ==='G').sort((a,b)=>a.kod.localeCompare(b.kod)), e=all.filter(o=>o.typ==='E').sort((a,b)=>(b.datum||'').localeCompare(a.datum||'')||a.kod.localeCompare(b.kod));
+  const head=kodyRaw===null?'<option value="">Seznam kódů se nepodařilo načíst</option>':'<option value="">— vyber projekt / kód —</option>';
+  return head+(g.length?`<optgroup label="Režie">${g.map(opt).join('')}</optgroup>`:'')+(e.length?`<optgroup label="Projekty">${e.map(opt).join('')}</optgroup>`:'');
+}
+function fillCodeSelect(id,selected){
+  const el=$(id); if(!el)return; kodySelects.add(id);
+  el.innerHTML=codeOptions(selected||''); if(selected)el.value=selected;
+}
+function refreshCodeSelects(){kodySelects.forEach(id=>{const el=$(id);if(el)fillCodeSelect(id,el.value);});}
+// vybraný kód a kopie názvu (uloží se k záznamu, aby se účetnictví nezměnilo přejmenováním projektu)
+function pickedCode(id){
+  const v=$(id).value; if(!v)return null;
+  const o=codeList().find(x=>x.kod===v); if(!o)return null;
+  return {projectCode:o.kod,projectName:codeLabel(o).slice(0,200)};
+}
+
+function renderCodeSummary(){
+  const wrap=$('code-summary'); if(!wrap)return;
+  const g={};
+  liveTx().forEach(t=>{
+    const k=t.projectCode||'';
+    const o=g[k]||(g[k]={kod:k,name:t.projectName||'',inc:0,exp:0});
+    if(t.projectName)o.name=t.projectName;
+    if(t.type==='income')o.inc+=t.amount;else o.exp+=t.amount;
+  });
+  const known=Object.fromEntries(codeList().map(o=>[o.kod,codeLabel(o)]));
+  const rows=Object.values(g).sort((a,b)=>(a.kod===''?1:0)-(b.kod===''?1:0)||a.kod.localeCompare(b.kod));
+  if(!rows.length){wrap.innerHTML='';return;}
+  const tot=rows.reduce((s,r)=>({inc:s.inc+r.inc,exp:s.exp+r.exp}),{inc:0,exp:0});
+  const row=(r)=>`<div class="kd-sum-row"><div class="kd-sum-name">${r.kod?`<span class="kd-chip" style="margin:0 8px 0 0;">${escHtml(r.kod)}</span>${escHtml(known[r.kod]||r.name)}`:'<span class="kd-chip none" style="margin:0 8px 0 0;">bez kódu</span>starší záznamy'}</div><div class="n inc income-color">${fmt(r.inc)}</div><div class="n expense-color">${fmt(r.exp)}</div><div class="n" style="font-weight:600;color:${r.inc-r.exp>=0?'var(--income)':'var(--expense)'};">${fmt(r.inc-r.exp)}</div></div>`;
+  wrap.innerHTML=`<div class="ledger" style="margin-top:16px;"><div class="ledger-header"><div class="ledger-title">Podle projektů a kódů</div></div><div class="ledger-body"><div class="kd-sum-row head"><div>Kód</div><div class="n inc">Příjmy</div><div class="n">Výdaje</div><div class="n">Výsledek</div></div>${rows.map(row).join('')}<div class="kd-sum-row" style="font-weight:700;"><div>Celkem</div><div class="n inc">${fmt(tot.inc)}</div><div class="n">${fmt(tot.exp)}</div><div class="n">${fmt(tot.inc-tot.exp)}</div></div></div></div>`;
+}
+
 /* ── ADD TX MODAL ── */
 document.querySelectorAll('.btn-add').forEach(btn=>btn.addEventListener('click',()=>{txAccount=btn.dataset.account;txType='income';selectedPairId=null;openTxModal();}));
 function openTxModal(){
   $('modal-tx-title').textContent=txAccount==='cash'?'Nový záznam – Pokladna':'Nový záznam – Banka';
   $('tx-desc').value='';$('tx-amount').value='';$('tx-date').value=today();$('tx-party').value='';
   $('tx-type-income').classList.add('active-income');$('tx-type-expense').classList.remove('active-expense');
-  setCatOptions('income');txType='income';renderPairList();openModal('modal-tx');
+  setCatOptions('income');txType='income';renderPairList();fillCodeSelect('tx-code','');openModal('modal-tx');
 }
 $('tx-type-income').addEventListener('click',()=>{txType='income';$('tx-type-income').classList.add('active-income');$('tx-type-expense').classList.remove('active-expense');setCatOptions('income');$('tx-pair-wrap').style.display='none';selectedPairId=null;});
 $('tx-type-expense').addEventListener('click',()=>{txType='expense';$('tx-type-expense').classList.add('active-expense');$('tx-type-income').classList.remove('active-income');setCatOptions('expense');const u=allInvoices.filter(i=>!i.paid&&!i.cancelled);$('tx-pair-wrap').style.display=u.length?'block':'none';renderPairList();});
@@ -2352,7 +2427,7 @@ function renderPairList(){
   wrap.innerHTML=unpaid.map(inv=>`<div class="pair-item${selectedPairId===inv.id?' selected':''}" data-pair-id="${escHtml(inv.id)}"><div class="pair-item-vendor">${escHtml(inv.vendor)}${inv.invNumber?' – '+escHtml(inv.invNumber):''}</div><div>${fmt(inv.amount)}</div><span class="badge badge-unpaid">nezaplacena</span></div>`).join('');
   wrap.querySelectorAll('.pair-item').forEach(item=>item.addEventListener('click',()=>{
     const id=item.dataset.pairId;selectedPairId=selectedPairId===id?null:id;
-    if(selectedPairId){const inv=allInvoices.find(i=>i.id===selectedPairId);if(inv){$('tx-amount').value=inv.amount;$('tx-desc').value=$('tx-desc').value||'Úhrada FA '+(inv.invNumber||inv.vendor);$('tx-party').value=$('tx-party').value||inv.vendor;}}
+    if(selectedPairId){const inv=allInvoices.find(i=>i.id===selectedPairId);if(inv){if(inv.projectCode)fillCodeSelect('tx-code',inv.projectCode);$('tx-amount').value=inv.amount;$('tx-desc').value=$('tx-desc').value||'Úhrada FA '+(inv.invNumber||inv.vendor);$('tx-party').value=$('tx-party').value||inv.vendor;}}
     renderPairList();
   }));
 }
@@ -2361,11 +2436,12 @@ $('btn-tx-save').addEventListener('click',async()=>{
   if(!desc){toast('Zadej popis.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!date){toast('Zadej datum.');return;}
   const yr=String(new Date(date).getFullYear());
   if(yr!==activePeriod){toast(`Datum patří do roku ${yr} – přepni aktivní období.`);return;}
+  const pc=pickedCode('tx-code');if(!pc){toast('Vyber projekt / kód.');return;}
   $('btn-tx-save').disabled=true;
   try{
     const series=(txAccount==='cash'?'PD':'BV')+activePeriod, txRef=doc(txCol());
     await withNumber(series,'tx',null,(tx,docNumber)=>{
-      tx.set(txRef,{desc,amount,date,account:txAccount,type:txType,category:$('tx-category').value,party:$('tx-party').value.trim(),pairedInvoice:selectedPairId||null,docNumber,createdAt:serverTimestamp()});
+      tx.set(txRef,{desc,amount,date,account:txAccount,type:txType,category:$('tx-category').value,party:$('tx-party').value.trim(),pairedInvoice:selectedPairId||null,docNumber,...pc,createdAt:serverTimestamp()});
       if(selectedPairId)tx.update(invDoc(selectedPairId),{paid:true,paidDate:date});
     });
     closeModal('modal-tx');toast('Záznam uložen ✓');
@@ -2378,6 +2454,7 @@ $('btn-add-fap').addEventListener('click',async()=>{
   $('inv-ico').value='';$('inv-vendor').value='';$('inv-number').value=await generateInvNumber('fap');
   $('inv-orig-number').value='';$('inv-amount').value='';$('inv-date').value=today();
   $('inv-due').value='';$('inv-url').value='';$('inv-desc').value='';$('inv-vs').value='';$('inv-ks').value='';
+  fillCodeSelect('inv-code','');
   openModal('modal-invoice');
 });
 $('btn-add-fav').addEventListener('click',async()=>{
@@ -2385,7 +2462,7 @@ $('btn-add-fav').addEventListener('click',async()=>{
   const num=await generateInvNumber('fav');
   $('fav-number').value=num;$('fav-ico').value='';$('fav-vendor').value='';
   $('fav-date').value=today();$('fav-due').value='';$('fav-vs').value=num.replace(/\D/g,'');$('fav-ks').value='';$('fav-desc').value='';
-  renderFavItems();openModal('modal-fav');
+  renderFavItems();fillCodeSelect('fav-code','');openModal('modal-fav');
 });
 
 async function aresLookup(ico,nameEl,addrEl){
@@ -2411,11 +2488,12 @@ async function aresLookup(ico,nameEl,addrEl){
 $('btn-invoice-save').addEventListener('click',async()=>{
   const vendor=$('inv-vendor').value.trim(),amount=parseFloat($('inv-amount').value),dueDate=$('inv-due').value;
   if(!vendor){toast('Zadej dodavatele.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}
+  const pc=pickedCode('inv-code');if(!pc){toast('Vyber projekt / kód.');return;}
   $('btn-invoice-save').disabled=true;
   try{
     const invRef=doc(invCol());
     const invNumber=await withNumber('FAP'+activePeriod,'inv',null,(tx,num)=>{
-      tx.set(invRef,{invType:'fap',invNumber:num,vendor,amount,ico:$('inv-ico').value.trim(),origNumber:$('inv-orig-number').value.trim(),date:$('inv-date').value,dueDate,vs:$('inv-vs').value.trim(),ks:$('inv-ks').value.trim(),url:$('inv-url').value.trim(),desc:$('inv-desc').value.trim(),paid:false,createdAt:serverTimestamp()});
+      tx.set(invRef,{invType:'fap',invNumber:num,...pc,vendor,amount,ico:$('inv-ico').value.trim(),origNumber:$('inv-orig-number').value.trim(),date:$('inv-date').value,dueDate,vs:$('inv-vs').value.trim(),ks:$('inv-ks').value.trim(),url:$('inv-url').value.trim(),desc:$('inv-desc').value.trim(),paid:false,createdAt:serverTimestamp()});
     });
     if(invNumber!==$('inv-number').value.trim())toast(`Přiděleno číslo ${invNumber}.`);
     await saveContactIfNew(vendor,$('inv-ico').value.trim(),$('inv-vendor').dataset.address||'');
@@ -2426,9 +2504,10 @@ $('btn-invoice-save').addEventListener('click',async()=>{
 $('btn-invoice-update').addEventListener('click',async()=>{
   const vendor=$('inv-edit-vendor').value.trim(),amount=parseFloat($('inv-edit-amount').value),dueDate=$('inv-edit-due').value;
   if(!vendor){toast('Zadej dodavatele.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}
+  const pc=pickedCode('inv-edit-code');if(!pc){toast('Vyber projekt / kód.');return;}
   $('btn-invoice-update').disabled=true;
   try{
-    await updateDoc(invDoc(editInvId),{vendor,amount,dueDate,ico:$('inv-edit-ico').value.trim(),origNumber:$('inv-edit-number').value.trim(),date:$('inv-edit-date').value,url:$('inv-edit-url').value.trim(),desc:$('inv-edit-desc').value.trim()});
+    await updateDoc(invDoc(editInvId),{...pc,vendor,amount,dueDate,ico:$('inv-edit-ico').value.trim(),origNumber:$('inv-edit-number').value.trim(),date:$('inv-edit-date').value,url:$('inv-edit-url').value.trim(),desc:$('inv-edit-desc').value.trim()});
     await saveContactIfNew(vendor,$('inv-edit-ico').value.trim(),$('inv-edit-vendor').dataset.address||'');
     closeModal('modal-invoice-edit');toast('Faktura upravena ✓');
   }catch(e){console.error(e);toast('Chyba.');}
@@ -2450,10 +2529,11 @@ $('btn-fav-save').addEventListener('click',async()=>{
   const vendor=$('fav-vendor').value.trim(),dueDate=$('fav-due').value;
   const total=favItems.reduce((s,i)=>s+(i.qty||1)*(i.price||0),0);
   if(!vendor){toast('Zadej odběratele.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}if(total<=0){toast('Zadej ceny položek.');return;}
+  const pc=pickedCode('fav-code');if(!pc){toast('Vyber projekt / kód.');return;}
   $('btn-fav-save').disabled=true;
   try{
     const proposed=$('fav-number').value, proposedVs=proposed.replace(/\D/g,'');
-    const baseData={invType:'fav',vendor,ico:$('fav-ico').value.trim(),address:$('fav-vendor').dataset.address||'',date:$('fav-date').value,dueDate,vs:$('fav-vs').value.trim(),ks:$('fav-ks').value.trim(),desc:$('fav-desc').value.trim(),items:favItems,amount:total,paid:false,createdAt:serverTimestamp()};
+    const baseData={invType:'fav',...pc,vendor,ico:$('fav-ico').value.trim(),address:$('fav-vendor').dataset.address||'',date:$('fav-date').value,dueDate,vs:$('fav-vs').value.trim(),ks:$('fav-ks').value.trim(),desc:$('fav-desc').value.trim(),items:favItems,amount:total,paid:false,createdAt:serverTimestamp()};
     const invRef=doc(invCol());
     let invData=null;
     await withNumber('FAV'+activePeriod,'inv',null,(tx,num)=>{

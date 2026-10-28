@@ -223,6 +223,7 @@
       <tbody id="rep-body"></tbody>
       <tfoot><tr><td colspan="3">Celkem</td><td class="r" id="rep-total"></td></tr></tfoot>
     </table>
+    <div class="field" style="margin:14px 0 4px;"><label>Projekt / kód *</label><select id="rep-code"></select></div>
     <div class="rep-actions">
       <button class="btn-secondary" id="btn-rep-xlsx">Stáhnout Excel</button>
       <button class="btn-secondary" id="btn-rep-pdf">Stáhnout PDF</button>
@@ -247,6 +248,7 @@
     <div class="field"><label>Ujeté km (celkem tam i zpět)</label><input id="fu-km" type="number" inputmode="decimal" min="0" max="4999" step="0.1" placeholder="0" /></div>
     <div class="field"><label>Průměrná spotřeba dle technického průkazu (l/100 km, u elektřiny kWh/100 km)</label><input id="fu-cons" type="number" inputmode="decimal" min="0" max="59" step="0.1" placeholder="0" /></div>
     <div class="field"><label>Druh paliva</label><select id="fu-fuel"></select></div>
+    <div class="field"><label>Projekt / kód *</label><select id="fu-code"></select></div>
     <table class="rep">
       <tbody>
         <tr><td>Náhrada za ujeté km</td><td class="r" id="fu-sum-km">–</td></tr>
@@ -300,9 +302,13 @@ import { initializeFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collect
 import { getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+import { getDatabase, ref as dbRef, onValue }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAjDCB3gpqytTHnG7zKLKJGXMNeW5vyC_I",
   authDomain: "base-39f52.firebaseapp.com",
+  databaseURL: "https://base-39f52-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "base-39f52",
   storageBucket: "base-39f52.firebasestorage.app",
   messagingSenderId: "20753597026",
@@ -336,6 +342,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = initializeFirestore(app, { experimentalForceLongPolling: true, useFetchStreams: false }, 'korun');
 const storage = getStorage(app);
+const rdb = getDatabase(app);
 
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n).toLocaleString('cs-CZ', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' Kč';
@@ -397,6 +404,38 @@ $('m-main').addEventListener('click', ()=>{ view='main'; menu.classList.remove('
 $('m-archive').addEventListener('click', ()=>{ view='archive'; menu.classList.remove('open'); render(); });
 function loginMessage(txt){ document.querySelector('.login-sub').textContent = txt; }
 
+
+/* ── KÓDY PROJEKTŮ (nákladová čísla zakládaná v 10space; zde se jen vybírají) ── */
+let kodyRaw=null, kodyOn=false; const kodySelects=new Set();
+function startKody(){
+  if(kodyOn)return; kodyOn=true;
+  onValue(dbRef(rdb,'/projektKody'),s=>{kodyRaw=s.val()||{};refreshCodeSelects();if(typeof renderCodeSummary==='function')renderCodeSummary();},err=>{console.error('KÓDY:',err);kodyRaw=null;refreshCodeSelects();});
+}
+function codeList(){
+  const out=[],c=(kodyRaw&&kodyRaw.cisla)||{},p=(kodyRaw&&kodyRaw.polozky)||{};
+  Object.keys(c).forEach(cislo=>Object.keys(p[cislo]||{}).sort().forEach(k=>{const x=p[cislo][k];out.push({kod:x.kod,cislo,typ:c[cislo].typ,datum:c[cislo].datum||'',nazev:c[cislo].nazev||'',polozka:x.nazev||'',stav:x.stav});}));
+  return out;
+}
+const codeLabel=o=>`${o.nazev} – ${o.polozka}`;
+function codeOptions(selected){
+  const all=codeList().filter(o=>o.stav!=='uzavrena'||o.kod===selected);
+  const opt=o=>`<option value="${escHtml(o.kod)}"${o.kod===selected?' selected':''}>${escHtml(o.kod)} · ${escHtml(codeLabel(o))}${o.stav==='uzavrena'?' (uzavřená)':''}</option>`;
+  const g=all.filter(o=>o.typ==='G').sort((a,b)=>a.kod.localeCompare(b.kod)), e=all.filter(o=>o.typ==='E').sort((a,b)=>(b.datum||'').localeCompare(a.datum||'')||a.kod.localeCompare(b.kod));
+  const head=kodyRaw===null?'<option value="">Seznam kódů se nepodařilo načíst</option>':'<option value="">— vyber projekt / kód —</option>';
+  return head+(g.length?`<optgroup label="Režie">${g.map(opt).join('')}</optgroup>`:'')+(e.length?`<optgroup label="Projekty">${e.map(opt).join('')}</optgroup>`:'');
+}
+function fillCodeSelect(id,selected){
+  const el=$(id); if(!el)return; kodySelects.add(id);
+  el.innerHTML=codeOptions(selected||''); if(selected)el.value=selected;
+}
+function refreshCodeSelects(){kodySelects.forEach(id=>{const el=$(id);if(el)fillCodeSelect(id,el.value);});}
+// vybraný kód a kopie názvu (uloží se k záznamu, aby se účetnictví nezměnilo přejmenováním projektu)
+function pickedCode(id){
+  const v=$(id).value; if(!v)return null;
+  const o=codeList().find(x=>x.kod===v); if(!o)return null;
+  return {projectCode:o.kod,projectName:codeLabel(o).slice(0,200)};
+}
+
 onAuthStateChanged(auth, async user => {
   $('loading').style.display='none';
   [unsubExp, unsubRep, unsubSummary, unsubRates].forEach(u=>u&&u());
@@ -421,6 +460,7 @@ onAuthStateChanged(auth, async user => {
 });
 
 function subscribe(){
+  startKody();
   const exp = collection(db,'orgs',ORG_ID,'expenses');
   const rep = collection(db,'orgs',ORG_ID,'expenseReports');
   unsubExp = onSnapshot(query(exp, where('uid','==',currentUser.uid)), snap => {
@@ -476,7 +516,7 @@ function reportCard(r){
   return `<div class="exp-card"${rej?` data-open="${escHtml(r.id)}" style="cursor:pointer;"`:''}>
     <div class="exp-top">
       <div style="min-width:0;"><div class="exp-title">${title}</div>
-        <div class="exp-sub">${sub}</div></div>
+        <div class="exp-sub">${sub}${r.projectCode?' · '+escHtml(r.projectCode):''}</div></div>
       <div><div class="exp-amount">${fmt(r.total)}</div><div style="text-align:right;"><span class="badge ${st.cls}">${st.label}</span></div></div>
     </div>
     ${r.status==='rejected' && r.rejectNote ? `<div class="note-red">Důvod: ${escHtml(r.rejectNote)}</div>` : ''}
@@ -637,6 +677,7 @@ $('btn-make-report').addEventListener('click', ()=>{
   $('rep-who').textContent = memberName;
   $('rep-body').innerHTML = reportItems.map((i,n)=>`<tr><td>${n+1}</td><td>${fmtDate(i.date)}</td><td>${escHtml(i.desc)}</td><td class="r">${fmt(i.amount)}</td></tr>`).join('');
   $('rep-total').textContent = fmt(total);
+  fillCodeSelect('rep-code', '');
   openModal('modal-report');
 });
 
@@ -733,6 +774,7 @@ $('btn-rep-pdf').addEventListener('click', async ()=>{
 
 $('btn-rep-submit').addEventListener('click', async ()=>{
   if (busy || !reportItems.length) return;
+  const pc = pickedCode('rep-code'); if (!pc){ toast('Vyber projekt / kód.'); return; }
   if (!confirm('Odeslat žádost ke schválení? Položky pak nepůjde upravit.')) return;
   const btn = $('btn-rep-submit');
   busy = true; btn.disabled = true; btn.textContent = 'Odesílám…';
@@ -745,7 +787,7 @@ $('btn-rep-submit').addEventListener('click', async ()=>{
     const batch = writeBatch(db);
     batch.set(repRef, {
       uid: currentUser.uid, name: memberName, email: currentUser.email,
-      items: reportItems, count: reportItems.length, total, pdfPath,
+      items: reportItems, count: reportItems.length, total, pdfPath, ...pc,
       status: 'submitted', createdAt: serverTimestamp()
     });
     reportItems.forEach(i=>batch.update(doc(db,'orgs',ORG_ID,'expenses',i.id), {status:'submitted', reportId:repRef.id}));
@@ -783,6 +825,7 @@ function openFuel(prefill, rej){
   renderFuelOptions();
   $('fu-fuel').value = prefill ? prefill.fuelKey : FUELS[0].key;
   updateFuelSummary();
+  fillCodeSelect('fu-code', (rej && rej.projectCode) || '');
   openModal('modal-fuel');
 }
 $('btn-fuel').addEventListener('click', ()=>openFuel(null));
@@ -902,6 +945,7 @@ $('btn-fu-pdf').addEventListener('click', async ()=>{
 $('btn-fu-submit').addEventListener('click', async ()=>{
   if (fuelBusy) return;
   const f = validFuel(); if(!f) return;
+  const pc = pickedCode('fu-code'); if (!pc){ toast('Vyber projekt / kód.'); return; }
   if (!confirm(`Odeslat ke schválení náhradu ${fmt(f.total)}?`)) return;
   const btn = $('btn-fu-submit');
   fuelBusy = true; btn.disabled = true; btn.textContent = 'Odesílám…';
@@ -912,7 +956,7 @@ $('btn-fu-submit').addEventListener('click', async ()=>{
     await uploadBytes(sRef(storage, pdfPath), pdfBlob, {contentType:'application/pdf'});
     await setDoc(repRef, {
       uid: currentUser.uid, name: memberName, email: currentUser.email,
-      kind: 'palivo', fuel: f, items: [], count: 1, total: f.total, pdfPath,
+      kind: 'palivo', fuel: f, items: [], count: 1, total: f.total, pdfPath, ...pc,
       status: 'submitted', createdAt: serverTimestamp()
     });
     if (fuelRejId){

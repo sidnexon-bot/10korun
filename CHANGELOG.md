@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.1.3 (1. 11. 2026)
+- Kompaktní prostředí na počítači: menší pole a písmo, užší okna a formuláře ve sloupcích, hustší tabulky; faktury a náhrady ve dvou sloupcích.
+
 ## 3.1.2 (1. 11. 2026)
 - Android: spodní lišta je nižší, ikony a popisky jsou menší a aktivní záložka má barvu aplikace.
 

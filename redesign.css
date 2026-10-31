@@ -61,7 +61,7 @@ body.dark header::after { background: linear-gradient(to bottom, rgba(0, 0, 0, 0
 
 /* ── 4) Postranní panel: stejné písmo, velikosti, odsazení a pořadí jako v 10space a 10base ──
    Logo, karta profilu, položky 14 px, akce 13 px; pořadí dole: režim, Nastavení, Odhlásit se, čára, Skrýt panel.
-   Písmo tlačítek zůstává výchozí systémové (font-family: revert), přesně jako v 10space. */
+   Písmo tlačítek se dědí ze stránky (systémové), stejně jako v 10space. */
 .sidebar { background: var(--card); border-right: none; padding: 0; overflow-y: auto; transition: width 0.22s cubic-bezier(0.22, 0.8, 0.28, 1); }
 body.dark .sidebar { background: var(--card); }
 .sidebar { font-size: 16px; line-height: normal; color: #1c1c1e; }
@@ -78,13 +78,13 @@ body.dark .sidebar-profile { background: #1d1d20; }
 .sidebar-profile-avatar { font-size: 13px; font-weight: 700; color: #fff; }
 .sidebar-nav { padding: 4px 8px; gap: 2px; }
 .sidebar-divider, body.dark .sidebar-divider { border: 0 !important; height: 14px; margin: 0; background: none !important; }
-.sidebar-nav-item { font-family: revert; font-size: 14px; font-weight: 400; color: #1c1c1e; padding: 9px 12px; gap: 10px; border-radius: 12px; position: relative; }
+.sidebar-nav-item { font-family: inherit; font-size: 14px; font-weight: 400; color: #1c1c1e; padding: 9px 12px; gap: 10px; border-radius: 12px; position: relative; }
 body.dark .sidebar-nav-item { color: #8e8e93; }
 .sidebar-nav-item:hover { background: #f2f2f7; color: #1c1c1e; }
 body.dark .sidebar-nav-item:hover { background: #1d1d20; color: #8e8e93; }
 .sidebar-nav-item.active, .sidebar-nav-item.active:hover { font-weight: 600; color: var(--accent); background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 .sidebar-bottom { padding: 0 8px 16px; margin-top: auto; gap: 2px; }
-.sidebar-action { font-family: revert; font-size: 13px; font-weight: 500; color: #6b6b70; padding: 9px 12px; gap: 10px; border-radius: 8px; }
+.sidebar-action { font-family: inherit; font-size: 13px; font-weight: 500; color: #6b6b70; padding: 9px 12px; gap: 10px; border-radius: 8px; }
 body.dark .sidebar-action { color: #8e8e93; }
 .sidebar-action:hover { background: #f2f2f7; }
 body.dark .sidebar-action:hover { background: #1d1d20; }
@@ -337,3 +337,16 @@ body.dark .pmenu { background: #18181b; box-shadow: 0 20px 54px rgba(0, 0, 0, 0.
 .view.active { animation: pageIn 0.25s ease; }
 .sidebar-nav-item .icon, .sidebar-action .icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .sidebar-nav-item .icon svg, .sidebar-action .icon svg { width: 16px; height: 16px; }
+
+/* ════════════════════════════════════════════════════════════════════
+   Jednotná typografie a velikosti (vzor 10space), stejné ve všech třech aplikacích
+   Písmo: systémové (-apple-system …) i u tlačítek a polí. Tlačítka 14 px / 500, výška 40 px, zaoblení 14.
+   Karty: zaoblení 18, odsazení 18. Nadpisy karet 11 px / 600 / verzálky. Profilové tlačítko 40 px kolečko v barvě aplikace.
+   ════════════════════════════════════════════════════════════════════ */
+html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+button, input, select, textarea { font-family: inherit; }
+.btn-primary, .btn-secondary, .btn-danger { font-size: 14px; font-weight: 500; padding: 10px 20px; min-height: 40px; border-radius: var(--r-ctl); }
+.stat-card, .transit-row { padding: 18px; }
+.stat-label, h3 { letter-spacing: 0.06em; }
+h3 { font-size: 11px; }
+.profile-btn { width: 40px; height: 40px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 700; }

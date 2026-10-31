@@ -27,6 +27,28 @@
       --btn-bg:      #e8e8ed;
       --btn-color:   #007aff;
       --sidebar-w:   220px;
+      --header-bg:   rgba(242,242,247,.85);
+      --bar-bg:      linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+      --bar-border:  rgba(255,255,255,0.4);
+      --bar-text:    #6b6b70;
+      --skel-a:      #e8e8ed;
+      --skel-b:      #f2f2f7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg:#000; --card:#1c1c1e; --text:#f2f2f7; --muted:#8e8e93; --border:#38383a;
+        --accent:#ff453a; --accent-soft:rgba(255,69,58,.14);
+        --income:#32d74b; --income-bg:rgba(50,215,75,.16); --expense:#ff6961; --expense-bg:rgba(255,69,58,.16);
+        --warn:#ffd60a; --warn-bg:rgba(255,214,10,.14); --btn-bg:#2c2c2e; --btn-color:#0a84ff;
+        --header-bg:rgba(0,0,0,.8); --bar-bg:linear-gradient(to bottom, rgba(44,44,46,.92), rgba(28,28,30,.78)); --bar-border:rgba(255,255,255,.08); --bar-text:#a1a1a6; --skel-a:#2c2c2e; --skel-b:#3a3a3c; color-scheme:dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg:#000; --card:#1c1c1e; --text:#f2f2f7; --muted:#8e8e93; --border:#38383a;
+      --accent:#ff453a; --accent-soft:rgba(255,69,58,.14);
+      --income:#32d74b; --income-bg:rgba(50,215,75,.16); --expense:#ff6961; --expense-bg:rgba(255,69,58,.16);
+      --warn:#ffd60a; --warn-bg:rgba(255,214,10,.14); --btn-bg:#2c2c2e; --btn-color:#0a84ff;
+      --header-bg:rgba(0,0,0,.8); --bar-bg:linear-gradient(to bottom, rgba(44,44,46,.92), rgba(28,28,30,.78)); --bar-border:rgba(255,255,255,.08); --bar-text:#a1a1a6; --skel-a:#2c2c2e; --skel-b:#3a3a3c; color-scheme:dark;
     }
 
     body {
@@ -225,7 +247,7 @@
     /* ── HEADER (mobile) ── */
     header {
       position: sticky; top: 0; z-index: 40;
-      background: rgba(242,242,247,.85);
+      background: var(--header-bg);
       backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       padding: 20px 16px 12px;
       border-bottom: 1px solid var(--border);
@@ -242,6 +264,14 @@
       font-size: 13px; font-weight: 700; cursor: pointer; overflow: hidden;
     }
     .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-wrap { position: relative; }
+    .pmenu { position:absolute; right:0; top:44px; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,.2); min-width:210px; padding:6px; display:none; z-index:60; }
+    .pmenu.open { display:block; }
+    .pmenu button { display:flex; width:100%; align-items:center; gap:10px; background:none; border:none; color:var(--text); font:inherit; font-size:15px; padding:11px 12px; border-radius:10px; text-align:left; cursor:pointer; }
+    .pmenu button:active { background:var(--btn-bg); }
+    .pmenu button.out { color:var(--expense); }
+    .pmenu .sep { height:1px; background:var(--border); margin:4px 6px; }
+    .pmenu svg { width:18px; height:18px; flex:none; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 
     /* ── MAIN ── */
     main {
@@ -275,9 +305,9 @@
       max-width: 420px;
       margin: 12px;
       padding: 6px;
-      background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+      background: var(--bar-bg);
       backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.4);
+      border: 1px solid var(--bar-border);
       border-radius: 24px;
       box-shadow: 0 8px 30px rgba(0,0,0,0.12);
       pointer-events: auto;
@@ -289,7 +319,7 @@
       border: none; background: transparent;
       padding: 8px 4px; border-radius: 18px;
       font-size: 12px; font-weight: 500;
-      color: #6b6b70;
+      color: var(--bar-text);
       font-family: inherit; cursor: pointer;
       transition: all .2s ease;
     }
@@ -770,7 +800,7 @@
       }
       
       .skeleton {
-        background: linear-gradient(90deg, #e8e8ed 25%, #f2f2f7 50%, #e8e8ed 75%);
+        background: linear-gradient(90deg, var(--skel-a) 25%, var(--skel-b) 50%, var(--skel-a) 75%);
         background-size: 200% 100%;
         animation: shimmer 1.4s infinite;
         border-radius: 8px;
@@ -928,6 +958,10 @@
     <hr class="sidebar-divider">
 
     <div class="sidebar-bottom">
+      <button class="sidebar-action" id="btn-theme-desk">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>
+        <span class="theme-label">Tmavý režim</span>
+      </button>
       <button class="sidebar-action" id="btn-signout-desk" style="color:#ff3b30">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></span>
         Odhlásit se
@@ -943,8 +977,18 @@
           <h1 id="mobile-header-title">Přehled</h1>
           <div class="subtitle" id="mobile-header-sub" style="cursor:pointer;" id="period-selector"></div>
         </div>
-        <div class="profile-btn" id="profile-btn">
-          <img id="avatar-img-mob" src="" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+        <div class="profile-wrap">
+          <div class="profile-btn" id="profile-btn">
+            <img id="avatar-img-mob" src="" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+          </div>
+          <div class="pmenu" id="pmenu">
+            <button data-view="contacts" type="button"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Kontakty</button>
+            <button data-view="settings" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Nastavení</button>
+            <div class="sep"></div>
+            <button id="pm-theme" type="button"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span class="theme-label">Tmavý režim</span></button>
+            <div class="sep"></div>
+            <button id="pm-signout" class="out" type="button"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Odhlásit se</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1091,14 +1135,6 @@
         <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2V2l-3 2-3-2-3 2-3-2z"/><path d="M8 9h8M8 13h5"/></svg></span>
         <small>Náhrady</small>
         <span class="nav-badge"></span>
-      </button>
-      <button data-view="contacts">
-        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
-        <small>Kontakty</small>
-      </button>
-      <button data-view="settings">
-        <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-        <small>Nastavení</small>
       </button>
     </div>
   </nav>
@@ -1560,6 +1596,20 @@ function setCatOptions(type,selId='tx-category'){
 $('btn-google-login').addEventListener('click',async()=>{
   try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){console.error(e);toast('Přihlášení se nezdařilo.');}
 });
+/* ── Režim vzhledu a menu profilu ── */
+const isDarkNow=()=>{const t=document.documentElement.dataset.theme;return t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);};
+function applyTheme(t){
+  if(t==='dark'||t==='light')document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme;
+  document.querySelectorAll('.theme-label').forEach(e=>e.textContent=isDarkNow()?'Světlý režim':'Tmavý režim');
+  const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=isDarkNow()?'#000000':'#f2f2f7';
+}
+function toggleTheme(){const next=isDarkNow()?'light':'dark';try{localStorage.setItem('korun-theme',next);}catch(_){}applyTheme(next);}
+{let saved=null;try{saved=localStorage.getItem('korun-theme');}catch(_){}applyTheme(saved);}
+['btn-theme-desk','pm-theme'].forEach(id=>$(id).addEventListener('click',()=>{toggleTheme();$('pmenu').classList.remove('open');}));
+$('profile-btn').addEventListener('click',e=>{e.stopPropagation();$('pmenu').classList.toggle('open');});
+document.addEventListener('click',e=>{if(!e.target.closest('#pmenu'))$('pmenu').classList.remove('open');});
+$('pm-signout').addEventListener('click',()=>signOut(auth));
+$('pmenu').addEventListener('click',e=>{if(e.target.closest('button'))$('pmenu').classList.remove('open');});
 ['btn-signout-desk','btn-signout-mob'].forEach(id=>{
   const el=$(id); if(el) el.addEventListener('click',()=>signOut(auth));
 });

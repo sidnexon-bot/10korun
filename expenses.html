@@ -109,6 +109,8 @@
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:50; padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom)); }
   .modal-overlay.open { display:flex; }
   .modal { background:var(--card); width:100%; max-width:560px; border-radius:20px; max-height:calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:18px 16px; }
+  @keyframes nudge { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .modal-overlay.open .modal.nudge { animation:nudge .25s ease; }
   .modal-header { display:flex; justify-content:space-between; align-items:center; margin:-18px 0 8px; padding:18px 0 10px; position:sticky; top:-18px; background:var(--card); z-index:2; }
   .modal-title { font-size:18px; font-weight:700; }
   .modal-close { background:var(--btn-bg); border:none; color:var(--muted); width:30px; height:30px; border-radius:50%; font-size:14px; }
@@ -381,7 +383,12 @@ function toast(msg, dur=2800){ const t=$('toast'); t.textContent=msg; t.classLis
 function openModal(id){ $(id).classList.add('open'); }
 function closeModal(id){ $(id).classList.remove('open'); }
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
-document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) closeModal(o.id); }));
+// formulářová okna se klikem mimo nezavírají (rozepsaná práce by se ztratila); jen se zatřesou. Zavře je ✕ nebo Zrušit.
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{
+  if(e.target!==o) return;
+  const m=o.querySelector('.modal'); if(!m) return;
+  m.classList.remove('nudge'); void m.offsetWidth; m.classList.add('nudge');
+}));
 
 let currentUser=null, memberName='', userRole=null;
 let allExp=[], allRep=[], unsubExp=null, unsubRep=null, unsubSummary=null, unsubRates=null;

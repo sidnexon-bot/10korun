@@ -59,26 +59,45 @@ body.dark header { background: rgba(0, 0, 0, 0.84); }
 body.dark header::after { background: linear-gradient(to bottom, rgba(0, 0, 0, 0.84), transparent); }
 .profile-btn { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
 
-/* ── 4) Postranní panel: bez dělicí čáry, aktivní položka s proužkem, zúžení na ikony ── */
-.sidebar { background: var(--card); border-right: none; transition: width 0.22s cubic-bezier(0.22, 0.8, 0.28, 1); }
+/* ── 4) Postranní panel: stejné písmo, velikosti, odsazení a pořadí jako v 10space a 10base ──
+   Logo, karta profilu, položky 14 px, akce 13 px; pořadí dole: režim, Nastavení, Odhlásit se, čára, Skrýt panel.
+   Písmo tlačítek zůstává výchozí systémové (font-family: revert), přesně jako v 10space. */
+.sidebar { background: var(--card); border-right: none; padding: 0; overflow-y: auto; transition: width 0.22s cubic-bezier(0.22, 0.8, 0.28, 1); }
 body.dark .sidebar { background: var(--card); }
-.sidebar-divider, body.dark .sidebar-divider { border: 0 !important; height: 14px; margin: 0; background: none !important; }
-.sidebar-nav-item { border-radius: 12px; position: relative; }
-.sidebar-nav-item.active { box-shadow: inset 3px 0 0 var(--accent); }
-.sidebar-nav-item:hover, .sidebar-action:hover { background: var(--bg); }
-body.dark .sidebar-nav-item:hover, body.dark .sidebar-action:hover { background: #1d1d20; }
-.sidebar-profile { background: var(--bg); box-shadow: none; border-radius: 16px; margin-bottom: 8px; padding: 10px; }
+.sidebar { font-size: 16px; line-height: normal; color: #1c1c1e; }
+body.dark .sidebar { color: var(--text); }
+.sidebar-logo { padding: 22px 20px 6px; font-size: 24px; font-weight: 800; letter-spacing: -0.04em; line-height: 1.1; color: inherit; }
+.sidebar-logo .logo-rest { color: var(--accent); }
+.sidebar-subtitle { padding: 0 20px 8px; font-size: 11px; }
+.sidebar-period { padding: 0 20px 8px !important; }
+.sidebar-profile { margin: 10px 16px 8px; padding: 10px 12px; gap: 10px; border-radius: 16px; background: var(--bg); box-shadow: none; }
 body.dark .sidebar-profile { background: #1d1d20; }
-.sidebar-profile-avatar { background: var(--card); }
+.sidebar-profile-avatar { background: var(--accent); width: 36px; height: 36px; }
+.sidebar-profile-name { font-size: 14px; font-weight: 600; line-height: 1.2; }
+.sidebar-profile-sub { font-size: 11px; line-height: normal; }
+.sidebar-profile-avatar { font-size: 13px; font-weight: 700; color: #fff; }
+.sidebar-nav { padding: 4px 8px; gap: 2px; }
+.sidebar-divider, body.dark .sidebar-divider { border: 0 !important; height: 14px; margin: 0; background: none !important; }
+.sidebar-nav-item { font-family: revert; font-size: 14px; font-weight: 400; color: #1c1c1e; padding: 9px 12px; gap: 10px; border-radius: 12px; position: relative; }
+body.dark .sidebar-nav-item { color: #8e8e93; }
+.sidebar-nav-item:hover { background: #f2f2f7; color: #1c1c1e; }
+body.dark .sidebar-nav-item:hover { background: #1d1d20; color: #8e8e93; }
+.sidebar-nav-item.active, .sidebar-nav-item.active:hover { font-weight: 600; color: var(--accent); background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.sidebar-bottom { padding: 0 8px 16px; margin-top: auto; gap: 2px; }
+.sidebar-action { font-family: revert; font-size: 13px; font-weight: 500; color: #6b6b70; padding: 9px 12px; gap: 10px; border-radius: 8px; }
+body.dark .sidebar-action { color: #8e8e93; }
+.sidebar-action:hover { background: #f2f2f7; }
+body.dark .sidebar-action:hover { background: #1d1d20; }
+.sidebar-action-sep { height: 1px; margin: 8px 12px; background: var(--hair); }
 main { transition: margin-left 0.22s cubic-bezier(0.22, 0.8, 0.28, 1), width 0.22s cubic-bezier(0.22, 0.8, 0.28, 1); }
 .sidebar-collapse { color: var(--muted); }
 .sidebar-collapse svg { transition: transform 0.22s ease; }
-.sidebar.collapsed { overflow-x: hidden; padding-left: 8px; padding-right: 8px; }
+.sidebar.collapsed { overflow-x: hidden; }
 .sidebar.collapsed .sidebar-collapse svg { transform: rotate(180deg); }
-.sidebar.collapsed .sidebar-logo { font-size: 0; padding: 0 0 6px; text-align: center; }
-.sidebar.collapsed .sidebar-logo::after { content: "10k"; font-size: 18px; }
+.sidebar.collapsed .sidebar-logo { padding: 22px 0 6px; text-align: center; }
+.sidebar.collapsed .sidebar-logo .logo-rest { display: none; }
 .sidebar.collapsed .sidebar-subtitle, .sidebar.collapsed .sidebar-period, .sidebar.collapsed .sidebar-collapse-label { display: none; }
-.sidebar.collapsed .sidebar-profile { justify-content: center; padding: 8px 0; background: none; box-shadow: none; }
+.sidebar.collapsed .sidebar-profile { justify-content: center; margin: 10px 10px 8px; padding: 8px 0; background: none; }
 .sidebar.collapsed .sidebar-profile > div:not(.sidebar-profile-avatar) { display: none; }
 .sidebar.collapsed .sidebar-nav-item, .sidebar.collapsed .sidebar-action { font-size: 0; gap: 0; justify-content: center; padding: 11px 0; }
 .sidebar.collapsed .sidebar-nav-item.active { box-shadow: none; }
@@ -312,3 +331,9 @@ body.dark .pmenu { background: #18181b; box-shadow: 0 20px 54px rgba(0, 0, 0, 0.
 .pmenu.open .pm-info { animation: tnIn 0.38s cubic-bezier(0.2, 0.9, 0.3, 1) 0.03s both; }
 .pmenu.open .pm-item { animation: tnIn 0.36s cubic-bezier(0.2, 0.9, 0.3, 1) both; animation-delay: calc(70ms + var(--i, 0) * 34ms); }
 @media (prefers-reduced-motion: reduce) { .pmenu, .pmenu.open { transition: opacity 0.1s ease, visibility 0s; transform: none; } .pmenu.open .pm-info, .pmenu.open .pm-item { animation: none; } }
+
+/* Přepnutí stránky: jemné vyjetí zdola, stejné ve všech třech aplikacích */
+@keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.view.active { animation: pageIn 0.25s ease; }
+.sidebar-nav-item .icon, .sidebar-action .icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sidebar-nav-item .icon svg, .sidebar-action .icon svg { width: 16px; height: 16px; }

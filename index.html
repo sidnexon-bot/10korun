@@ -17,8 +17,8 @@
       --text:        #111111;
       --muted:       #8e8e93;
       --border:      #e5e5ea;
-      --accent:      #EE220C;
-      --accent-soft: rgba(238,34,12,.08);
+      --accent:      #169A4A;
+      --accent-soft: rgba(22,154,74,.08);
       --income:      #1a7a3a;
       --income-bg:   #d4f5e2;
       --expense:     #c00000;
@@ -38,7 +38,7 @@
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
         --bg:#000; --card:#1c1c1e; --text:#f2f2f7; --muted:#8e8e93; --border:#38383a;
-        --accent:#ff453a; --accent-soft:rgba(255,69,58,.14);
+        --accent:#30d158; --accent-soft:rgba(48,209,88,.16);
         --income:#32d74b; --income-bg:rgba(50,215,75,.16); --expense:#ff6961; --expense-bg:rgba(255,69,58,.16);
         --warn:#ffd60a; --warn-bg:rgba(255,214,10,.14); --btn-bg:#2c2c2e; --btn-color:#0a84ff;
         --header-bg:rgba(0,0,0,.8); --bar-bg:linear-gradient(to bottom, rgba(44,44,46,.92), rgba(28,28,30,.78)); --bar-border:rgba(255,255,255,.08); --bar-text:#a1a1a6; --skel-a:#2c2c2e; --skel-b:#3a3a3c; color-scheme:dark;
@@ -46,7 +46,7 @@
     }
     :root[data-theme="dark"] {
       --bg:#000; --card:#1c1c1e; --text:#f2f2f7; --muted:#8e8e93; --border:#38383a;
-      --accent:#ff453a; --accent-soft:rgba(255,69,58,.14);
+      --accent:#30d158; --accent-soft:rgba(48,209,88,.16);
       --income:#32d74b; --income-bg:rgba(50,215,75,.16); --expense:#ff6961; --expense-bg:rgba(255,69,58,.16);
       --warn:#ffd60a; --warn-bg:rgba(255,214,10,.14); --btn-bg:#2c2c2e; --btn-color:#0a84ff;
       --header-bg:rgba(0,0,0,.8); --bar-bg:linear-gradient(to bottom, rgba(44,44,46,.92), rgba(28,28,30,.78)); --bar-border:rgba(255,255,255,.08); --bar-text:#a1a1a6; --skel-a:#2c2c2e; --skel-b:#3a3a3c; color-scheme:dark;
@@ -180,11 +180,11 @@
 
     .btn-add {
       width: 100%; padding: 10px;
-      background: var(--accent-soft); border: 1.5px dashed rgba(238,34,12,.25); border-radius: 10px;
+      background: var(--accent-soft); border: 1.5px dashed rgba(22,154,74,.25); border-radius: 10px;
       color: var(--accent); font-family: inherit; font-size: 14px; font-weight: 600;
       cursor: pointer; transition: background .15s;
     }
-    .btn-add:active { background: rgba(238,34,12,.13); }
+    .btn-add:active { background: rgba(22,154,74,.13); }
 
     /* ══════════════════════════════════
        APP SHELL
@@ -266,13 +266,7 @@
     }
     .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
     .profile-wrap { position: relative; }
-    .pmenu { position:absolute; right:0; top:44px; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,.2); min-width:210px; padding:6px; display:none; z-index:60; }
-    .pmenu.open { display:block; }
-    .pmenu button { display:flex; width:100%; align-items:center; gap:10px; background:none; border:none; color:var(--text); font:inherit; font-size:15px; padding:11px 12px; border-radius:10px; text-align:left; cursor:pointer; }
-    .pmenu button:active { background:var(--btn-bg); }
-    .pmenu button.out { color:var(--expense); }
-    .pmenu .sep { height:1px; background:var(--border); margin:4px 6px; }
-    .pmenu svg { width:18px; height:18px; flex:none; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    .pmenu { position:absolute; right:0; top:46px; z-index:60; }
 
     /* ── MAIN ── */
     main {
@@ -326,7 +320,7 @@
     }
     .bottom button:active { transform: scale(0.95); opacity: .7; }
     .bottom button.active {
-      background: rgba(238,34,12,.08);
+      background: rgba(22,154,74,.08);
       color: var(--accent);
     }
     .bottom button.active .icon svg { stroke: var(--accent); transform: scale(1.1); }
@@ -1014,13 +1008,25 @@
           <div class="profile-btn" id="profile-btn">
             <img id="avatar-img-mob" src="" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
           </div>
-          <div class="pmenu" id="pmenu">
-            <button data-view="contacts" type="button"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Kontakty</button>
-            <button data-view="settings" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Nastavení</button>
-            <div class="sep"></div>
-            <button id="pm-theme" type="button"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span class="theme-label">Tmavý režim</span></button>
-            <div class="sep"></div>
-            <button id="pm-signout" class="out" type="button"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Odhlásit se</button>
+          <div class="pmenu" id="pmenu" role="menu" aria-label="Profil">
+            <div class="pm-info">
+              <div class="pm-avatar" id="pm-avatar" aria-hidden="true"></div>
+              <div class="pm-id">
+                <div class="pm-name" id="pm-name"></div>
+                <div class="pm-email" id="pm-email"></div>
+                <div class="pm-tags"><span class="pm-role">Správce</span></div>
+              </div>
+            </div>
+            <div class="pm-group">
+              <button type="button" class="pm-item" id="pm-theme" role="menuitem" style="--i:0"><span class="pm-icon"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><span class="pm-label theme-label">Tmavý režim</span></button>
+            </div>
+            <div class="pm-group">
+              <button type="button" class="pm-item" data-view="contacts" role="menuitem" style="--i:1"><span class="pm-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="pm-label">Kontakty</span></button>
+              <button type="button" class="pm-item" data-view="settings" role="menuitem" style="--i:2"><span class="pm-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="pm-label">Nastavení</span></button>
+            </div>
+            <div class="pm-group">
+              <button type="button" class="pm-item pm-logout" id="pm-signout" role="menuitem" style="--i:3"><span class="pm-icon pm-red"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></span><span class="pm-label">Odhlásit se</span></button>
+            </div>
           </div>
         </div>
       </div>
@@ -1669,6 +1675,9 @@ onAuthStateChanged(auth,async user=>{
   currentUser=user;
   ['avatar-img-desk','avatar-img-mob'].forEach(id=>{const el=$(id);if(el&&user.photoURL)el.src=user.photoURL;});
   $('sidebar-user-name').textContent=user.displayName||user.email;
+  {const nm=user.displayName||user.email||'?',av=$('pm-avatar');$('pm-name').textContent=nm;$('pm-email').textContent=user.email||'';av.textContent='';
+   const ini=()=>{av.textContent=nm.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();};
+   if(user.photoURL){const im=document.createElement('img');im.alt='';im.src=user.photoURL;im.onerror=()=>{im.remove();ini();};av.appendChild(im);}else ini();}
 
   try{
     const mSnap=await getDoc(doc(db,'orgs',ORG_ID,'members',user.uid));

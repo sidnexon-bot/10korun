@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════════════
    10korun – sjednocený vzhled s 10space a 10base
-   Přídavná vrstva nad vloženým <style> (index.html, expenses.html). Červená #EE220C zůstává
+   Přídavná vrstva nad vloženým <style> (index.html, expenses.html). Zelená #169A4A je
    identitou, mění se tvary, plochy, tlačítka, okna, menu a spodní lišta (Apple × Android).
    Zapnutí: <link rel="stylesheet" href="redesign.css"> na konci <head> + <script src="platform.js"></script> v <head>.
    Aplikace při změně režimu přepíná i třídu body.dark (kvůli stejnému označení jako ve 10space a 10base).
@@ -142,7 +142,7 @@ body.dark .pmenu button:active, body.dark .menu button:active, body.dark .autoco
 .pmenu button, .menu button, .sidebar-nav-item, .sidebar-action, .acct-table tr.arow td { transition: background var(--m-fast) ease, color var(--m-fast) ease, transform var(--m-fast) var(--m-ease); }
 .btn-primary, .btn-secondary, .btn-danger { transition: background var(--m-base) ease, color var(--m-base) ease, box-shadow var(--m-base) ease, transform var(--m-fast) var(--m-ease), opacity var(--m-base) ease; }
 .btn-primary:active, .btn-secondary:active, .btn-danger:active { transform: scale(0.97); }
-@media (hover: hover) { .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(238, 34, 12, 0.28); } }
+@media (hover: hover) { .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22, 154, 74, 0.28); } }
 .stat-card, .invoice-card, .exp-card, .card { transition: transform var(--m-base) var(--m-ease), box-shadow var(--m-base) ease; }
 input, textarea, select { transition: border-color var(--m-fast) ease, box-shadow var(--m-base) ease, background var(--m-fast) ease; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
@@ -161,7 +161,7 @@ input, textarea, select { transition: border-color var(--m-fast) ease, box-shado
    Safari neumí SVG filtr v backdrop-filter, takže lom obrazu je nahrazen vrstvami sytosti, jasu a odlesku.
    ════════════════════════════════════════════════════════════════════ */
 html:not([data-platform="android"]) .bottom {
-  --lg-accent: #EE220C; --lg-accent-dark: #ff453a;
+  --lg-accent: #169A4A; --lg-accent-dark: #30d158;
   --h: 64px;
   position: relative; isolation: isolate; height: var(--h); width: min(100%, 420px); padding: 6px; gap: 0;
   border-radius: 999px; background: none; border: none;
@@ -217,7 +217,7 @@ body.dark .bottom .lg-spec::before { background: conic-gradient(from 200deg at 5
 body.dark .bottom .lg-pill { background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.08)); box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), inset 0 1.5px 1px -0.5px rgba(255, 255, 255, 0.55), inset 0 0 10px rgba(255, 255, 255, 0.10), 0 3px 12px rgba(0, 0, 0, 0.4); }
 body.dark .bottom { box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55), 0 3px 8px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255, 255, 255, 0.08); }
 body.dark .bottom button:not(.active) { color: #c7c7cc; }
-body.dark .bottom { --lg-accent: #ff453a; }
+body.dark .bottom { --lg-accent: #30d158; }
 
 
 html:not([data-platform="android"]) .bottom button { padding: 8px 2px 7px; gap: 3px; border-radius: 999px; border: none; font-size: 10px; font-weight: 600; letter-spacing: 0.01em; transition: color 0.25s ease, transform 0.15s ease; }
@@ -244,14 +244,14 @@ html[data-platform="android"] .bottom button small { font-size: 11px; font-weigh
 html[data-platform="android"] .bottom button .icon { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 32px; }
 html[data-platform="android"] .bottom button .icon::before {
   content: ""; position: absolute; left: 50%; top: 0; width: 64px; height: 32px; border-radius: 16px;
-  transform: translateX(-50%) scaleX(0.5); opacity: 0; background: rgba(238, 34, 12, 0.14);
+  transform: translateX(-50%) scaleX(0.5); opacity: 0; background: rgba(22, 154, 74, 0.14);
   transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), opacity 0.18s ease;
 }
 html[data-platform="android"] .bottom button .icon svg { position: relative; width: 24px; height: 24px; transition: none; }
 html[data-platform="android"] .bottom button.active { background: transparent; box-shadow: none; color: #1c1c1e; font-weight: 600; }
 html[data-platform="android"] .bottom button.active small { font-weight: 700; }
 html[data-platform="android"] .bottom button.active .icon::before { transform: translateX(-50%) scaleX(1); opacity: 1; }
-html[data-platform="android"] .bottom button.active .icon svg { stroke: #c81b08; transform: none; }
+html[data-platform="android"] .bottom button.active .icon svg { stroke: #0f7a37; transform: none; }
 html[data-platform="android"] .bottom button:active { transform: none; opacity: 1; }
 html[data-platform="android"] .bottom button:active .icon::before { transform: translateX(-50%) scaleX(1); opacity: 1; background: rgba(0, 0, 0, 0.08); }
 
@@ -259,8 +259,8 @@ html[data-platform="android"] body.dark .bottom,
 body.dark html[data-platform="android"] .bottom { background: #1f1f21; box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04); }
 html[data-platform="android"] body.dark .bottom button { color: #a9a9b0; background: transparent; }
 html[data-platform="android"] body.dark .bottom button.active { color: #f2f2f7; background: transparent; box-shadow: none; }
-html[data-platform="android"] body.dark .bottom button .icon::before { background: rgba(255, 69, 58, 0.26); }
-html[data-platform="android"] body.dark .bottom button.active .icon svg { stroke: #ff7a70; }
+html[data-platform="android"] body.dark .bottom button .icon::before { background: rgba(48, 209, 88, 0.26); }
+html[data-platform="android"] body.dark .bottom button.active .icon svg { stroke: #6ee28f; }
 html[data-platform="android"] body.dark .bottom button:active .icon::before { background: rgba(255, 255, 255, 0.10); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -274,3 +274,41 @@ html[data-platform="android"] body.dark .bottom button:active .icon::before { ba
   .view-header { justify-content: flex-end; }
   .view-header:not(:has(button)) { display: none; }
 }
+
+/* Zelená je akcent, červená zůstává pro nebezpečné akce a upozornění */
+.btn-danger { background: var(--expense-bg); color: var(--expense); }
+.nav-badge { background: #ff3b30; }
+
+/* ── Profilové menu na mobilu: stejný vzhled a animace jako v 10base a 10space ── */
+.pmenu {
+  display: block; box-sizing: border-box; width: min(304px, calc(100vw - 32px)); min-width: 0; padding: 8px; overflow: hidden;
+  border-radius: 22px; border: none; background: var(--raised);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 0 0 0.5px rgba(255, 255, 255, 0.55);
+  transform-origin: calc(100% - 22px) 0;
+  opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-10px) scale(0.88); animation: none;
+  transition: opacity 0.14s ease, transform 0.18s cubic-bezier(0.4, 0, 1, 1), visibility 0s linear 0.18s;
+}
+.pmenu.open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; animation: none;
+  transition: opacity 0.2s ease, transform 0.36s cubic-bezier(0.2, 1.25, 0.3, 1), visibility 0s; }
+body.dark .pmenu { background: #18181b; box-shadow: 0 20px 54px rgba(0, 0, 0, 0.7), inset 0 0 0 0.5px rgba(255, 255, 255, 0.1); }
+@keyframes tnIn { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: none; } }
+.pm-info { display: flex; align-items: center; gap: 14px; padding: 12px 12px 14px; }
+.pm-avatar { flex: none; width: 54px; height: 54px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #4fcf84, var(--accent)); color: #fff; font-size: 19px; font-weight: 700; letter-spacing: 0.02em; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.pm-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pm-id { min-width: 0; display: grid; gap: 2px; }
+.pm-name { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-email { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.pm-role { font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1; padding: 4px 8px; border-radius: 999px; color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, transparent); }
+.pm-group { display: flex; flex-direction: column; gap: 2px; }
+.pm-group + .pm-group { margin-top: 6px; }
+.pmenu button.pm-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 10px 0 8px; border: none; border-radius: 14px; background: none; font: inherit; font-size: 15px; font-weight: 500; color: var(--text); cursor: pointer; text-align: left; box-shadow: none; transition: background 0.15s ease, transform 0.12s ease; -webkit-tap-highlight-color: transparent; }
+.pmenu button.pm-item:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.pmenu button.pm-item:active { background: color-mix(in srgb, var(--text) 11%, transparent); transform: scale(0.98); }
+.pm-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-icon { flex: none; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: var(--muted); background: color-mix(in srgb, currentColor 12%, transparent); }
+.pm-icon svg { width: 18px; height: 18px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pm-icon.pm-red, .pm-logout { color: #ff3b30; }
+.pmenu.open .pm-info { animation: tnIn 0.38s cubic-bezier(0.2, 0.9, 0.3, 1) 0.03s both; }
+.pmenu.open .pm-item { animation: tnIn 0.36s cubic-bezier(0.2, 0.9, 0.3, 1) both; animation-delay: calc(70ms + var(--i, 0) * 34ms); }
+@media (prefers-reduced-motion: reduce) { .pmenu, .pmenu.open { transition: opacity 0.1s ease, visibility 0s; transform: none; } .pmenu.open .pm-info, .pmenu.open .pm-item { animation: none; } }

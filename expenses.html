@@ -13,21 +13,21 @@
 <style>
   :root {
     --bg:#f2f2f7; --card:#fff; --text:#111; --muted:#8e8e93; --border:#e5e5ea;
-    --accent:#EE220C; --accent-soft:rgba(238,34,12,.08);
+    --accent:#169A4A; --accent-soft:rgba(22,154,74,.08);
     --income:#1a7a3a; --income-bg:#d4f5e2; --expense:#c00000; --expense-bg:#fde8e8;
     --warn:#b07800; --warn-bg:#fff4dc; --btn-bg:#e8e8ed; --btn-color:#007aff;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg:#000; --card:#1c1c1e; --text:#f2f2f7; --muted:#8e8e93; --border:#38383a;
-      --accent:#ff453a; --accent-soft:rgba(255,69,58,.14);
+      --accent:#30d158; --accent-soft:rgba(48,209,88,.16);
       --income:#32d74b; --income-bg:rgba(50,215,75,.16); --expense:#ff6961; --expense-bg:rgba(255,69,58,.16);
       --warn:#ffd60a; --warn-bg:rgba(255,214,10,.14); --btn-bg:#2c2c2e; --btn-color:#0a84ff;
     }
   }
   :root[data-theme="dark"] {
     --bg:#000; --card:#1c1c1e; --text:#f2f2f7; --muted:#8e8e93; --border:#38383a;
-    --accent:#ff453a; --accent-soft:rgba(255,69,58,.14);
+    --accent:#30d158; --accent-soft:rgba(48,209,88,.16);
     --income:#32d74b; --income-bg:rgba(50,215,75,.16); --expense:#ff6961; --expense-bg:rgba(255,69,58,.16);
     --warn:#ffd60a; --warn-bg:rgba(255,214,10,.14); --btn-bg:#2c2c2e; --btn-color:#0a84ff;
   }
@@ -62,6 +62,8 @@
   .topbar .who { font-size:12px; color:var(--muted); }
   .avatar { width:34px; height:34px; border-radius:50%; background:var(--btn-bg); object-fit:cover; display:block; }
   .avatar-btn { background:none; border:none; padding:0; border-radius:50%; display:block; }
+  .pmenu { position:absolute; right:0; top:46px; z-index:40; }
+  .pmenu button.pm-item.on { color:var(--accent); font-weight:600; }
   .menu { position:absolute; right:0; top:42px; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 28px rgba(0,0,0,.2); min-width:220px; padding:6px; display:none; z-index:40; }
   .menu.open { display:block; }
   .menu button { display:flex; width:100%; align-items:center; gap:10px; background:none; border:none; color:var(--text); font-size:15px; padding:11px 12px; border-radius:10px; text-align:left; }
@@ -166,13 +168,25 @@
       </div>
       <div style="position:relative;">
         <button class="avatar-btn" id="btn-menu" aria-label="Menu"><img class="avatar" id="avatar" alt="" /></button>
-        <div class="menu" id="menu">
-          <button id="m-main" class="on"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Moje výdaje</button>
-          <button id="m-archive"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Schválené žádosti</button>
-          <div class="sep"></div>
-          <button id="menu-theme"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span id="menu-theme-label">Tmavý režim</span></button>
-          <div class="sep"></div>
-          <button id="btn-signout" class="out"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Odhlásit se</button>
+        <div class="pmenu" id="menu" role="menu" aria-label="Profil">
+          <div class="pm-info">
+            <div class="pm-avatar" id="pm-avatar" aria-hidden="true"></div>
+            <div class="pm-id">
+              <div class="pm-name" id="pm-name"></div>
+              <div class="pm-email" id="pm-email"></div>
+              <div class="pm-tags"><span class="pm-role">Člen</span></div>
+            </div>
+          </div>
+          <div class="pm-group">
+            <button type="button" class="pm-item on" id="m-main" role="menuitem" style="--i:0"><span class="pm-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><span class="pm-label">Moje výdaje</span></button>
+            <button type="button" class="pm-item" id="m-archive" role="menuitem" style="--i:1"><span class="pm-icon"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span class="pm-label">Schválené žádosti</span></button>
+          </div>
+          <div class="pm-group">
+            <button type="button" class="pm-item" id="menu-theme" role="menuitem" style="--i:2"><span class="pm-icon"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><span class="pm-label" id="menu-theme-label">Tmavý režim</span></button>
+          </div>
+          <div class="pm-group">
+            <button type="button" class="pm-item pm-logout" id="btn-signout-menu" role="menuitem" style="--i:3"><span class="pm-icon pm-red"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></span><span class="pm-label">Odhlásit se</span></button>
+          </div>
         </div>
       </div>
     </div>
@@ -387,7 +401,7 @@ $('btn-login').addEventListener('click', async ()=>{
   try { await signInWithPopup(auth, new GoogleAuthProvider()); }
   catch(e){ toast('Přihlášení se nezdařilo.'); }
 });
-$('btn-signout').addEventListener('click', ()=>signOut(auth));
+['btn-signout','btn-signout-menu'].forEach(id=>$(id).addEventListener('click', ()=>signOut(auth)));
 
 /* menu profilu, motiv */
 const menu = $('menu');
@@ -467,6 +481,9 @@ onAuthStateChanged(auth, async user => {
   }
   $('who').textContent = memberName;
   if (user.photoURL) $('avatar').src = user.photoURL; else $('avatar').src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 34'><circle cx='17' cy='13' r='6' fill='%238e8e93'/><path d='M5 32c1-8 7-10 12-10s11 2 12 10z' fill='%238e8e93'/></svg>";
+  { const nm = memberName || user.displayName || user.email || '?', av = $('pm-avatar'); $('pm-name').textContent = nm; $('pm-email').textContent = user.email || ''; av.textContent = '';
+    const ini = ()=>{ av.textContent = nm.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(); };
+    if (user.photoURL){ const im = document.createElement('img'); im.alt = ''; im.src = user.photoURL; im.onerror = ()=>{ im.remove(); ini(); }; av.appendChild(im); } else ini(); }
   $('treasurer-link').style.display = userRole==='treasurer' ? '' : 'none';
   showScreen('screen-app');
   subscribe();

@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#f2f2f7" />
   <title>10korun</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -996,7 +997,7 @@
       <div class="rep-controls">
         <label>Období <select id="rep-month"><option value="0">Celý rok</option></select></label>
         <label>Účet <select id="rep-account"><option value="all">Pokladna i banka</option><option value="cash">Pokladna</option><option value="bank">Banka</option></select></label>
-        <button class="btn-secondary" id="btn-rep-csv" style="padding:9px 14px;font-size:14px;">Peněžní deník do Excelu (CSV)</button>
+        <button class="btn-secondary" id="btn-rep-csv" style="padding:9px 14px;font-size:14px;">Stáhnout výkazy (Excel, celý rok)</button>
       </div>
       <h3 class="rep-h">Peněžní deník</h3>
       <div class="rep-scroll"><table class="rep-table" id="rep-journal"></table></div>
@@ -1704,7 +1705,7 @@ function syncSummary(){
 
 
 /* ── PŘEHLEDY A PENĚŽNÍ DENÍK ── */
-let transitValue=null;
+let transitValue=null, lastReport=null;
 const MONTHS=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
 (function(){const sel=$('rep-month');MONTHS.forEach((m,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=m;sel.appendChild(o);});})();
 const signed=t=>t.type==='income'?t.amount:-t.amount;
@@ -1749,12 +1750,11 @@ function renderReports(){
   const paidAfter=i=>i.paid&&(!i.paidDate||String(i.paidDate)>endIso);
   const open_=(type)=>allInvoices.filter(i=>!i.cancelled&&i.invType===type&&String(i.date)<=endIso&&(!i.paid||paidAfter(i)));
   const rec=open_('fav').reduce((s,i)=>s+i.amount,0), pay=open_('fap').reduce((s,i)=>s+i.amount,0);
-  const tr=typeof transitValue==='number'?transitValue:0;
-  const assets=cash+bank+tr+rec;
+  const assets=cash+bank+rec; // tranzitní účet je mimo účetnictví
+  lastReport={month,acc,open,rows,inc,exp,bal,gi,ge,ti,te,endIso,cash,bank,rec,pay,assets};
   $('rep-bs-date').textContent='k '+fmtDate(endIso);
   $('rep-bs').innerHTML=`<tbody><tr class="sum"><th colspan="2">Majetek</th></tr>
     <tr><td>Pokladna</td><td class="n">${money(cash)}</td></tr><tr><td>Bankovní účet</td><td class="n">${money(bank)}</td></tr>
-    <tr><td>Tranzitní účet <span style="color:var(--muted);font-size:11px;">(zadáno ručně, aktuální hodnota)</span></td><td class="n">${typeof transitValue==='number'?money(tr):'–'}</td></tr>
     <tr><td>Pohledávky (neuhrazené vystavené faktury)</td><td class="n">${money(rec)}</td></tr>
     <tr class="sum"><td>Majetek celkem</td><td class="n">${money(assets)}</td></tr>
     <tr class="sum"><th colspan="2">Závazky</th></tr>
@@ -1763,12 +1763,92 @@ function renderReports(){
     <tr class="sum"><td>Vlastní jmění (majetek − závazky)</td><td class="n ${cls(assets-pay)}">${money(assets-pay)}</td></tr></tbody>`;
 }
 $('rep-month').addEventListener('change',renderReports);$('rep-account').addEventListener('change',renderReports);
-$('btn-rep-csv').addEventListener('click',()=>{
-  const {rows,open}=repData();let bal=open;
-  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const lines=[['Datum','Doklad','Popis','Protistrana','Kód','Příjem','Výdaj','Zůstatek'].map(q).join(';'),['','','Počáteční stav','','','','',open].map(q).join(';')];
-  rows.filter(t=>!t.cancelled).forEach(t=>{bal+=signed(t);lines.push([t.date,t.docNumber||'',t.desc||'',t.party||'',t.projectCode||'',t.type==='income'?t.amount:'',t.type==='expense'?t.amount:'',Math.round(bal*100)/100].map(q).join(';'));});
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));a.download=`penezni-denik-${activePeriod}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+/* Vyplní šablonu výkazů (sablona-vykazy.xlsx) daty z aplikace. model: {year, cashInit, bankInit, tx[], transit, rec, pay, today:Date} */
+async function fillVykazy(wb, m) {
+  const Y = String(m.year), FIRST = 10, LAST0 = 67, TOTAL0 = 68;
+  const dn = wb.worksheets.find(w => /^Peněžní deník/.test(w.name)), pv = wb.worksheets.find(w => /^Přehled o P a V/.test(w.name)), mz = wb.worksheets.find(w => /^Přehled o M a Z/.test(w.name));
+  if (!dn || !pv || !mz) throw new Error('Šablona nemá očekávané listy.');
+  const col = n => { let s = ''; for (; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };
+  const num = c => { let n = 0; for (const ch of c) n = n * 26 + ch.charCodeAt(0) - 64; return n; };
+  const INC = { 'Prodej zboží': 'O', 'Prodej výrobků a služeb': 'P', 'Příjmy z veřejných sbírek': 'Q', 'Přijaté peněžní dary mimo veřejné sbírky': 'R', 'Přijaté členské příspěvky': 'S', 'Dotace a příspěvky z veřejných rozpočtů': 'T', 'Ostatní': 'U', 'Průběžné položky': 'V', 'Kurzové rozdíly': 'W' };
+  const EXP = { 'Dlouhodobý nehmotný a hmotný majetek': 'Y', 'Materiál': 'Z', 'Zboží': 'AA', 'Služby': 'AB', 'Mzdy': 'AC', 'Pojistné za zaměstnance a zaměstnavatele': 'AD', 'Ostatní osobní výdaje': 'AE', 'Ostatní': 'AF', 'Průběžné položky': 'AG', 'Kurzové rozdíly': 'AH' };
+  const rows = [...m.tx].sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.docNumber || '').localeCompare(String(b.docNumber || '')));
+  const cap = LAST0 - FIRST + 1, N = Math.max(0, rows.length - cap), END = LAST0 + N, T = TOTAL0 + N;
+  const warn = { uncategorized: 0, rows: rows.length, extra: N };
+
+  // 1) úklid: starý obsah dat (B..AJ, řádky 9–67) a událostní blok „Adventní koncert“ (F72:H79)
+  dn.unMergeCells('F72:G72');
+  for (let r = 9; r <= LAST0; r++) for (let c = 2; c <= 36; c++) dn.getCell(r, c).value = null;
+  for (let r = 72; r <= 79; r++) for (let c = 6; c <= 8; c++) dn.getCell(r, c).value = null;
+  // 2) místo pro další řádky: spodní blok (součty, zůstatky, hotovost) se posune dolů
+  if (N) {
+    for (let r = 90; r >= TOTAL0; r--) for (let c = 1; c <= 36; c++) {
+      const s = dn.getCell(r, c), d = dn.getCell(r + N, c); d.value = s.value; d.style = JSON.parse(JSON.stringify(s.style || {})); s.value = null;
+    }
+    for (let r = TOTAL0; r < TOTAL0 + N; r++) { dn.getRow(r).height = dn.getRow(LAST0).height; for (let c = 1; c <= 36; c++) { dn.getCell(r, c).style = JSON.parse(JSON.stringify(dn.getCell(LAST0, c).style || {})); dn.getCell(r, c).value = null; } }
+    for (const cf of dn.conditionalFormattings || []) cf.ref = cf.ref.replace(/([A-Z]+)67\b/g, `$1${END}`);
+  }
+  // 3) počáteční stav
+  dn.getCell('F9').value = 'Počáteční stav';
+  dn.getCell('G9').value = round2(m.cashInit); dn.getCell('I9').value = round2(m.bankInit); dn.getCell('M9').value = { formula: 'G9+I9' };
+  // 4) doklady
+  rows.forEach((t, i) => {
+    const r = FIRST + i, cash = t.account === 'cash', inc = t.type === 'income', amt = round2(t.amount);
+    dn.getCell('A' + r).value = i + 2; // řádek 1 je počáteční stav
+    const [y, mo, d] = String(t.date).split('-').map(Number); dn.getCell('B' + r).value = new Date(Date.UTC(y, mo - 1, d)); dn.getCell('B' + r).numFmt = 'd". "m". "yyyy';
+    dn.getCell('C' + r).value = t.docNumber || '';
+    dn.getCell('D' + r).value = cash ? 'HT' : 'SP';
+    dn.getCell('E' + r).value = t.projectCode || '';
+    dn.getCell('F' + r).value = t.desc || '';
+    dn.getCell((inc ? (cash ? 'G' : 'I') : (cash ? 'H' : 'J')) + r).value = amt;
+    dn.getCell('M' + r).value = { formula: `G${r}+I${r}` }; dn.getCell('N' + r).value = { formula: `H${r}+J${r}` };
+    const map = inc ? INC : EXP; let c = map[t.category]; if (!c) { c = map['Ostatní']; warn.uncategorized++; }
+    dn.getCell(c + r).value = amt;
+    dn.getCell('X' + r).value = { formula: `SUM(O${r}:W${r})` }; dn.getCell('AI' + r).value = { formula: `SUM(Y${r}:AH${r})` };
+    dn.getCell('AJ' + r).value = t.projectName || '';
+  });
+  for (let r = FIRST + rows.length; r <= END; r++) dn.getCell('A' + r).value = r - FIRST + 2; // prázdné řádky zůstanou číslované jako v šabloně
+  // 5) součty, zůstatky, hotovost
+  for (let c = num('M'); c <= num('AH'); c++) dn.getCell(col(c) + '4').value = { formula: `SUM(${col(c)}9:${col(c)}${END})` };
+  dn.getCell('F' + T).value = 'Přenos součtů';
+  for (let c = num('G'); c <= num('AI'); c++) { const L = col(c), from = c < num('X') ? 10 : 9; dn.getCell(L + T).value = { formula: `SUM(${L}${from}:${L}${END})` }; }
+  dn.getCell(`G${T + 1}`).value = { formula: `G9+(G${T}-H${T})` }; dn.getCell(`I${T + 1}`).value = { formula: `I9+(I${T}-J${T})` };
+  dn.getCell(`K${T + 1}`).value = { formula: `K${T}-L${T}` }; dn.getCell(`M${T + 1}`).value = { formula: `M${T + 16}-M${T + 17}` };
+  dn.getCell(`M${T + 12}`).value = { formula: `M${T}-N${T}` };
+  dn.getCell(`M${T + 16}`).value = { formula: `SUM(M9:M${END})` }; dn.getCell(`M${T + 17}`).value = { formula: `SUM(N9:N${END})` };
+  dn.getCell(`M${T + 19}`).value = { formula: `G${T + 1}` }; dn.getCell(`M${T + 20}`).value = { formula: `M${T + 1}-M${T + 19}` };
+  // 6) přejmenování listů na rok a vazby ve výkazech
+  const dnName = `Peněžní deník ${Y}`; dn.name = dnName; pv.name = `Přehled o P a V ${Y}`; mz.name = `Přehled o M a Z ${Y}`;
+  const ref = c => ({ formula: `'${dnName}'!${c}${T}/1000` });
+  [['O', 17], ['P', 18], ['Q', 19], ['R', 20], ['S', 21], ['T', 22], ['U', 23], ['V', 24], ['W', 25], ['Y', 28], ['Z', 29], ['AA', 30], ['AB', 31], ['AC', 32], ['AD', 33], ['AE', 34], ['AF', 35], ['AG', 36], ['AH', 37]].forEach(([c, r]) => { pv.getCell('D' + r).value = ref(c); });
+  const per = `1. 1. ${Y} – 31. 12. ${Y}`, sest = `${m.today.getDate()}. ${m.today.getMonth() + 1}. ${m.today.getFullYear()}`;
+  for (const ws of [pv, mz]) { ws.getCell('B10').value = per; ws.getCell('D9').value = `31. 12. ${Y}`; ws.getCell('E11').value = sest; }
+  mz.getCell('C18').value = { formula: `'${dnName}'!M${T + 19}/1000` };
+  mz.getCell('C19').value = { formula: `'${dnName}'!M${T + 20}/1000` };
+  mz.getCell('C21').value = round2(m.rec / 1000); mz.getCell('C25').value = round2(m.pay / 1000);
+  mz.getCell('E18').value = round2(m.cashInit / 1000); mz.getCell('E19').value = round2(m.bankInit / 1000);
+  wb.calcProperties = { fullCalcOnLoad: true };
+  return warn;
+}
+
+
+
+const round2=n=>Math.round(Number(n||0)*100)/100;
+$('btn-rep-csv').addEventListener('click',async()=>{
+  if(!window.ExcelJS){toast('Excel se nepodařilo načíst. Zkus to za chvíli.');return;}
+  const btn=$('btn-rep-csv');btn.disabled=true;
+  try{
+    const res=await fetch('sablona-vykazy.xlsx?v='+Date.now());if(!res.ok)throw new Error('Šablona nenalezena');
+    const wb=new window.ExcelJS.Workbook();await wb.xlsx.load(await res.arrayBuffer());
+    const endIso=activePeriod+'-12-31';
+    const openInv=type=>allInvoices.filter(i=>!i.cancelled&&i.invType===type&&String(i.date)<=endIso&&(!i.paid||(i.paidDate&&String(i.paidDate)>endIso))).reduce((s,i)=>s+i.amount,0);
+    const warn=await fillVykazy(wb,{year:activePeriod,cashInit:orgData.cashInit||0,bankInit:orgData.bankInit||0,tx:liveTx().filter(t=>String(t.date).startsWith(activePeriod)),rec:openInv('fav'),pay:openInv('fap'),today:new Date()});
+    const buf=await wb.xlsx.writeBuffer();
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    a.download='vykazy-'+activePeriod+'.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    toast(warn.uncategorized?('Excel stažen. '+warn.uncategorized+' dokladů bez kategorie je v „Ostatní“.'):'Excel stažen ✓',warn.uncategorized?6000:2800);
+  }catch(e){console.error(e);toast('Excel se nepodařilo vytvořit.');}
+  btn.disabled=false;
 });
 
 let unsubTransit=null;

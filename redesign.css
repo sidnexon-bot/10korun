@@ -60,16 +60,16 @@ body.dark header::after { background: linear-gradient(to bottom, rgba(0, 0, 0, 0
 .profile-btn { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
 
 /* ── 4) Postranní panel: bez dělicí čáry, aktivní položka s proužkem, zúžení na ikony ── */
-.sidebar { background: var(--bg); border-right: none; transition: width 0.22s cubic-bezier(0.22, 0.8, 0.28, 1); }
-body.dark .sidebar { background: #000000; }
+.sidebar { background: var(--card); border-right: none; transition: width 0.22s cubic-bezier(0.22, 0.8, 0.28, 1); }
+body.dark .sidebar { background: var(--card); }
 .sidebar-divider, body.dark .sidebar-divider { border: 0 !important; height: 14px; margin: 0; background: none !important; }
 .sidebar-nav-item { border-radius: 12px; position: relative; }
 .sidebar-nav-item.active { box-shadow: inset 3px 0 0 var(--accent); }
-.sidebar-nav-item:hover, .sidebar-action:hover { background: var(--card); }
-body.dark .sidebar-nav-item:hover, body.dark .sidebar-action:hover { background: #151517; }
-.sidebar-profile { background: var(--card); box-shadow: var(--shadow-card); border-radius: 16px; margin-bottom: 8px; padding: 10px; }
-body.dark .sidebar-profile { background: #151517; }
-.sidebar-profile-avatar { background: var(--field-bg); }
+.sidebar-nav-item:hover, .sidebar-action:hover { background: var(--bg); }
+body.dark .sidebar-nav-item:hover, body.dark .sidebar-action:hover { background: #1d1d20; }
+.sidebar-profile { background: var(--bg); box-shadow: none; border-radius: 16px; margin-bottom: 8px; padding: 10px; }
+body.dark .sidebar-profile { background: #1d1d20; }
+.sidebar-profile-avatar { background: var(--card); }
 main { transition: margin-left 0.22s cubic-bezier(0.22, 0.8, 0.28, 1), width 0.22s cubic-bezier(0.22, 0.8, 0.28, 1); }
 .sidebar-collapse { color: var(--muted); }
 .sidebar-collapse svg { transition: transform 0.22s ease; }

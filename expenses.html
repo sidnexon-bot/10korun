@@ -211,7 +211,6 @@
     <div id="reports"></div>
 
     <div class="link-row" id="treasurer-link" style="display:none;"><a href="index.html">Schvalování a účetnictví v 10korun →</a></div>
-    <div style="margin-top:28px;"><button class="btn-danger" id="btn-signout">Odhlásit se</button></div>
   </div>
 </div>
 
@@ -224,8 +223,8 @@
     </div>
     <div class="field"><label>Datum (z účtenky)</label><input id="f-date" type="date" /></div>
     <div class="field"><label>Popis</label><input id="f-desc" type="text" maxlength="300" placeholder="Např. nákup not" /></div>
-    <div class="field"><label>Projekt / kód *</label><select id="f-code"></select></div>
     <div class="field"><label>Částka (Kč)</label><input id="f-amount" type="number" inputmode="decimal" min="0" max="999999" step="0.01" placeholder="0" /></div>
+    <div class="field"><label>Projekt / kód *</label><select id="f-code"></select></div>
     <div class="field"><label>Účtenka (foto nebo PDF)</label><input id="f-file" type="file" accept="image/*,application/pdf" />
       <div class="stat-note" id="f-file-note" style="margin:4px 0 0;display:none;"></div>
     </div>
@@ -401,7 +400,7 @@ $('btn-login').addEventListener('click', async ()=>{
   try { await signInWithPopup(auth, new GoogleAuthProvider()); }
   catch(e){ toast('Přihlášení se nezdařilo.'); }
 });
-['btn-signout','btn-signout-menu'].forEach(id=>$(id).addEventListener('click', ()=>signOut(auth)));
+$('btn-signout-menu').addEventListener('click', ()=>signOut(auth));
 
 /* menu profilu, motiv */
 const menu = $('menu');

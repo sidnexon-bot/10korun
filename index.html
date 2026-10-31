@@ -667,6 +667,8 @@
       z-index: 200; align-items: center; justify-content: center; padding: 16px;
     }
     .modal-overlay.open { display: flex; }
+    @keyframes nudge { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    .modal-overlay.open .modal.nudge { animation: nudge .25s ease; }
 
     .modal {
       background: var(--card); border-radius: 20px;
@@ -1552,7 +1554,14 @@ function openModal(id){$(id).classList.add('open');}
 function closeModal(id){$(id).classList.remove('open');}
 
 document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.close)));
-document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
+// formulářová okna se klikem mimo nezavírají (rozepsaná práce by se ztratila); jen malé zatřesení jako upozornění. Zavře je ✕ nebo Zrušit.
+const BACKDROP_CLOSE=['modal-pdf-preview','modal-audit','modal-pair'];
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{
+  if(e.target!==o)return;
+  if(BACKDROP_CLOSE.includes(o.id)){closeModal(o.id);return;}
+  const m=o.querySelector('.modal');if(!m)return;
+  m.classList.remove('nudge');void m.offsetWidth;m.classList.add('nudge');
+}));
 document.querySelectorAll('[data-view]').forEach(item=>item.addEventListener('click',()=>showView(item.dataset.view)));
 
 /* ── PERIOD HELPERS ── */

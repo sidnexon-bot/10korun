@@ -76,7 +76,13 @@
   .stat-value { font-size:20px; font-weight:700; margin-top:2px; }
   .stat-note { font-size:11px; color:var(--muted); margin:-8px 0 14px; grid-column:1/-1; }
 
-  .actions { display:flex; gap:10px; margin-bottom: 8px; }
+  .actions { display:flex; gap:10px; margin-bottom: 16px; }
+  .bal-table { width:100%; border-collapse:separate; border-spacing:0; background:var(--card); border-radius:14px; margin-bottom:16px; overflow:hidden; }
+  .bal-table caption { text-align:left; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; font-weight:600; padding:0 4px 6px; caption-side:top; }
+  .bal-table th, .bal-table td { padding:12px 16px; font-size:15px; border-top:1px solid var(--border); }
+  .bal-table caption + tr th, .bal-table caption + tr td, .bal-table tr:first-of-type th, .bal-table tr:first-of-type td { border-top:0; }
+  .bal-table th { text-align:left; font-weight:500; color:var(--muted); }
+  .bal-table td { text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
   .link-row { margin:14px 0 4px; font-size:13px; }
   .link-row a { color:var(--btn-color); text-decoration:none; font-weight:600; }
 
@@ -168,15 +174,17 @@
       </div>
     </div>
 
-    <div class="stats">
-      <div class="stat"><div class="stat-label">Pokladna</div><div class="stat-value" id="bal-cash">–</div></div>
-      <div class="stat"><div class="stat-label">Bankovní účet</div><div class="stat-value" id="bal-bank">–</div></div>
-    </div>
-
     <div class="actions" id="actions">
       <button class="btn-primary" style="flex:1;" id="btn-new">+ Nový výdaj</button>
-      <button class="btn-secondary" style="flex:1;" id="btn-fuel">+ Palivo</button>
+      <button class="btn-primary" style="flex:1;" id="btn-fuel">+ Palivo</button>
     </div>
+
+    <table class="bal-table" id="bal-table">
+      <caption>Zůstatky</caption>
+      <tr><th>Pokladna</th><td id="bal-cash">–</td></tr>
+      <tr><th>Účet spolku</th><td id="bal-bank">–</td></tr>
+      <tr><th>Tranzitní účet</th><td id="bal-transit">–</td></tr>
+    </table>
 
     <div id="drafts"></div>
     <div class="select-bar" id="select-bar">
@@ -199,6 +207,7 @@
     </div>
     <div class="field"><label>Datum (z účtenky)</label><input id="f-date" type="date" /></div>
     <div class="field"><label>Popis</label><input id="f-desc" type="text" maxlength="300" placeholder="Např. nákup not" /></div>
+    <div class="field"><label>Projekt / kód *</label><select id="f-code"></select></div>
     <div class="field"><label>Částka (Kč)</label><input id="f-amount" type="number" inputmode="decimal" min="0" max="999999" step="0.01" placeholder="0" /></div>
     <div class="field"><label>Účtenka (foto nebo PDF)</label><input id="f-file" type="file" accept="image/*,application/pdf" />
       <div class="stat-note" id="f-file-note" style="margin:4px 0 0;display:none;"></div>
@@ -482,6 +491,7 @@ function subscribe(){
     const d = s.exists() ? s.data() : null;
     $('bal-cash').textContent = d ? fmt(d.cash) : '–';
     $('bal-bank').textContent = d ? fmt(d.bank) : '–';
+    $('bal-transit').textContent = d && typeof d.transit === 'number' ? fmt(d.transit) : '–';
   }, ()=>{});
 }
 
@@ -610,6 +620,7 @@ function openEdit(e){
   $('f-date').value = e ? e.date : today();
   $('f-desc').value = e ? e.desc : '';
   $('f-amount').value = e ? e.amount : '';
+  fillCodeSelect('f-code', (e && e.projectCode) || '');
   $('f-file').value = '';
   const note = $('f-file-note');
   note.style.display = (e && e.receiptPath) ? '' : 'none';
@@ -638,6 +649,7 @@ $('btn-save').addEventListener('click', async ()=>{
   const existing = editId ? allExp.find(x=>x.id===editId) : null;
   if (!date || !desc){ toast('Vyplň datum a popis.'); return; }
   if (!amount){ toast('Zadej částku.'); return; }
+  const pc = pickedCode('f-code'); if (!pc){ toast('Vyber projekt / kód.'); return; }
   if (!file && !(existing && existing.receiptPath)){ toast('Přilož účtenku.'); return; }
 
   const btn = $('btn-save');
@@ -653,11 +665,11 @@ $('btn-save').addEventListener('click', async ()=>{
       await uploadBytes(sRef(storage, receiptPath), blob, {contentType: isPdf ? 'application/pdf' : 'image/jpeg'});
     }
     if (existing){
-      await updateDoc(ref, { date, desc, amount, receiptPath, returnNote: null });
+      await updateDoc(ref, { date, desc, amount, receiptPath, ...pc, returnNote: null });
     } else {
       await setDoc(ref, {
         uid: currentUser.uid, name: memberName, email: currentUser.email,
-        type: 'naklad', category: null, date, desc, amount, receiptPath,
+        type: 'naklad', category: null, date, desc, amount, receiptPath, ...pc,
         status: 'draft', createdAt: serverTimestamp()
       });
     }
@@ -677,7 +689,9 @@ $('btn-make-report').addEventListener('click', ()=>{
   $('rep-who').textContent = memberName;
   $('rep-body').innerHTML = reportItems.map((i,n)=>`<tr><td>${n+1}</td><td>${fmtDate(i.date)}</td><td>${escHtml(i.desc)}</td><td class="r">${fmt(i.amount)}</td></tr>`).join('');
   $('rep-total').textContent = fmt(total);
-  fillCodeSelect('rep-code', '');
+  const codes = [...new Set(items.map(e=>e.projectCode||''))];
+  if (codes.length > 1){ toast('Vyber výdaje se stejným kódem projektu. Každý kód patří do vlastní žádosti.'); return; }
+  fillCodeSelect('rep-code', codes[0] || '');
   openModal('modal-report');
 });
 

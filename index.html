@@ -328,6 +328,9 @@
       background: var(--card); border-radius: 16px;
       padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
     }
+    .transit-row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px 16px; margin-bottom:16px; }
+    .transit-edit { display:flex; align-items:center; gap:8px; }
+    .transit-edit input { width:130px; padding:9px 10px; border:1px solid var(--border); border-radius:10px; background:var(--bg); color:var(--text); font-size:14px; text-align:right; }
     .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; margin-bottom: 4px; }
     .stat-value { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
     .stat-value.positive { color: var(--income); }
@@ -903,6 +906,11 @@
         <div class="stat-card"><div class="stat-label">Příjmy</div><div class="stat-value positive" id="stat-income">0 Kč</div></div>
         <div class="stat-card"><div class="stat-label">Výdaje</div><div class="stat-value negative" id="stat-expense">0 Kč</div></div>
         <div class="stat-card"><div class="stat-label">Výsledek</div><div class="stat-value neutral" id="stat-result">0 Kč</div></div>
+      </div>
+
+      <div class="transit-row" id="transit-row">
+        <div><div class="stat-label" style="margin:0;">Tranzitní účet</div><div class="stat-note" style="margin:2px 0 0;font-size:12px;">Zadává se ručně, členové ho vidí mezi zůstatky.</div></div>
+        <div class="transit-edit"><input id="transit-input" type="number" inputmode="decimal" step="0.01" placeholder="0" /> <span>Kč</span> <button class="btn-secondary" id="btn-transit-save" style="padding:9px 14px;font-size:14px;">Uložit</button></div>
       </div>
 
       <div class="split-panel">
@@ -1641,11 +1649,25 @@ function syncSummary(){
   const cash=calc('cash'), bank=calc('bank'), key=cash+'|'+bank+'|'+activePeriod;
   if(key===lastSummary)return;
   lastSummary=key;
-  setDoc(doc(db,'orgs',ORG_ID,'summary','balances'),{cash,bank,year:activePeriod,updatedAt:serverTimestamp()}).catch(console.error);
+  setDoc(doc(db,'orgs',ORG_ID,'summary','balances'),{cash,bank,year:activePeriod,updatedAt:serverTimestamp()},{merge:true}).catch(console.error);
 }
 
+let unsubTransit=null;
+function startTransit(){
+  if(unsubTransit||userRole!=='treasurer')return;
+  unsubTransit=onSnapshot(doc(db,'orgs',ORG_ID,'summary','balances'),s=>{
+    const v=s.exists()?s.data().transit:null, el=$('transit-input');
+    if(el&&document.activeElement!==el)el.value=typeof v==='number'?v:'';
+  },err=>console.error('TRANZIT:',err));
+  $('btn-transit-save').addEventListener('click',async()=>{
+    const raw=$('transit-input').value.trim(), n=Math.round(parseFloat(raw)*100)/100;
+    if(raw===''||!isFinite(n)||Math.abs(n)>=1e9){toast('Zadej částku.');return;}
+    try{await setDoc(doc(db,'orgs',ORG_ID,'summary','balances'),{transit:n,transitUpdatedAt:serverTimestamp()},{merge:true});toast('Tranzitní účet uložen ✓');}
+    catch(e){console.error('TRANZIT SAVE:',e);toast('Uložení se nezdařilo.');}
+  });
+}
 function subscribeExpenses(){
-  startKody();
+  startKody();startTransit();
   if(unsubRep)unsubRep();
   unsubRep=onSnapshot(collection(db,'orgs',ORG_ID,'expenseReports'),snap=>{
     allRep=snap.docs.map(d=>({id:d.id,...d.data()}));

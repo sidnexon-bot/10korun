@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#f2f2f7">
 <title>10korun – Výdaje</title>
+<script src="platform.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
@@ -140,6 +141,7 @@
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   #loading { position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:100; color:var(--muted); }
 </style>
+<link rel="stylesheet" href="redesign.css">
 </head>
 <body>
 
@@ -397,6 +399,7 @@ function isDark(){
 function applyTheme(t){
   const r = document.documentElement;
   if (t==='dark' || t==='light') r.setAttribute('data-theme', t); else r.removeAttribute('data-theme');
+  document.body.classList.toggle('dark', isDark());
   $('menu-theme-label').textContent = isDark() ? 'Světlý režim' : 'Tmavý režim';
   document.querySelector('meta[name=theme-color]').setAttribute('content', isDark() ? '#000000' : '#f2f2f7');
 }

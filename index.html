@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#f2f2f7" />
   <title>10korun</title>
+  <script src="platform.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz" crossorigin="anonymous"></script>
   <style>
@@ -821,6 +822,7 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   </style>
+  <link rel="stylesheet" href="redesign.css" />
 </head>
 <body>
 
@@ -914,7 +916,7 @@
     <div class="sidebar-logo">10korun</div>
     <div class="sidebar-subtitle" id="sidebar-org-name"></div>
 
-  <div style="padding:0 8px 16px;">
+  <div class="sidebar-period" style="padding:0 8px 16px;">
       <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Účetní období</div>
       <div id="period-selector-wrap" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
@@ -958,6 +960,10 @@
     <hr class="sidebar-divider">
 
     <div class="sidebar-bottom">
+      <button type="button" class="sidebar-action sidebar-collapse" id="sidebar-collapse" aria-label="Skrýt panel" aria-pressed="false" title="Skrýt panel">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></span>
+        <span class="sidebar-collapse-label">Skrýt panel</span>
+      </button>
       <button class="sidebar-action" id="btn-theme-desk">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>
         <span class="theme-label">Tmavý režim</span>
@@ -1600,11 +1606,24 @@ $('btn-google-login').addEventListener('click',async()=>{
 const isDarkNow=()=>{const t=document.documentElement.dataset.theme;return t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);};
 function applyTheme(t){
   if(t==='dark'||t==='light')document.documentElement.dataset.theme=t;else delete document.documentElement.dataset.theme;
+  document.body.classList.toggle('dark',isDarkNow());
   document.querySelectorAll('.theme-label').forEach(e=>e.textContent=isDarkNow()?'Světlý režim':'Tmavý režim');
   const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=isDarkNow()?'#000000':'#f2f2f7';
 }
 function toggleTheme(){const next=isDarkNow()?'light':'dark';try{localStorage.setItem('korun-theme',next);}catch(_){}applyTheme(next);}
-{let saved=null;try{saved=localStorage.getItem('korun-theme');}catch(_){}applyTheme(saved);}
+{let saved=null;try{saved=localStorage.getItem('korun-theme');}catch(_){}applyTheme(saved);
+  if(window.matchMedia)matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(!document.documentElement.dataset.theme)applyTheme(null);});}
+/* Boční panel: zúžení na ikony, volba se pamatuje */
+{
+  const KEY='korun-sidebar-collapsed', sb=$('sidebar'), b=$('sidebar-collapse');
+  const apply=c=>{
+    sb.classList.toggle('collapsed',c);document.documentElement.style.setProperty('--sidebar-w',c?'68px':'220px');
+    const t=c?'Zobrazit panel':'Skrýt panel';b.setAttribute('aria-pressed',c?'true':'false');b.setAttribute('aria-label',t);b.title=t;b.querySelector('.sidebar-collapse-label').textContent=t;
+  };
+  b.addEventListener('click',()=>{const c=!sb.classList.contains('collapsed');apply(c);try{localStorage.setItem(KEY,c?'1':'0');}catch(_){}});
+  sb.addEventListener('mouseover',e=>{const el=e.target.closest&&e.target.closest('.sidebar.collapsed .sidebar-nav-item, .sidebar.collapsed .sidebar-action');if(el&&!el.title)el.title=el.textContent.replace(/\s+/g,' ').trim();});
+  let saved=null;try{saved=localStorage.getItem(KEY);}catch(_){}apply(saved==='1');
+}
 ['btn-theme-desk','pm-theme'].forEach(id=>$(id).addEventListener('click',()=>{toggleTheme();$('pmenu').classList.remove('open');}));
 $('profile-btn').addEventListener('click',e=>{e.stopPropagation();$('pmenu').classList.toggle('open');});
 document.addEventListener('click',e=>{if(!e.target.closest('#pmenu'))$('pmenu').classList.remove('open');});

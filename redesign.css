@@ -32,7 +32,7 @@ h1, .view-title, header h1 { letter-spacing: -0.03em; }
 
 /* ── 2) Karty a plochy: jednotné zaoblení, bez okraje ── */
 .stat-card, .stat, .transit-row, .ledger, .acct-card, .rep-scroll, .settings-group, .invoice-card, .exp-card, .card,
-.login-card, .bal-table, .acct-switch, .doc-list, .pair-item {
+.login-card, .bal-table, .acct-switch, .pair-item, .inv-card {
   border-color: transparent; border-radius: var(--r-card); box-shadow: var(--shadow-card);
 }
 .ledger, .acct-card { border: none; }
@@ -41,7 +41,7 @@ h1, .view-title, header h1 { letter-spacing: -0.03em; }
 .pair-item.selected { border-color: var(--accent); }
 body.dark .stat-card, body.dark .stat, body.dark .transit-row, body.dark .ledger, body.dark .acct-card, body.dark .rep-scroll,
 body.dark .settings-group, body.dark .invoice-card, body.dark .exp-card, body.dark .card, body.dark .bal-table,
-body.dark .acct-switch, body.dark .doc-list { background: var(--card); }
+body.dark .acct-switch, body.dark .inv-card { background: var(--card); }
 .rep-table th, .acct-table th { background: transparent; }
 body.dark .acct-table th { background: var(--card); }
 .rep-table tr.sum td, .rep-table tr.sum th { background: var(--field-bg); }
@@ -110,7 +110,13 @@ body.dark .rep-controls select { background: #1c1c1f; box-shadow: none; }
 
 /* ── 6) Okna, menu, rozbalovací nabídky ── */
 .modal { border-radius: 24px; box-shadow: var(--shadow-modal); background: var(--raised); }
-body.dark .modal, body.dark .pmenu, body.dark .menu, body.dark .autocomplete-dropdown { background: var(--raised); }
+body.dark .modal, body.dark .pmenu, body.dark .menu, body.dark .autocomplete-dropdown, body.dark .inv-menu { background: var(--raised); }
+.inv-menu { border-radius: 16px; box-shadow: var(--shadow-modal); }
+@media (max-width: 767px) { .inv-menu { border-radius: 20px 20px 0 0; } }
+body.dark .inv-menu-item:hover { background: #26262a; }
+.inv-menu.open { animation: mPop var(--m-base) var(--m-spring) both; transform-origin: top right; }
+@media (max-width: 767px) { .inv-menu.open { animation: mSheet var(--m-slow) var(--m-ease) both; } }
+@keyframes mSheet { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 .modal-header { border-bottom: none; padding-bottom: 6px; }
 .modal-footer { border-top: none; }
 .modal-close { border-radius: 50%; background: var(--field-bg); }
@@ -261,3 +267,10 @@ html[data-platform="android"] body.dark .bottom button:active .icon::before { ba
   .bottom button, html[data-platform="android"] .bottom button .icon::before { transition: none; }
 }
 
+
+/* Na mobilu nadpis pohledu už je v hlavičce, v obsahu se nezdvojuje */
+@media (max-width: 767px) {
+  .view-header .view-title { display: none; }
+  .view-header { justify-content: flex-end; }
+  .view-header:not(:has(button)) { display: none; }
+}

@@ -573,6 +573,14 @@
       transition: background .1s;
     }
     .doc-row-main:active { background: var(--bg); }
+    /* karta faktury: 1 datum · typ · číslo · částka, 2 odběratel/dodavatel, 3 stav a doklad, 4 popis, 5 interní kód */
+    .doc-row-main.inv-main { display:flex; flex-direction:column; align-items:stretch; gap:5px; padding:13px 16px; }
+    .inv-r1 { display:grid; grid-template-columns:auto auto minmax(0,1fr) auto; gap:10px; align-items:center; }
+    .inv-r1 .doc-num { min-width:0; }
+    .inv-name { font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .inv-r3 { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); flex-wrap:wrap; }
+    .inv-desc { font-size:13px; color:var(--text); }
+    .inv-code { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
     
     .doc-row-main .doc-date  { font-size: 13px; color: var(--muted); }
     .doc-row-main .doc-type  { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 6px; background: var(--bg); color: var(--muted); white-space: nowrap; width: fit-content; }
@@ -2489,24 +2497,24 @@ function renderInvoices(){
   const bC={cancelled:'badge-cancel',paid:'badge-paid',unpaid:'badge-unpaid',due:'badge-due',overdue:'badge-unpaid'};
   const dC={cancelled:'paid',paid:'paid',unpaid:'unpaid',due:'due',overdue:'unpaid'};
 
-  const header=`<div class="list-header" style="grid-template-columns:90px 50px 90px 1fr 130px;">
-    <span>Datum</span><span>Typ</span><span>Číslo</span><span>Dodavatel / Popis</span><span style="text-align:right;">Částka</span>
-  </div>`;
 
   const rows=list.map(inv=>{
     const st=invoiceStatus(inv);
     const isFav=inv.invType==='fav';
     const cx=!!inv.cancelled;
+    const ltx=inv.paid?linkedTx(inv.id):null;
     return`<div class="doc-row${cx?' cancelled':''}" data-inv-id="${escHtml(inv.id)}">
-      <div class="doc-row-main" style="grid-template-columns:90px 50px 90px 1fr 130px;">
-        <div class="doc-date">${fmtDate(inv.date)}</div>
-        <div class="doc-type">${inv.invType==='fav'?'FAV':'FAP'}</div>
-        <div class="doc-num">${escHtml(inv.invNumber||'–')}</div>
-        <div class="doc-desc">
-          <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(inv.vendor)}</div>
-          <div style="font-size:11px;margin-top:1px;"><span class="badge ${bC[st]}">${sL[st]}</span>${inv.paid&&linkedTx(inv.id)?' · '+escHtml(linkedTx(inv.id).docNumber||''):''}${inv.desc?' · '+escHtml(inv.desc):''}${inv.projectCode?`<span class="kd-chip">${escHtml(inv.projectCode)}</span>`:''}</div>
+      <div class="doc-row-main inv-main">
+        <div class="inv-r1">
+          <div class="doc-date">${fmtDate(inv.date)}</div>
+          <div class="doc-type">${inv.invType==='fav'?'FAV':'FAP'}</div>
+          <div class="doc-num">${escHtml(inv.invNumber||'–')}</div>
+          <div class="doc-amount">${fmt(inv.amount)}</div>
         </div>
-        <div class="doc-amount" style="text-align:right;">${fmt(inv.amount)}</div>
+        <div class="inv-name">${escHtml(inv.vendor)}</div>
+        <div class="inv-r3"><span class="badge ${bC[st]}">${sL[st]}</span>${ltx&&ltx.docNumber?`<span>${escHtml(ltx.docNumber)}</span>`:''}</div>
+        ${inv.desc?`<div class="inv-desc">${escHtml(inv.desc)}</div>`:''}
+        ${inv.projectCode?`<div class="inv-code">${escHtml(inv.projectCode)}</div>`:''}
       </div>
       <div class="doc-row-accordion">
         ${cx?`<div class="cancel-note">Stornováno${inv.cancelledBy?' – '+escHtml(inv.cancelledBy):''}: ${escHtml(inv.cancelReason||'')}</div>`:`
@@ -2519,7 +2527,7 @@ function renderInvoices(){
     </div>`;
   }).join('');
 
-  wrap.innerHTML=header+'<div class="doc-list">'+rows+'</div>';
+  wrap.innerHTML='<div class="doc-list">'+rows+'</div>';
 
   wrap.querySelectorAll('.doc-row-main').forEach(row=>{
     row.addEventListener('click',()=>{

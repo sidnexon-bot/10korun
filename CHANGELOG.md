@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.1.2 (1. 11. 2026)
+- Android: spodní lišta je nižší, ikony a popisky jsou menší a aktivní záložka má barvu aplikace.
+
 ## 3.1.1 (1. 11. 2026)
 Vzhled Androidu podle Material Design 3 (Apple se nemění) a nové formuláře.
 - Spodní lišta na Androidu jde od kraje ke kraji a navazuje na spodní hranu.

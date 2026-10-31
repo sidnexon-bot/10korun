@@ -337,7 +337,9 @@
     .rep-controls select { padding:9px 10px; border:1px solid var(--border); border-radius:10px; background:var(--card); color:var(--text); font-size:14px; text-transform:none; letter-spacing:0; font-weight:400; }
     .rep-h { margin:22px 0 8px; }
     .rep-scroll { overflow-x:auto; background:var(--card); border:1px solid var(--border); border-radius:14px; }
-    .rep-table { width:100%; border-collapse:collapse; font-size:13px; min-width:640px; }
+    html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+    .rep-table { width:100%; border-collapse:collapse; font-size:13px; }
+    #rep-journal { min-width:720px; }
     .rep-table th { text-align:left; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
     .rep-table td { padding:8px 12px; border-top:1px solid var(--border); vertical-align:top; }
     .rep-table .n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
@@ -1827,6 +1829,9 @@ async function fillVykazy(wb, m) {
   mz.getCell('C19').value = { formula: `'${dnName}'!M${T + 20}/1000` };
   mz.getCell('C21').value = round2(m.rec / 1000); mz.getCell('C25').value = round2(m.pay / 1000);
   mz.getCell('E18').value = round2(m.cashInit / 1000); mz.getCell('E19').value = round2(m.bankInit / 1000);
+  // Šablona nese skrytý název filtru, který míří na list s rokem z minulého roku; po přejmenování by soubor byl poškozený.
+  wb.definedNames.model = [];
+  dn.autoFilter = `A8:AI${T + 1}`;
   wb.calcProperties = { fullCalcOnLoad: true };
   return warn;
 }

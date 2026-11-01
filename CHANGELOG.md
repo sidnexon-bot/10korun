@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.2.3 (1. 11. 2026)
+- Apple: přepínače (Pokladna / Bankovní účet, Příjem / Výdaj, filtry Faktur) jsou zaoblené do pilulek.
+
 ## 3.2.2 (1. 11. 2026)
 - Apple (iOS 26): větší zaoblení oken a karet, pilulková tlačítka, zavírání ikonou ✕ / ✓ místo textu Zavřít / Hotovo, nadpisy sekcí ve větném tvaru, zaoblená pole, systémové písmo SF Pro a číslice stejné šířky u částek.
 - Tlačítka na mobilu mají jednotnou výšku 38 px; samostatné tlačítko je přes celou šířku.

@@ -822,3 +822,23 @@ html[data-platform="apple"] .btn-group:has(> .type-btn) { border-radius: 999px !
   .dl-wrap { display: block; width: 100%; }
   .dl-wrap > button { width: 100%; justify-content: center; }
 }
+
+/* ===== Postupné zobrazení karet a rozbalení nabídek (viz platform.js, tenReveal) ===== */
+.rv { opacity: 0; transform: translateY(18px); }
+.rv, .rv.rv-in, .rv-done { animation: none !important; }
+.rv.rv-in { opacity: 1; transform: none; transition: opacity 0.5s ease var(--rvd, 0ms), transform 0.62s cubic-bezier(0.2, 0.85, 0.25, 1) var(--rvd, 0ms) !important; }
+@keyframes mBlind { from { clip-path: inset(0 0 100% 0 round 18px); opacity: 0.4; transform: translateY(-6px); } to { clip-path: inset(0 0 0 0 round 18px); opacity: 1; transform: none; } }
+@keyframes mSheetUp { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes mFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; } }
+
+/* rozbalovací nabídky: roleta shora; bottom sheety na mobilu vyjíždějí zdola */
+.pmenu { clip-path: inset(0 0 100% 0 round 22px); }
+.pmenu.open { clip-path: inset(0 0 0 0 round 22px); transition: opacity 0.2s ease, transform 0.36s cubic-bezier(0.2, 1.25, 0.3, 1), clip-path 0.42s cubic-bezier(0.22, 0.8, 0.28, 1), visibility 0s; }
+.menu.open, .autocomplete-dropdown.open { animation: mBlind 0.36s cubic-bezier(0.22, 0.8, 0.28, 1) both; }
+@media (min-width: 768px) { .inv-menu.open { animation: mBlind 0.36s cubic-bezier(0.22, 0.8, 0.28, 1) both; transform-origin: top right; } }
+@media (max-width: 767px) {
+  .inv-menu.open { animation: mSheetUp 0.4s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+  .acct-card.form-open .acct-form { animation: mSheetUp 0.44s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+  .acct-card.form-open .acct-backdrop, #inv-menu-backdrop.open { animation: mFadeIn 0.3s ease both; }
+}

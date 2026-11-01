@@ -1,5 +1,9 @@
 # 10korun: přehled změn
 
+## 3.3.0 (1. 11. 2026)
+- Animace: po přepnutí sekce se karty zobrazují postupně od nejvyšší dolů, karty níže naskočí při scrollování; rozbalovací nabídky se rozbalují jako roleta shora.
+- Mobil: bottom sheet Nový doklad a nabídka u faktury vyjíždějí zdola s animací.
+
 ## 3.2.5 (1. 11. 2026)
 - Přepínače (Pokladna / Bankovní účet, Příjem / Výdaj, filtry Faktur) jsou menší než tlačítka: 30 px.
 

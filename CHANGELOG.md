@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.1.8 (1. 11. 2026)
+- Opraveno stahování výkazů do Excelu: soubor se v Excelu (Windows, iPhone) hlásil jako poškozený.
+
 ## 3.1.6 (1. 11. 2026)
 - Apple: profilové menu ve stylu Liquid Glass (jako spodní lišta).
 

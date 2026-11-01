@@ -1932,6 +1932,8 @@ async function fillVykazy(wb, m) {
   mz.getCell('E18').value = round2(m.cashInit / 1000); mz.getCell('E19').value = round2(m.bankInit / 1000);
   // Šablona nese skrytý název filtru, který míří na list s rokem z minulého roku; po přejmenování by soubor byl poškozený.
   wb.definedNames.model = [];
+  // ExcelJS zapisuje v <sheetPr> pageSetUpPr před outlinePr (opačně než schéma) a Excel takový soubor odmítne; seskupení řádků šablona nepoužívá.
+  wb.worksheets.forEach(ws => { if (ws.properties) delete ws.properties.outlineProperties; });
   dn.autoFilter = `A8:AI${T + 1}`;
   wb.calcProperties = { fullCalcOnLoad: true };
   return warn;

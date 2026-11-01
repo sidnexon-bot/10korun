@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.1.6 (1. 11. 2026)
+- Apple: profilové menu ve stylu Liquid Glass (jako spodní lišta).
+
 ## 3.1.5 (1. 11. 2026)
 - Designový audit: ikonová tlačítka na počítači, větší klikací plochy na dotyku, správná ikona čísla faktury na Androidu.
 

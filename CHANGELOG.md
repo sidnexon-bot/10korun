@@ -1,5 +1,10 @@
 # 10korun: přehled změn
 
+## 3.2.2 (1. 11. 2026)
+- Apple (iOS 26): větší zaoblení oken a karet, pilulková tlačítka, zavírání ikonou ✕ / ✓ místo textu Zavřít / Hotovo, nadpisy sekcí ve větném tvaru, zaoblená pole, systémové písmo SF Pro a číslice stejné šířky u částek.
+- Tlačítka na mobilu mají jednotnou výšku 38 px; samostatné tlačítko je přes celou šířku.
+- Karta tranzitního účtu je na mobilu vycentrovaná; Stáhnout výkazy přes celou šířku.
+
 ## 3.2.1 (1. 11. 2026)
 - Tlačítka na mobilu: jednotná mřížka (1 = celá šířka, 2 = vedle sebe, 3 = hlavní nahoře a pod ním dvě, 4 = dvě a dvě, 5 = hlavní nahoře a pod ním dvě a dvě); spodní tlačítka oken zůstávají vidět při posouvání.
 - Android: hlavní tlačítko je plná pilulka, ostatní jsou textová tlačítka (jako u Google).

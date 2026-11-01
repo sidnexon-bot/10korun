@@ -1,5 +1,9 @@
 # 10korun: přehled změn
 
+## 3.2.1 (1. 11. 2026)
+- Tlačítka na mobilu: jednotná mřížka (1 = celá šířka, 2 = vedle sebe, 3 = hlavní nahoře a pod ním dvě, 4 = dvě a dvě, 5 = hlavní nahoře a pod ním dvě a dvě); spodní tlačítka oken zůstávají vidět při posouvání.
+- Android: hlavní tlačítko je plná pilulka, ostatní jsou textová tlačítka (jako u Google).
+
 ## 3.2.0 (1. 11. 2026)
 - Opraveno odsazení a přetékání stránky ve všech PDF (žádost o náhradu, palivo, faktury, doklady, přehledy), když byla stránka odscrollovaná.
 - Ochrana oken: ✕, Zrušit i Esc se u formuláře s rozepsanými změnami nejdřív zeptají „Zahodit neuložené změny?“; klik mimo okno dál jen zatřese.

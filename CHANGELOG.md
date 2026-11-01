@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.2.5 (1. 11. 2026)
+- Přepínače (Pokladna / Bankovní účet, Příjem / Výdaj, filtry Faktur) jsou menší než tlačítka: 30 px.
+
 ## 3.2.4 (1. 11. 2026)
 - Oprava: pravidlo pro samostatná tlačítka nově přeskakuje řádky tabulek a seznamů, aby je nerozhodilo.
 

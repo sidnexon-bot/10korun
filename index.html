@@ -267,6 +267,8 @@
     .profile-btn img { width: 100%; height: 100%; object-fit: cover; }
     .profile-wrap { position: relative; }
     .pmenu { position:absolute; right:0; top:46px; z-index:60; }
+    .dl-wrap { position:relative; }
+    .dl-wrap .pmenu { left:0; right:auto; top:calc(100% + 6px); width:min(280px, calc(100vw - 32px)); }
 
     /* ── MAIN ── */
     main {
@@ -1056,7 +1058,15 @@
       <div class="rep-controls">
         <label>Období <select id="rep-month"><option value="0">Celý rok</option></select></label>
         <label>Účet <select id="rep-account"><option value="all">Pokladna i banka</option><option value="cash">Pokladna</option><option value="bank">Banka</option></select></label>
-        <button class="btn-secondary" id="btn-rep-csv" style="padding:9px 14px;font-size:14px;">Stáhnout výkazy (Excel, celý rok)</button>
+        <div class="dl-wrap">
+          <button class="btn-secondary" id="btn-rep-dl" aria-haspopup="menu" aria-expanded="false" style="padding:9px 14px;font-size:14px;">Stáhnout výkazy <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-left:2px;"><path d="M6 9l6 6 6-6"/></svg></button>
+          <div class="pmenu" id="dl-menu" role="menu" aria-label="Stáhnout výkazy">
+            <div class="pm-group">
+              <button type="button" class="pm-item" id="btn-rep-csv" role="menuitem"><span class="pm-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg></span><span class="pm-label">Excel – celý rok</span></button>
+              <button type="button" class="pm-item" id="btn-rep-pdf" role="menuitem"><span class="pm-icon"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></span><span class="pm-label">PDF – přehledy (2 strany)</span></button>
+            </div>
+          </div>
+        </div>
       </div>
       <h3 class="rep-h">Peněžní deník</h3>
       <div class="rep-scroll"><table class="rep-table" id="rep-journal"></table></div>
@@ -1866,6 +1876,85 @@ function renderReports(){
     <tr class="sum"><td>Vlastní jmění (majetek − závazky)</td><td class="n ${cls(assets-pay)}">${money(assets-pay)}</td></tr></tbody>`;
 }
 $('rep-month').addEventListener('change',renderReports);$('rep-account').addEventListener('change',renderReports);
+/* Sloupce peněžního deníku podle kategorie (příjmy O–W, výdaje Y–AH) */
+const VYK_INC = { 'Prodej zboží': 'O', 'Prodej výrobků a služeb': 'P', 'Příjmy z veřejných sbírek': 'Q', 'Přijaté peněžní dary mimo veřejné sbírky': 'R', 'Přijaté členské příspěvky': 'S', 'Dotace a příspěvky z veřejných rozpočtů': 'T', 'Ostatní': 'U', 'Průběžné položky': 'V', 'Kurzové rozdíly': 'W' };
+const VYK_EXP = { 'Dlouhodobý nehmotný a hmotný majetek': 'Y', 'Materiál': 'Z', 'Zboží': 'AA', 'Služby': 'AB', 'Mzdy': 'AC', 'Pojistné za zaměstnance a zaměstnavatele': 'AD', 'Ostatní osobní výdaje': 'AE', 'Ostatní': 'AF', 'Průběžné položky': 'AG', 'Kurzové rozdíly': 'AH' };
+/* Razítko účetní jednotky: D43 v Přehledu o P a V a D32 v Přehledu o M a Z */
+async function loadStamp() {
+  try { const r = await fetch('razitko.png?v=' + Date.now()); if (r.ok) return await r.arrayBuffer(); } catch (e) { console.warn(e); }
+  return null;
+}
+/* Součty z dokladů ve stejné logice jako vzorce v šabloně (v Kč): inc/exp podle sloupce deníku, zůstatky pokladny a banky na konci roku */
+function vykazyTotals(m) {
+  const inc = {}, exp = {}; let cI = 0, cE = 0, bI = 0, bE = 0;
+  for (const t of m.tx) {
+    const a = round2(t.amount), isInc = t.type === 'income', map = isInc ? VYK_INC : VYK_EXP, c = map[t.category] || map['Ostatní'], bucket = isInc ? inc : exp;
+    bucket[c] = (bucket[c] || 0) + a;
+    if (t.account === 'cash') { if (isInc) cI += a; else cE += a; } else { if (isInc) bI += a; else bE += a; }
+  }
+  return { inc, exp, cashEnd: round2(m.cashInit) + cI - cE, bankEnd: round2(m.bankInit) + bI - bE };
+}
+/* Dvě stránky PDF (Přehled o příjmech a výdajích, Přehled o majetku a závazcích) podle vyplněné šablony. wb musí projít fillVykazy. */
+function vykazyPdfHtml(wb, m, stampUrl) {
+  const pv = wb.worksheets.find(w => /^Přehled o P a V/.test(w.name)), mz = wb.worksheets.find(w => /^Přehled o M a Z/.test(w.name));
+  const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const txt = (ws, a) => { const v = ws.getCell(a).value; if (v == null) return ''; if (v instanceof Date) return v.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); if (typeof v === 'object') return v.richText ? v.richText.map(x => x.text).join('') : ''; return String(v); };
+  const k = n => { const r = Math.sign(n) * Math.round(Math.abs(n) / 1000); return String(r || 0); };
+  const T = vykazyTotals(m), sum = o => Object.values(o).reduce((s, v) => s + v, 0);
+  const incCols = ['O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W'], expCols = ['Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH'];
+  const iv = incCols.map(c => T.inc[c] || 0), ev = expCols.map(c => T.exp[c] || 0), ti = sum(T.inc), te = sum(T.exp);
+  const head = ws => `<h1>${esc(txt(ws, 'A1'))}</h1>
+    <table class="vk-info"><tr>
+      <td><div class="l">${esc(txt(ws, 'A3'))}</div><div class="v">${esc(txt(ws, 'A4'))}</div>
+          <div class="l">${esc(txt(ws, 'A6'))}</div><div class="v">${esc(txt(ws, 'B6'))}</div>
+          <div class="l">${esc(txt(ws, 'A8'))}</div><div class="v">${esc(txt(ws, 'B8'))}</div>
+          <div class="l">${esc(txt(ws, 'A10'))}</div><div class="v">${esc(txt(ws, 'B10'))}</div></td>
+      <td><div class="l">${esc(txt(ws, 'D3'))}</div><div class="v">${esc(txt(ws, 'E3'))}</div>
+          <div class="l">${esc(txt(ws, 'D4'))}</div><div class="v">${esc(txt(ws, 'E4'))}</div>
+          <div class="l">${esc(txt(ws, 'D5'))}</div><div class="v">${esc(txt(ws, 'E5'))}</div>
+          <div class="l">${esc(txt(ws, 'D6'))}</div><div class="v">${esc(txt(ws, 'E6'))}</div>
+          <div class="l">${esc(txt(ws, 'D8'))}</div><div class="v">${esc(txt(ws, 'D9'))}</div>
+          <div class="l">${esc(txt(ws, 'D11'))}</div><div class="v">${esc(txt(ws, 'E11'))}</div></td>
+    </tr></table>
+    <div class="vk-unit">${esc(txt(ws, 'C12'))}</div>`;
+  const sign = (ws, r) => `<div class="vk-sign"><div><div class="l">${esc(txt(ws, 'A' + r))}</div><div class="box"></div></div><div><div class="l">${esc(txt(ws, 'D' + r))}</div><div class="box">${stampUrl ? `<img src="${stampUrl}" alt="Razítko"/>` : ''}</div></div></div>`;
+  const prow = (r, v, cls = '') => `<tr class="${cls}"><td class="c">${esc(txt(pv, 'A' + r))}</td><td>${esc(txt(pv, 'B' + r))}</td><td class="c">${esc(txt(pv, 'C' + r))}</td><td class="n">${k(v)}</td><td class="n">0</td><td class="n">${k(v)}</td></tr>`;
+  const sect = r => `<tr class="sec"><td class="c">${esc(txt(pv, 'A' + r))}</td><td colspan="5">${esc(txt(pv, 'B' + r))}</td></tr>`;
+  const page1 = `<div class="vk-page">${head(pv)}
+    <table class="vk-tab"><thead><tr><th rowspan="2" colspan="2"></th><th rowspan="2">Číslo řádku</th><th colspan="3">Činnost</th></tr><tr><th>Hlavní</th><th>Hospodářská</th><th>Celkem</th></tr></thead><tbody>
+    ${sect(16)}${iv.map((v, i) => prow(17 + i, v)).join('')}${prow(26, ti, 'tot')}
+    ${sect(27)}${ev.map((v, i) => prow(28 + i, v)).join('')}${prow(38, te, 'tot')}${prow(39, ti - te, 'tot')}
+    </tbody></table>${sign(pv, 41)}</div>`;
+  const mrow = (r, cur, prev, cls = '') => `<tr class="${cls}"><td class="c">${esc(txt(mz, 'A' + r))}</td><td>${esc(txt(mz, 'B' + r))}</td><td class="n">${cur == null ? '' : k(cur)}</td><td class="n">${prev == null ? '' : k(prev)}</td></tr>`;
+  const cur = { 18: T.cashEnd, 19: T.bankEnd, 21: round2(m.rec), 25: round2(m.pay) }, prev = { 18: round2(m.cashInit), 19: round2(m.bankInit) };
+  const assets = [15, 16, 17, 18, 19, 20, 21, 22, 23], liab = [25, 26];
+  const sa = o => assets.reduce((s, r) => s + (o[r] || 0), 0), sl = o => liab.reduce((s, r) => s + (o[r] || 0), 0);
+  const page2 = `<div class="vk-page">${head(mz)}
+    <table class="vk-tab"><thead><tr><th colspan="2"></th><th>Běžné účetní období</th><th>Minulé účetní období</th></tr></thead><tbody>
+    ${assets.map(r => mrow(r, cur[r], prev[r])).join('')}${mrow(24, sa(cur), sa(prev), 'tot')}
+    ${liab.map(r => mrow(r, cur[r], prev[r])).join('')}${mrow(27, sl(cur), sl(prev), 'tot')}${mrow(28, sa(cur) - sl(cur), sa(prev) - sl(prev), 'tot')}
+    </tbody></table>${sign(mz, 30)}</div>`;
+  const css = `<style>
+    .vk-page{box-sizing:border-box;width:794px;height:1122px;padding:44px 48px;overflow:hidden;background:#fff;color:#1a1a1a;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.35}
+    .vk-page h1{margin:0 0 14px;font-size:17px;letter-spacing:.02em;border-bottom:2px solid #169a4a;padding-bottom:8px}
+    .vk-info{width:100%;border-collapse:collapse;margin-bottom:6px}.vk-info td{width:50%;vertical-align:top;padding:0 10px 0 0}
+    .vk-info .l{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.04em;margin-top:6px}.vk-info .v{font-size:11.5px;font-weight:600;white-space:pre-line}
+    .vk-unit{text-align:right;font-size:10px;color:#555;margin:8px 0 4px}
+    .vk-tab{width:100%;border-collapse:collapse}.vk-tab th,.vk-tab td{border:1px solid #9aa0a6;padding:4px 7px}
+    .vk-tab th{background:#eef1ee;font-size:10px;text-align:center}.vk-tab td.c{text-align:center;width:34px}.vk-tab td.n{text-align:right;width:90px;font-variant-numeric:tabular-nums}
+    .vk-tab tr.sec td{background:#f6f8f6;font-weight:700}.vk-tab tr.tot td{font-weight:700;background:#f6f8f6}
+    .vk-sign{display:flex;gap:28px;margin-top:26px}.vk-sign>div{flex:1}.vk-sign .l{font-size:10px;color:#444;font-weight:600}
+    .vk-sign .box{height:110px;border-bottom:1px solid #9aa0a6;position:relative}.vk-sign img{position:absolute;left:6px;top:8px;height:84px;width:auto;object-fit:contain}
+  </style>`;
+  return css + page1 + page2;
+}
+async function vykazyModel() {
+  const endIso = activePeriod + '-12-31';
+  const openInv = type => allInvoices.filter(i => !i.cancelled && i.invType === type && String(i.date) <= endIso && (!i.paid || (i.paidDate && String(i.paidDate) > endIso))).reduce((s, i) => s + i.amount, 0);
+  return { year: activePeriod, cashInit: orgData.cashInit || 0, bankInit: orgData.bankInit || 0, tx: liveTx().filter(t => String(t.date).startsWith(activePeriod)), rec: openInv('fav'), pay: openInv('fap'), today: new Date(), stamp: await loadStamp() };
+}
+function saveBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+
 /* Vyplní šablonu výkazů (sablona-vykazy.xlsx) daty z aplikace. model: {year, cashInit, bankInit, tx[], transit, rec, pay, today:Date} */
 async function fillVykazy(wb, m) {
   const Y = String(m.year), FIRST = 10, LAST0 = 67, TOTAL0 = 68;
@@ -1873,8 +1962,7 @@ async function fillVykazy(wb, m) {
   if (!dn || !pv || !mz) throw new Error('Šablona nemá očekávané listy.');
   const col = n => { let s = ''; for (; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };
   const num = c => { let n = 0; for (const ch of c) n = n * 26 + ch.charCodeAt(0) - 64; return n; };
-  const INC = { 'Prodej zboží': 'O', 'Prodej výrobků a služeb': 'P', 'Příjmy z veřejných sbírek': 'Q', 'Přijaté peněžní dary mimo veřejné sbírky': 'R', 'Přijaté členské příspěvky': 'S', 'Dotace a příspěvky z veřejných rozpočtů': 'T', 'Ostatní': 'U', 'Průběžné položky': 'V', 'Kurzové rozdíly': 'W' };
-  const EXP = { 'Dlouhodobý nehmotný a hmotný majetek': 'Y', 'Materiál': 'Z', 'Zboží': 'AA', 'Služby': 'AB', 'Mzdy': 'AC', 'Pojistné za zaměstnance a zaměstnavatele': 'AD', 'Ostatní osobní výdaje': 'AE', 'Ostatní': 'AF', 'Průběžné položky': 'AG', 'Kurzové rozdíly': 'AH' };
+  const INC = VYK_INC, EXP = VYK_EXP;
   const rows = [...m.tx].sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.docNumber || '').localeCompare(String(b.docNumber || '')));
   const cap = LAST0 - FIRST + 1, N = Math.max(0, rows.length - cap), END = LAST0 + N, T = TOTAL0 + N;
   const warn = { uncategorized: 0, rows: rows.length, extra: N };
@@ -1925,7 +2013,7 @@ async function fillVykazy(wb, m) {
   const ref = c => ({ formula: `'${dnName}'!${c}${T}/1000` });
   [['O', 17], ['P', 18], ['Q', 19], ['R', 20], ['S', 21], ['T', 22], ['U', 23], ['V', 24], ['W', 25], ['Y', 28], ['Z', 29], ['AA', 30], ['AB', 31], ['AC', 32], ['AD', 33], ['AE', 34], ['AF', 35], ['AG', 36], ['AH', 37]].forEach(([c, r]) => { pv.getCell('D' + r).value = ref(c); });
   const per = `1. 1. ${Y} – 31. 12. ${Y}`, sest = `${m.today.getDate()}. ${m.today.getMonth() + 1}. ${m.today.getFullYear()}`;
-  for (const ws of [pv, mz]) { ws.getCell('B10').value = per; ws.getCell('D9').value = `31. 12. ${Y}`; ws.getCell('E11').value = sest; }
+  for (const ws of [pv, mz]) { ws.getCell('B10').value = per; ws.getCell('D9').value = `31. 12. ${Y}`; ws.getCell('E11').value = sest; ws.getCell('E5').value = 'NE'; }
   mz.getCell('C18').value = { formula: `'${dnName}'!M${T + 19}/1000` };
   mz.getCell('C19').value = { formula: `'${dnName}'!M${T + 20}/1000` };
   mz.getCell('C21').value = round2(m.rec / 1000); mz.getCell('C25').value = round2(m.pay / 1000);
@@ -1936,28 +2024,52 @@ async function fillVykazy(wb, m) {
   wb.worksheets.forEach(ws => { if (ws.properties) delete ws.properties.outlineProperties; });
   dn.autoFilter = `A8:AI${T + 1}`;
   wb.calcProperties = { fullCalcOnLoad: true };
+  warn.stamp = !!m.stamp;
+  if (m.stamp) {
+    const id = wb.addImage({ buffer: m.stamp, extension: 'png' }), ext = { width: 150, height: 69 };
+    pv.addImage(id, { tl: { col: 3, row: 42 }, ext }); // D43
+    mz.addImage(id, { tl: { col: 3, row: 31 }, ext }); // D32
+  }
   return warn;
 }
 
 
 
 const round2=n=>Math.round(Number(n||0)*100)/100;
-$('btn-rep-csv').addEventListener('click',async()=>{
+const dlBtn=$('btn-rep-dl'),dlMenu=$('dl-menu');
+function toggleDlMenu(open){dlMenu.classList.toggle('open',open);dlBtn.setAttribute('aria-expanded',String(open));}
+dlBtn.addEventListener('click',e=>{e.stopPropagation();toggleDlMenu(!dlMenu.classList.contains('open'));});
+document.addEventListener('click',e=>{if(!e.target.closest('.dl-wrap'))toggleDlMenu(false);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleDlMenu(false);});
+async function runVykazy(kind){
   if(!window.ExcelJS){toast('Excel se nepodařilo načíst. Zkus to za chvíli.');return;}
-  const btn=$('btn-rep-csv');btn.disabled=true;
+  if(kind==='pdf'&&!window.html2pdf){toast('PDF se nepodařilo načíst. Zkus to za chvíli.');return;}
+  toggleDlMenu(false);dlBtn.disabled=true;
+  if(kind==='pdf')toast('Připravuji PDF…',2500);
   try{
     const res=await fetch('sablona-vykazy.xlsx?v='+Date.now());if(!res.ok)throw new Error('Šablona nenalezena');
     const wb=new window.ExcelJS.Workbook();await wb.xlsx.load(await res.arrayBuffer());
-    const endIso=activePeriod+'-12-31';
-    const openInv=type=>allInvoices.filter(i=>!i.cancelled&&i.invType===type&&String(i.date)<=endIso&&(!i.paid||(i.paidDate&&String(i.paidDate)>endIso))).reduce((s,i)=>s+i.amount,0);
-    const warn=await fillVykazy(wb,{year:activePeriod,cashInit:orgData.cashInit||0,bankInit:orgData.bankInit||0,tx:liveTx().filter(t=>String(t.date).startsWith(activePeriod)),rec:openInv('fav'),pay:openInv('fap'),today:new Date()});
-    const buf=await wb.xlsx.writeBuffer();
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
-    a.download='vykazy-'+activePeriod+'.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-    toast(warn.uncategorized?('Excel stažen. '+warn.uncategorized+' dokladů bez kategorie je v „Ostatní“.'):'Excel stažen ✓',warn.uncategorized?6000:2800);
-  }catch(e){console.error(e);toast('Excel se nepodařilo vytvořit.');}
-  btn.disabled=false;
-});
+    const m=await vykazyModel();
+    const warn=await fillVykazy(wb,m);
+    if(kind==='pdf'){
+      const wrap=$('pdf-template');wrap.style.display='block';wrap.innerHTML='<div class="vk-root">'+vykazyPdfHtml(wb,m,m.stamp?'razitko.png':'')+'</div>';
+      await Promise.all([...wrap.querySelectorAll('img')].map(img=>new Promise(r=>{if(img.complete)r();else{img.onload=r;img.onerror=r;}})));
+      const els=[...wrap.querySelectorAll('.vk-page')];els[0].style.pageBreakAfter='always';
+      try{
+        const blob=await window.html2pdf().set({margin:0,image:{type:'jpeg',quality:0.98},html2canvas:{scale:3,useCORS:true},pagebreak:{mode:['css']},jsPDF:{unit:'px',format:[794,1123],orientation:'portrait'}}).from(wrap.firstElementChild).outputPdf('blob');
+        saveBlob(blob,'prehledy-'+activePeriod+'.pdf');
+      }finally{wrap.style.display='none';wrap.innerHTML='';}
+      toast(m.stamp?'PDF přehledů staženo ✓':'PDF staženo, razítko se nenačetlo.',m.stamp?2800:6000);
+    }else{
+      const buf=await wb.xlsx.writeBuffer();
+      saveBlob(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'vykazy-'+activePeriod+'.xlsx');
+      toast(warn.uncategorized?('Excel stažen. '+warn.uncategorized+' dokladů bez kategorie je v „Ostatní“.'):(warn.stamp?'Excel stažen ✓':'Excel stažen, razítko se nenačetlo.'),warn.uncategorized||!warn.stamp?6000:2800);
+    }
+  }catch(e){console.error(e);toast(kind==='pdf'?'PDF se nepodařilo vytvořit.':'Excel se nepodařilo vytvořit.');}
+  dlBtn.disabled=false;
+}
+$('btn-rep-csv').addEventListener('click',()=>runVykazy('xlsx'));
+$('btn-rep-pdf').addEventListener('click',()=>runVykazy('pdf'));
 
 let unsubTransit=null;
 function startTransit(){

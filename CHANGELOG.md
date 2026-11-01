@@ -1,5 +1,9 @@
 # 10korun: přehled změn
 
+## 3.1.9 (1. 11. 2026)
+- Stáhnout výkazy: roletka s volbou Excel nebo PDF; nové PDF přehledů (2 strany).
+- Razítko v Excelu (D43 v Přehledu o P a V, D32 v Přehledu o M a Z); „V likvidaci“ vyplněno NE.
+
 ## 3.1.8 (1. 11. 2026)
 - Opraveno stahování výkazů do Excelu: soubor se v Excelu (Windows, iPhone) hlásil jako poškozený.
 

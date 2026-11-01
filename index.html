@@ -1088,7 +1088,7 @@
     <div id="view-invoices" class="view">
       <div class="view-header">
         <div class="view-title">Faktury</div>
-        <div style="display:flex;gap:8px;">
+        <div class="ar-row" style="display:flex;gap:8px;">
           <button class="btn-secondary" id="btn-add-fap" style="padding:9px 14px;font-size:14px;">+ Přijatá</button>
           <button class="btn-primary"   id="btn-add-fav" style="padding:9px 14px;font-size:14px;flex:none;">+ Vystavená</button>
         </div>
@@ -1560,10 +1560,31 @@ function toast(msg,dur=2800){
   setTimeout(()=>t.classList.remove('show'),dur);
 }
 
-function openModal(id){$(id).classList.add('open');}
+function openModal(id){const o=$(id);delete o.dataset.dirty;o.classList.add('open');}
 function closeModal(id){$(id).classList.remove('open');}
 
-document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn.dataset.close)));
+// ochrana před nechtěným zavřením: ✕, Zrušit i Esc se u okna s rozepsanými změnami nejdřív zeptají; klik mimo okno jen zatřese
+const NO_DIRTY=['modal-pdf-preview','modal-audit','modal-pair'];
+function guardClose(id){
+  const o=$(id);
+  if(o&&o.dataset.dirty==='1'&&!confirm('Zahodit neuložené změny?'))return false;
+  closeModal(id);return true;
+}
+(function(){
+  const edit=e=>{
+    const o=e.target.closest&&e.target.closest('.modal-overlay.open');
+    if(o&&!NO_DIRTY.includes(o.id)&&e.target.type!=='search'&&!e.target.closest('[data-no-dirty]'))o.dataset.dirty='1';
+  };
+  document.addEventListener('input',edit);document.addEventListener('change',edit);
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape'||e.defaultPrevented)return;
+    const open=[...document.querySelectorAll('.modal-overlay.open')].pop();
+    if(open){e.preventDefault();guardClose(open.id);}
+  });
+  window.addEventListener('beforeunload',e=>{if(document.querySelector('.modal-overlay.open[data-dirty="1"]')){e.preventDefault();e.returnValue='';}});
+})();
+
+document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>guardClose(btn.dataset.close)));
 // formulářová okna se klikem mimo nezavírají (rozepsaná práce by se ztratila); jen malé zatřesení jako upozornění. Zavře je ✕ nebo Zrušit.
 const BACKDROP_CLOSE=['modal-pdf-preview','modal-audit','modal-pair'];
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{

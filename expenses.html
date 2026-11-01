@@ -380,9 +380,30 @@ const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':
 
 function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
 function toast(msg, dur=2800){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),dur); }
-function openModal(id){ $(id).classList.add('open'); }
+function openModal(id){ const o=$(id); delete o.dataset.dirty; o.classList.add('open'); }
 function closeModal(id){ $(id).classList.remove('open'); }
-document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
+
+// ochrana před nechtěným zavřením: ✕, Zrušit i Esc se u okna s rozepsanými změnami nejdřív zeptají; klik mimo okno jen zatřese
+const NO_DIRTY=['modal-pdf-preview','modal-audit','modal-pair'];
+function guardClose(id){
+  const o=$(id);
+  if(o&&o.dataset.dirty==='1'&&!confirm('Zahodit neuložené změny?'))return false;
+  closeModal(id);return true;
+}
+(function(){
+  const edit=e=>{
+    const o=e.target.closest&&e.target.closest('.modal-overlay.open');
+    if(o&&!NO_DIRTY.includes(o.id)&&e.target.type!=='search'&&!e.target.closest('[data-no-dirty]'))o.dataset.dirty='1';
+  };
+  document.addEventListener('input',edit);document.addEventListener('change',edit);
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape'||e.defaultPrevented)return;
+    const open=[...document.querySelectorAll('.modal-overlay.open')].pop();
+    if(open){e.preventDefault();guardClose(open.id);}
+  });
+  window.addEventListener('beforeunload',e=>{if(document.querySelector('.modal-overlay.open[data-dirty="1"]')){e.preventDefault();e.returnValue='';}});
+})();
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>guardClose(b.dataset.close)));
 // formulářová okna se klikem mimo nezavírají (rozepsaná práce by se ztratila); jen se zatřesou. Zavře je ✕ nebo Zrušit.
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{
   if(e.target!==o) return;

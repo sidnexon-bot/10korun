@@ -2,6 +2,7 @@
 
 ## 3.2.0 (1. 11. 2026)
 - Opraveno odsazení a přetékání stránky ve všech PDF (žádost o náhradu, palivo, faktury, doklady, přehledy), když byla stránka odscrollovaná.
+- Ochrana oken: ✕, Zrušit i Esc se u formuláře s rozepsanými změnami nejdřív zeptají „Zahodit neuložené změny?“; klik mimo okno dál jen zatřese.
 
 ## 3.1.10 (1. 11. 2026)
 - PDF přehledů: opraveno velké odsazení nahoře a přetékající tabulka při odscrollované stránce.

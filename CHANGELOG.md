@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.2.4 (1. 11. 2026)
+- Oprava: pravidlo pro samostatná tlačítka nově přeskakuje řádky tabulek a seznamů, aby je nerozhodilo.
+
 ## 3.2.3 (1. 11. 2026)
 - Apple: přepínače (Pokladna / Bankovní účet, Příjem / Výdaj, filtry Faktur) jsou zaoblené do pilulek.
 

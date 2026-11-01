@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.4.0 (1. 11. 2026)
+- Tlačítka ve dvojicích na mobilu: výchozí je půl na půl, ale když by se delší text zalomil, kratší tlačítko se zúží na šířku svého textu. Platí i pro dialogy sestavené za běhu.
+
 ## 3.3.1 (1. 11. 2026)
 - Mobil: tlačítko „+ Nový doklad“ v Účetnictví (Pokladna i Bankovní účet) drží odsazení 16 px od okrajů karty, už se nedotýká okrajů.
 

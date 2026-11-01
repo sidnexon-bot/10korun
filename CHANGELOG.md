@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.5.0 (1. 11. 2026)
+- Apple: spodní lišta se při posunu stránky dolů zmenší a schová popisky, při posunu nahoru se vrátí; vybranou záložku (kapku skla) jde chytit a přetáhnout prstem na jinou záložku.
+
 ## 3.4.0 (1. 11. 2026)
 - Tlačítka ve dvojicích na mobilu: výchozí je půl na půl, ale když by se delší text zalomil, kratší tlačítko se zúží na šířku svého textu. Platí i pro dialogy sestavené za běhu.
 

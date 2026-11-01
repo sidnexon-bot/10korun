@@ -1953,6 +1953,12 @@ async function vykazyModel() {
   const openInv = type => allInvoices.filter(i => !i.cancelled && i.invType === type && String(i.date) <= endIso && (!i.paid || (i.paidDate && String(i.paidDate) > endIso))).reduce((s, i) => s + i.amount, 0);
   return { year: activePeriod, cashInit: orgData.cashInit || 0, bankInit: orgData.bankInit || 0, tx: liveTx().filter(t => String(t.date).startsWith(activePeriod)), rec: openInv('fav'), pay: openInv('fap'), today: new Date(), stamp: await loadStamp() };
 }
+/* html2canvas posouvá obsah o odscrollovanou výšku stránky, proto se při vykreslení PDF stránka vrátí nahoru */
+async function renderPdf(opts, el) {
+  const sx = window.scrollX, sy = window.scrollY; window.scrollTo(0, 0);
+  try { return await window.html2pdf().set({ ...opts, html2canvas: { ...opts.html2canvas, scrollX: 0, scrollY: 0 } }).from(el).outputPdf('blob'); }
+  finally { window.scrollTo(sx, sy); }
+}
 function saveBlob(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
 
 /* Vyplní šablonu výkazů (sablona-vykazy.xlsx) daty z aplikace. model: {year, cashInit, bankInit, tx[], transit, rec, pay, today:Date} */
@@ -2055,11 +2061,10 @@ async function runVykazy(kind){
       const wrap=$('pdf-template');wrap.style.display='block';wrap.innerHTML='<div class="vk-root">'+vykazyPdfHtml(wb,m,m.stamp?'razitko.png':'')+'</div>';
       await Promise.all([...wrap.querySelectorAll('img')].map(img=>new Promise(r=>{if(img.complete)r();else{img.onload=r;img.onerror=r;}})));
       const els=[...wrap.querySelectorAll('.vk-page')];els[0].style.pageBreakAfter='always';
-      const sy=window.scrollY,sx=window.scrollX;window.scrollTo(0,0); // jinak html2canvas posune obsah o odscrollovanou výšku stránky
       try{
-        const blob=await window.html2pdf().set({margin:0,image:{type:'jpeg',quality:0.98},html2canvas:{scale:3,useCORS:true,scrollX:0,scrollY:0},pagebreak:{mode:['css']},jsPDF:{unit:'px',format:[794,1123],orientation:'portrait'}}).from(wrap.firstElementChild).outputPdf('blob');
+        const blob=await renderPdf({margin:0,image:{type:'jpeg',quality:0.98},html2canvas:{scale:3,useCORS:true},pagebreak:{mode:['css']},jsPDF:{unit:'px',format:[794,1123],orientation:'portrait'}},wrap.firstElementChild);
         saveBlob(blob,'prehledy-'+activePeriod+'.pdf');
-      }finally{wrap.style.display='none';wrap.innerHTML='';window.scrollTo(sx,sy);}
+      }finally{wrap.style.display='none';wrap.innerHTML='';}
       toast(m.stamp?'PDF přehledů staženo ✓':'PDF staženo, razítko se nenačetlo.',m.stamp?2800:6000);
     }else{
       const buf=await wb.xlsx.writeBuffer();
@@ -3189,7 +3194,7 @@ async function generateInvoicePDF(inv){
 
   const wrap=$('pdf-template');wrap.style.display='block';wrap.innerHTML=html;
   await Promise.all([...wrap.querySelectorAll('img')].map(img=>new Promise(res=>{if(img.complete)res();else{img.onload=res;img.onerror=res;}})));
-  const blob=await window.html2pdf().set({margin:0,filename:`${inv.invNumber}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:4,useCORS:true,allowTaint:false},jsPDF:{unit:'px',format:[794,1123],orientation:'portrait'}}).from(wrap.firstElementChild).outputPdf('blob');
+  const blob=await renderPdf({margin:0,filename:`${inv.invNumber}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:4,useCORS:true,allowTaint:false},jsPDF:{unit:'px',format:[794,1123],orientation:'portrait'}},wrap.firstElementChild);
   wrap.style.display='none';wrap.innerHTML='';
   currentPdfBlob=blob;
   $('pdf-preview-frame').src=URL.createObjectURL(blob);
@@ -3297,13 +3302,13 @@ async function generateReceiptPDF(tx) {
     new Promise(res => { if(img.complete) res(); else { img.onload=res; img.onerror=res; } })
   ));
 
-  const blob = await window.html2pdf().set({
+  const blob = await renderPdf({
     margin: 0,
     filename: `${tx.docNumber||'doklad'}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 4, useCORS: true, allowTaint: false },
     jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
-  }).from(wrap.firstElementChild).outputPdf('blob');
+  }, wrap.firstElementChild);
 
   wrap.style.display = 'none';
   wrap.innerHTML = '';

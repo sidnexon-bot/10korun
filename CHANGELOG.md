@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.2.0 (1. 11. 2026)
+- Opraveno odsazení a přetékání stránky ve všech PDF (žádost o náhradu, palivo, faktury, doklady, přehledy), když byla stránka odscrollovaná.
+
 ## 3.1.10 (1. 11. 2026)
 - PDF přehledů: opraveno velké odsazení nahoře a přetékající tabulka při odscrollované stránce.
 

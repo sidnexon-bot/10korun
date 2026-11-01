@@ -757,6 +757,12 @@ async function buildXlsx(items, total, name){
 }
 
 /* PDF: věrná HTML kopie šablony, A4 na šířku */
+/* html2canvas posouvá obsah o odscrollovanou výšku stránky, proto se při vykreslení PDF stránka vrátí nahoru */
+async function renderPdf(opts, el) {
+  const sx = window.scrollX, sy = window.scrollY; window.scrollTo(0, 0);
+  try { return await window.html2pdf().set({ ...opts, html2canvas: { ...opts.html2canvas, scrollX: 0, scrollY: 0 } }).from(el).outputPdf('blob'); }
+  finally { window.scrollTo(sx, sy); }
+}
 async function buildPdf(items, total, name){
   const th = 'border:1px solid #000;padding:4px 6px;font-size:11px;text-align:left;';
   const td = 'border:1px solid #000;padding:4px 6px;height:24px;font-size:12px;';
@@ -795,11 +801,11 @@ async function buildPdf(items, total, name){
   </div>`;
   const wrap = $('pdf-template');
   wrap.innerHTML = html;
-  const blob = await window.html2pdf().set({
+  const blob = await renderPdf({
     margin: 0, image:{type:'jpeg',quality:0.98},
     html2canvas:{scale:2,useCORS:true,allowTaint:false},
     jsPDF:{unit:'px',format:[1123,794],orientation:'landscape'}
-  }).from(wrap.firstElementChild).outputPdf('blob');
+  }, wrap.firstElementChild);
   wrap.innerHTML = '';
   return blob;
 }
@@ -964,11 +970,11 @@ async function buildFuelPdf(f, name){
   </div>`;
   const wrap = $('pdf-template');
   wrap.innerHTML = html;
-  const blob = await window.html2pdf().set({
+  const blob = await renderPdf({
     margin: 0, image:{type:'jpeg',quality:0.98},
     html2canvas:{scale:2,useCORS:true,allowTaint:false},
     jsPDF:{unit:'px',format:[794,1123],orientation:'portrait'}
-  }).from(wrap.firstElementChild).outputPdf('blob');
+  }, wrap.firstElementChild);
   wrap.innerHTML = '';
   return blob;
 }

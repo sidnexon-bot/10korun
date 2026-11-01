@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.1.5 (1. 11. 2026)
+- Designový audit: ikonová tlačítka na počítači, větší klikací plochy na dotyku, správná ikona čísla faktury na Androidu.
+
 ## 3.1.3 (1. 11. 2026)
 - Kompaktní prostředí na počítači: menší pole a písmo, užší okna a formuláře ve sloupcích, hustší tabulky; faktury a náhrady ve dvou sloupcích.
 

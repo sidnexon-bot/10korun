@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.1.10 (1. 11. 2026)
+- PDF přehledů: opraveno velké odsazení nahoře a přetékající tabulka při odscrollované stránce.
+
 ## 3.1.9 (1. 11. 2026)
 - Stáhnout výkazy: roletka s volbou Excel nebo PDF; nové PDF přehledů (2 strany).
 - Razítko v Excelu (D43 v Přehledu o P a V, D32 v Přehledu o M a Z); „V likvidaci“ vyplněno NE.

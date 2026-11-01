@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.3.1 (1. 11. 2026)
+- Mobil: tlačítko „+ Nový doklad“ v Účetnictví (Pokladna i Bankovní účet) drží odsazení 16 px od okrajů karty, už se nedotýká okrajů.
+
 ## 3.3.0 (1. 11. 2026)
 - Animace: po přepnutí sekce se karty zobrazují postupně od nejvyšší dolů, karty níže naskočí při scrollování; rozbalovací nabídky se rozbalují jako roleta shora.
 - Mobil: bottom sheet Nový doklad a nabídka u faktury vyjíždějí zdola s animací.

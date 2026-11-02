@@ -935,3 +935,22 @@ html[data-platform="apple"] :is(.modal, .acct-form) input[type="file"]::file-sel
 /* upomínka na zálohu (Přehled) */
 .backup-reminder { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 10px 10px 10px 16px; border-radius: var(--r-card); background: var(--accent-soft, #e8f5ec); color: var(--text); font-size: 14px; }
 .backup-reminder button { width: auto; flex: 0 0 auto; }
+
+/* ── 3.10.0: formuláře na mobilu jako bottom sheet (vysunuje se zespodu, držátko, tažením dolů se zavře) ── */
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+@media (max-width: 767px) {
+  .modal-overlay { align-items: flex-end !important; justify-content: center !important; padding: 0 !important; }
+  .modal-overlay > .modal {
+    width: 100% !important; max-width: none !important; margin: 0 !important;
+    max-height: calc(100vh - 28px) !important; max-height: calc(100dvh - 28px) !important;
+    border-radius: 34px 34px 0 0 !important; box-shadow: 0 -8px 40px rgba(0, 0, 0, .18);
+    padding-bottom: 0 !important;
+    overscroll-behavior: contain; transform: none; transition: none;
+  }
+  html[data-platform="android"] .modal-overlay > .modal { border-radius: 28px 28px 0 0 !important; }
+  .modal-overlay.open .modal-overlay > .modal { animation: sheetUp .34s cubic-bezier(.32, .72, 0, 1) both !important; }
+  .modal-overlay > .modal::before { content: ""; display: block; width: 36px; height: 5px; border-radius: 3px; margin: 8px auto 4px; background: rgba(60, 60, 67, .28); flex: none; }
+  body.dark .modal-overlay > .modal::before { background: rgba(235, 235, 245, .3); }
+  html[data-platform="android"] .modal-overlay > .modal::before { width: 32px; height: 4px; }
+}
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) { .modal-overlay.open .modal-overlay > .modal { animation: none !important; } }

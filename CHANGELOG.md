@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.10.0 (2. 11. 2026)
+- Formuláře na mobilu jsou bottom sheet: okno se vysune zespodu, má držátko a zavře se tažením dolů (tablet a počítač beze změny).
+
 ## 3.9.0 (2. 11. 2026)
 - 10korun je instalovatelná aplikace: manifest s ikonami (192/512 px), ikona pro plochu iPhonu/iPadu a celoobrazovkový režim. Instalace: Chrome/Android „Nainstalovat aplikaci“, iOS Safari Sdílet → Přidat na plochu. Bez offline režimu (data jsou vždy živá).
 

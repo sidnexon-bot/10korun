@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.15.1 (3. 11. 2026)
+- iPhone: ve spodní liště se useknul spodek písmen; oprava výšky řádku popisků.
+
 ## 3.15.0 (3. 11. 2026)
 - Apple: tlačítka jako v iOS 26 (kapsle, průsvitné „sklo“, hlavní tlačítko v barvě aplikace, stisk bez zdvihu), kulatější karty, okna a nabídky; písmo zůstává systémové (SF Pro) bez ručního prostrkání nadpisů.
 - Android: tlačítka podle Material 3 (vedlejší jsou textová bez výplně), písmo Google Sans Flex (hostované v aplikaci, licence OFL) a stupnice Material 3.

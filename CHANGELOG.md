@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.9.0 (2. 11. 2026)
+- 10korun je instalovatelná aplikace: manifest s ikonami (192/512 px), ikona pro plochu iPhonu/iPadu a celoobrazovkový režim. Instalace: Chrome/Android „Nainstalovat aplikaci“, iOS Safari Sdílet → Přidat na plochu. Bez offline režimu (data jsou vždy živá).
+
 ## 3.8.0 (2. 11. 2026)
 - Záloha účetnictví (Nastavení → Záloha, jen hospodář): „Zálohovat na 10space“ (do vybrané složky; složku lze vybrat ze stromu složek 10space nebo vytvořit novou), „Stáhnout zálohu“ (ZIP: data.json, přehled v Excelu, nahrané doklady) a „Obnovit ze zálohy“ (nahraný ZIP; před obnovou se stáhne záloha současného stavu, čítače čísel se nevrací zpět).
 - Upomínka na Přehledu, když poslední záloha je starší než 14 dní nebo žádná nebyla.

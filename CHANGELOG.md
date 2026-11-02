@@ -1,5 +1,9 @@
 # 10korun: přehled změn
 
+## 3.11.0 (2. 11. 2026)
+- Okna na mobilu mají pravidla: potvrzení a krátký formulář s jedním polem jsou nahoře jako modální okno (nezakryje je klávesnice), menu, seznamy a formuláře s mnoha kolonkami jsou bottom sheet bez držátka, s křížkem a tlačítky dole. Sheet vyjíždí zespodu a zajíždí dolů, dialog sjíždí shora.
+- Tažení okna dolů už nic nedělá (a v 10base nespouští obnovení stránky).
+
 ## 3.10.0 (2. 11. 2026)
 - Formuláře na mobilu jsou bottom sheet: okno se vysune zespodu, má držátko a zavře se tažením dolů (tablet a počítač beze změny).
 

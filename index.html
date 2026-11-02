@@ -1218,6 +1218,7 @@
         <div class="field"><label>Kategorie</label><select id="tx-edit-category"></select></div>
         <div class="field"><label>Projekt / kód *</label><select id="tx-edit-code"></select></div>
         <div class="field"><label>Protistrana</label><input id="tx-edit-party" type="text" /></div>
+        <div class="field field-wide"><label>Doklad (foto nebo PDF)</label><input id="tx-edit-file" type="file" accept="image/*,application/pdf" /><div class="stat-note" id="tx-edit-file-note" style="margin:4px 0 0;display:none;"></div></div>
         <div class="field" id="tx-edit-pair"></div>
       </div>
     </div>
@@ -1272,6 +1273,7 @@
         <div class="field"><label>Variabilní symbol</label><input id="inv-vs" type="text" /></div>
         <div class="field"><label>Konstantní symbol</label><input id="inv-ks" type="text" placeholder="0308" /></div>
         <div class="field"><label>Odkaz na PDF (Google Drive)</label><input id="inv-url" type="url" placeholder="https://drive.google.com/..." /></div>
+        <div class="field field-wide"><label>Doklad (foto nebo PDF, nepovinné)</label><input id="inv-file" type="file" accept="image/*,application/pdf" /></div>
         <div class="field"><label>Popis / poznámka</label><input id="inv-desc" type="text" placeholder="Např. FA za nahrávání CD" /></div>
         <div class="field"><label>Projekt / kód *</label><select id="inv-code"></select></div>
       </div>
@@ -1302,6 +1304,7 @@
         <div class="field"><label>Datum vystavení</label><input id="inv-edit-date" type="date" /></div>
         <div class="field"><label>Datum splatnosti</label><input id="inv-edit-due" type="date" /></div>
         <div class="field"><label>Odkaz na PDF (Google Drive)</label><input id="inv-edit-url" type="url" /></div>
+        <div class="field field-wide" id="inv-edit-file-wrap"><label>Doklad (foto nebo PDF)</label><input id="inv-edit-file" type="file" accept="image/*,application/pdf" /><div class="stat-note" id="inv-edit-file-note" style="margin:4px 0 0;display:none;"></div></div>
         <div class="field"><label>Popis / poznámka</label><input id="inv-edit-desc" type="text" /></div>
         <div class="field"><label>Projekt / kód *</label><select id="inv-edit-code"></select></div>
       </div>
@@ -1495,7 +1498,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
 import { initializeFirestore, doc, getDoc, setDoc, collection, addDoc,
   query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs, writeBatch, runTransaction, limit }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref as sRef, getDownloadURL, deleteObject }
+import { getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 import { getDatabase, ref as dbRef, onValue }
@@ -2612,6 +2615,7 @@ function openTxEditModal(tx){
   $('tx-edit-docnumber').value=tx.docNumber||'';
   $('tx-edit-docnumber').readOnly=!!tx.docNumber; // přidělené číslo se nemění (ochrana číselné řady)
   $('tx-edit-desc').value=tx.desc||'';$('tx-edit-amount').value=tx.amount||'';
+  $('tx-edit-file').value='';{const n=$('tx-edit-file-note');n.style.display=tx.receiptPath?'':'none';n.textContent=tx.receiptPath?'Doklad je nahraný (v seznamu: Doklad (sken)). Nový soubor ho nahradí.':'';}
   $('tx-edit-date').value=tx.date||'';$('tx-edit-party').value=tx.party||'';
   const iB=$('tx-edit-type-income'),eB=$('tx-edit-type-expense');
   if(tx.type==='income'){iB.classList.add('active-income');eB.classList.remove('active-expense');}
@@ -2643,7 +2647,8 @@ $('btn-tx-update').addEventListener('click',async()=>{
       const dup=await getDocs(query(txCol(),where('docNumber','==',typed)));
       if(dup.docs.some(d=>d.id!==editTxId)){toast('Toto číslo dokladu už existuje.');$('btn-tx-update').disabled=false;return;}
     }
-    await updateDoc(txDoc(editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),...pc,...(locked?{}:{docNumber:typed})});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
+    const receiptPath=await uploadDoklad($('tx-edit-file').files[0],editTxId);
+    await updateDoc(txDoc(editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),...pc,...(locked?{}:{docNumber:typed}),...(receiptPath?{receiptPath}:{})});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
   catch(e){console.error(e);toast('Chyba při ukládání.');}
   $('btn-tx-update').disabled=false;
 });
@@ -2709,6 +2714,7 @@ function invMenuItems(inv){
   const it=[];
   if(inv.invType==='fav')it.push({act:'pdf-fav',label:'Zobrazit PDF'});
   if(inv.url)it.push({act:'open-url',label:'Otevřít PDF'});
+  if(inv.receiptPath)it.push({act:'open-doklad',label:'Doklad (sken)'});
   if(inv.paid){if(linkedTx(inv.id))it.push({act:'unpair-inv',label:'Zrušit spárování'});}
   else it.push({act:'pair-inv',label:'Spárovat s dokladem'});
   it.push({act:'edit-inv',label:'Upravit'});
@@ -2731,6 +2737,7 @@ function openInvMenu(btn,id){
     try{
       if(a==='pdf-fav')await generateInvoicePDF(inv);
       if(a==='open-url')window.open(inv.url,'_blank','noopener');
+      if(a==='open-doklad')await openDoklad(inv.receiptPath);
       if(a==='edit-inv')openInvEditModal(inv);
       if(a==='pair-inv')openPairModal('inv',inv.id);
       if(a==='unpair-inv'){const t=linkedTx(inv.id);if(t)await doUnpair(t.id);}
@@ -2753,6 +2760,7 @@ function openInvEditModal(inv){
   $('inv-edit-number').value=inv.origNumber||inv.number||'';$('inv-edit-amount').value=inv.amount||'';
   $('inv-edit-date').value=inv.date||'';$('inv-edit-due').value=inv.dueDate||'';
   $('inv-edit-url').value=inv.url||'';$('inv-edit-desc').value=inv.desc||'';
+  $('inv-edit-file').value='';$('inv-edit-file-wrap').style.display=inv.invType==='fap'?'':'none';{const n=$('inv-edit-file-note');n.style.display=inv.receiptPath?'':'none';n.textContent=inv.receiptPath?'Doklad je nahraný (v nabídce: Doklad (sken)). Nový soubor ho nahradí.':'';}
   fillCodeSelect('inv-edit-code',inv.projectCode||'');
   openModal('modal-invoice-edit');
 }
@@ -2834,6 +2842,7 @@ function buildAcct(acc){
       <div class="field"><label>Kategorie</label><select id="ac-${acc}-category"></select></div>
       <div class="field"><label>Projekt / kód *</label><select id="ac-${acc}-code"></select></div>
       <div class="field acct-span"><label>Protistrana (nepovinné)</label><input id="ac-${acc}-party" type="text" placeholder="Název organizace nebo osoby" /></div>
+      <div class="field acct-span"><label>Doklad (foto nebo PDF, nepovinné)</label><input id="ac-${acc}-file" type="file" accept="image/*,application/pdf" /></div>
       <div class="field acct-span" id="ac-${acc}-pair-wrap" style="display:none;"><label id="ac-${acc}-pair-label"></label><div class="pair-list" id="ac-${acc}-pair-list"></div></div>
       <div class="acct-span"><button type="button" class="btn-primary" id="ac-${acc}-save" style="width:100%;">Uložit záznam</button></div>
     </div>
@@ -2849,6 +2858,7 @@ function buildAcct(acc){
 }
 function resetAcctForm(acc){
   ['desc','amount','party'].forEach(k=>AC(acc,k).value='');
+  AC(acc,'file').value='';
   AC(acc,'date').value=today();
   setAcctType(acc,acctState[acc].type);
   fillCodeSelect(`ac-${acc}-code`,'');
@@ -2876,6 +2886,28 @@ function renderPairList(acc){
     renderPairList(acc);
   }));
 }
+/* Doklad (PDF nebo fotka) k záznamu a faktuře: do stejné složky jako účtenky z náhrad (korun/vydaje/<uid>/), fotka se zmenší na 1800 px */
+async function prepareDoklad(file){
+  if(!file.type.startsWith('image/'))return file;
+  try{
+    const bmp=await createImageBitmap(file),sc=Math.min(1,1800/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');
+    c.width=Math.round(bmp.width*sc);c.height=Math.round(bmp.height*sc);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(r,'image/jpeg',0.85))||file;
+  }catch(_){return file;}
+}
+async function uploadDoklad(file,id){
+  if(!file)return null;
+  const isPdf=file.type==='application/pdf';
+  if(!isPdf&&!file.type.startsWith('image/'))throw new Error('Doklad musí být PDF nebo fotka.');
+  const path=`korun/vydaje/${currentUser.uid}/${id}-${Date.now()}.${isPdf?'pdf':'jpg'}`;
+  await uploadBytes(sRef(storage,path),await prepareDoklad(file),{contentType:isPdf?'application/pdf':'image/jpeg'});
+  return path;
+}
+async function openDoklad(path){
+  const w=window.open('','_blank');
+  try{const url=await getDownloadURL(sRef(storage,path));if(w)w.location.href=url;else location.href=url;}
+  catch(e){if(w)w.close();throw e;}
+}
 async function saveAcct(acc){
   const st=acctState[acc],desc=AC(acc,'desc').value.trim(),amount=parseFloat(AC(acc,'amount').value),date=AC(acc,'date').value;
   if(!desc){toast('Zadej popis.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!date){toast('Zadej datum.');return;}
@@ -2886,8 +2918,9 @@ async function saveAcct(acc){
   const btn=AC(acc,'save');btn.disabled=true;
   try{
     const series=ACCT[acc].series+activePeriod, txRef=doc(txCol()), pair=st.pair;
+    const receiptPath=await uploadDoklad(AC(acc,'file').files[0],txRef.id);
     await withNumber(series,'tx',null,(tx,docNumber)=>{
-      tx.set(txRef,{desc,amount,date,account:acc,type:st.type,category:AC(acc,'category').value,party:AC(acc,'party').value.trim(),pairedInvoice:pair||null,docNumber,...pc,createdAt:serverTimestamp()});
+      tx.set(txRef,{desc,amount,date,account:acc,type:st.type,category:AC(acc,'category').value,party:AC(acc,'party').value.trim(),pairedInvoice:pair||null,docNumber,...(receiptPath?{receiptPath}:{}),...pc,createdAt:serverTimestamp()});
       if(pair)tx.update(invDoc(pair),{paid:true,paidDate:date});
     });
     resetAcctForm(acc);$('acct-'+acc).classList.remove('form-open');toast('Záznam uložen ✓');
@@ -2910,6 +2943,7 @@ function renderAcct(acc){
     return `<tr class="arow${cx?' cx':''}" data-tx-id="${escHtml(t.id)}"><td>${escHtml(t.docNumber||'–')}</td><td>${fmtDate(t.date)}</td><td>${typeLabel(t)}</td><td>${cx?'<span class="badge badge-cancel">STORNO</span> ':''}${escHtml(t.desc)}${t.projectCode?`<span class="kd-chip">${escHtml(t.projectCode)}</span>`:''}${pi?` <span style="color:var(--muted);font-size:11px;">✓ ${escHtml(pi.invNumber||'')}</span>`:''}</td><td class="n ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</td></tr>
       <tr class="aacc"><td colspan="5">${cx?`<div class="cancel-note">Stornováno${t.cancelledBy?' – '+escHtml(t.cancelledBy):''}: ${escHtml(t.cancelReason||'')}</div>`:`
         ${acc==='cash'?`<button class="accordion-btn pdf" data-action="pdf" data-tx-id="${escHtml(t.id)}">Zobrazit PDF</button>`:''}
+        ${t.receiptPath?`<button class="accordion-btn pdf" data-action="doklad" data-tx-id="${escHtml(t.id)}">Doklad (sken)</button>`:''}
         <button class="accordion-btn edit" data-action="edit" data-tx-id="${escHtml(t.id)}">Upravit záznam</button>
         <button class="accordion-btn delete" data-action="delete" data-tx-id="${escHtml(t.id)}">${t.docNumber?'Stornovat':'Smazat záznam'}</button>`}</td></tr>`;
   }).join('');
@@ -2918,6 +2952,7 @@ function renderAcct(acc){
   wrap.querySelectorAll('.accordion-btn').forEach(btn=>btn.addEventListener('click',async e=>{
     e.stopPropagation();const tx=allTx.find(t=>t.id===btn.dataset.txId);if(!tx)return;
     if(btn.dataset.action==='pdf')generateReceiptPDF(tx);
+    if(btn.dataset.action==='doklad'){try{await openDoklad(tx.receiptPath);}catch(err){console.error(err);toast('Doklad se nepodařilo otevřít.');}}
     if(btn.dataset.action==='edit')openTxEditModal(tx);
     if(btn.dataset.action==='delete'){try{await cancelTx(tx.id);}catch(err){console.error(err);toast('Chyba.');}}
   }));
@@ -3002,7 +3037,7 @@ async function doUnpair(txId){
 $('btn-add-fap').addEventListener('click',async()=>{
   $('inv-ico').value='';$('inv-vendor').value='';$('inv-number').value=await generateInvNumber('fap');
   $('inv-orig-number').value='';$('inv-amount').value='';$('inv-date').value=today();
-  $('inv-due').value='';$('inv-url').value='';$('inv-desc').value='';$('inv-vs').value='';$('inv-ks').value='';
+  $('inv-due').value='';$('inv-url').value='';$('inv-desc').value='';$('inv-vs').value='';$('inv-ks').value='';$('inv-file').value='';
   fillCodeSelect('inv-code','');
   openModal('modal-invoice');
 });
@@ -3041,8 +3076,9 @@ $('btn-invoice-save').addEventListener('click',async()=>{
   $('btn-invoice-save').disabled=true;
   try{
     const invRef=doc(invCol());
+    const receiptPath=await uploadDoklad($('inv-file').files[0],invRef.id);
     const invNumber=await withNumber('FAP'+activePeriod,'inv',null,(tx,num)=>{
-      tx.set(invRef,{invType:'fap',invNumber:num,...pc,vendor,amount,ico:$('inv-ico').value.trim(),origNumber:$('inv-orig-number').value.trim(),date:$('inv-date').value,dueDate,vs:$('inv-vs').value.trim(),ks:$('inv-ks').value.trim(),url:$('inv-url').value.trim(),desc:$('inv-desc').value.trim(),paid:false,createdAt:serverTimestamp()});
+      tx.set(invRef,{invType:'fap',invNumber:num,...pc,vendor,amount,ico:$('inv-ico').value.trim(),origNumber:$('inv-orig-number').value.trim(),date:$('inv-date').value,dueDate,vs:$('inv-vs').value.trim(),ks:$('inv-ks').value.trim(),url:$('inv-url').value.trim(),desc:$('inv-desc').value.trim(),...(receiptPath?{receiptPath}:{}),paid:false,createdAt:serverTimestamp()});
     });
     if(invNumber!==$('inv-number').value.trim())toast(`Přiděleno číslo ${invNumber}.`);
     await saveContactIfNew(vendor,$('inv-ico').value.trim(),$('inv-vendor').dataset.address||'');
@@ -3056,7 +3092,8 @@ $('btn-invoice-update').addEventListener('click',async()=>{
   const pc=pickedCode('inv-edit-code');if(!pc){toast('Vyber projekt / kód.');return;}
   $('btn-invoice-update').disabled=true;
   try{
-    await updateDoc(invDoc(editInvId),{...pc,vendor,amount,dueDate,ico:$('inv-edit-ico').value.trim(),origNumber:$('inv-edit-number').value.trim(),date:$('inv-edit-date').value,url:$('inv-edit-url').value.trim(),desc:$('inv-edit-desc').value.trim()});
+    const receiptPath=await uploadDoklad($('inv-edit-file').files[0],editInvId);
+    await updateDoc(invDoc(editInvId),{...pc,vendor,amount,dueDate,ico:$('inv-edit-ico').value.trim(),origNumber:$('inv-edit-number').value.trim(),date:$('inv-edit-date').value,url:$('inv-edit-url').value.trim(),desc:$('inv-edit-desc').value.trim(),...(receiptPath?{receiptPath}:{})});
     await saveContactIfNew(vendor,$('inv-edit-ico').value.trim(),$('inv-edit-vendor').dataset.address||'');
     closeModal('modal-invoice-edit');toast('Faktura upravena ✓');
   }catch(e){console.error(e);toast('Chyba.');}

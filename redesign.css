@@ -355,9 +355,9 @@ h3 { font-size: 11px; }
 .modal .modal-header { background: var(--raised); }
 body.dark .modal input, body.dark .modal select, body.dark .modal textarea { background: #121214; border-color: transparent; }
 body.dark .modal input[readonly] { background: #18181b; }
-.modal input[type="file"] { padding: 8px 10px; font-size: 14px; }
-.modal input[type="file"]::file-selector-button { font: inherit; font-size: 13px; font-weight: 500; border: 0; border-radius: 10px; padding: 7px 12px; margin-right: 10px; background: var(--btn-bg); color: var(--text); cursor: pointer; }
-body.dark .modal input[type="file"]::file-selector-button { background: #2a2a2e; color: #ececee; }
+:is(.modal, .acct-form) input[type="file"] { padding: 8px 10px; font-size: 14px; }
+:is(.modal, .acct-form) input[type="file"]::file-selector-button { font: inherit; font-size: 13px; font-weight: 500; border: 0; border-radius: 10px; padding: 7px 12px; margin-right: 10px; background: var(--btn-bg); color: var(--text); cursor: pointer; }
+body.dark :is(.modal, .acct-form) input[type="file"]::file-selector-button { background: #2a2a2e; color: #ececee; }
 body.dark .modal input[type="date"] { color-scheme: dark; }
 
 /* barva aplikace pro Android */
@@ -924,3 +924,10 @@ html[data-platform="apple"] :is(.sidebar-nav-item, .sidebar-action) { border-rad
   body:has(#sidebar.collapsed) .acct-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   body:has(#sidebar.collapsed) .acct-form > .field:is(:has(> input[id$="-desc"]), :has(> input[id$="-party"])) { grid-column: 1 / -1; }
 }
+
+/* pole pro nahrání dokladu: výška 38 px jako ostatní kolonky (Apple, počítač a tablet), tlačítko Vybrat soubor jako kapsle */
+@media (min-width: 768px) {
+  html[data-platform="apple"] :is(.modal, .acct-form) input[type="file"] { height: 38px !important; min-height: 38px !important; box-sizing: border-box; padding: 0 6px !important; border-radius: 999px !important; line-height: normal; display: flex; align-items: center; }
+  html[data-platform="apple"] :is(.modal, .acct-form) input[type="file"]::file-selector-button { border-radius: 999px; padding: 0 14px; height: 28px; line-height: 28px; }
+}
+html[data-platform="apple"] :is(.modal, .acct-form) input[type="file"]::file-selector-button { border-radius: 999px; }

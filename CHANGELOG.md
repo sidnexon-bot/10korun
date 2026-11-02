@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.7.0 (2. 11. 2026)
+- Doklad (foto nebo PDF) lze nahrát při přidání nového dokladu v Účetnictví (Pokladna i Bankovní účet) a u přijaté faktury; u už uloženého záznamu nebo přijaté faktury ho lze doplnit nebo vyměnit v úpravách. Foto se zmenší, soubor se ukládá do stejné složky jako účtenky z náhrad. Otevření: „Doklad (sken)“ u záznamu a v nabídce faktury.
+
 ## 3.6.0 (2. 11. 2026)
 - Počítač a tablet po vzoru telefonu: tlačítka a (na Applu) kolonky formulářů mají přesně 38 px a tvar kapsle, přepínače a filtry 30 px; zaoblení karet a oken se nemění.
 - Apple: všechna akční tlačítka jsou kapsle na každé velikosti, položky bočního panelu mají jednotné zaoblení.

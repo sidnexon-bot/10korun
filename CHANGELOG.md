@@ -1,5 +1,10 @@
 # 10korun: přehled změn
 
+## 3.15.0 (3. 11. 2026)
+- Apple: tlačítka jako v iOS 26 (kapsle, průsvitné „sklo“, hlavní tlačítko v barvě aplikace, stisk bez zdvihu), kulatější karty, okna a nabídky; písmo zůstává systémové (SF Pro) bez ručního prostrkání nadpisů.
+- Android: tlačítka podle Material 3 (vedlejší jsou textová bez výplně), písmo Google Sans Flex (hostované v aplikaci, licence OFL) a stupnice Material 3.
+- Hranice telefon / tablet je sjednocená na 767 / 768 px (na šířce přesně 768 px se rozložení už nepřekrývají).
+
 ## 3.13.0 (3. 11. 2026)
 - Rozbalovací bloky (accordiony) se rozbalují a sbalují jako roleta: obsah se odvíjí shora dolů a stejně se svine. Respektuje nastavení „omezit pohyb“.
 - Výraznější šipka: v zavřeném stavu míří na text, v otevřeném dolů (otáčí se plynule).

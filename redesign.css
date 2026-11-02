@@ -931,3 +931,7 @@ html[data-platform="apple"] :is(.sidebar-nav-item, .sidebar-action) { border-rad
   html[data-platform="apple"] :is(.modal, .acct-form) input[type="file"]::file-selector-button { border-radius: 999px; padding: 0 14px; height: 28px; line-height: 28px; }
 }
 html[data-platform="apple"] :is(.modal, .acct-form) input[type="file"]::file-selector-button { border-radius: 999px; }
+
+/* upomínka na zálohu (Přehled) */
+.backup-reminder { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 10px 10px 10px 16px; border-radius: var(--r-card); background: var(--accent-soft, #e8f5ec); color: var(--text); font-size: 14px; }
+.backup-reminder button { width: auto; flex: 0 0 auto; }

@@ -7,6 +7,7 @@
   <title>10korun</title>
   <script src="platform.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1043,6 +1044,7 @@
 
     <!-- ── DASHBOARD ── -->
     <div id="view-dashboard" class="view active">
+      <div class="backup-reminder" id="backup-reminder" style="display:none;"><span id="backup-reminder-text"></span><button class="btn-secondary" id="btn-backup-remind">Zálohovat</button></div>
       <h3>Účetní období <span id="dash-period" style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text);"></span></h3>
       <div class="stats-row">
         <div class="stat-card"><div class="stat-label">Příjmy</div><div class="stat-value positive" id="stat-income">0 Kč</div></div>
@@ -1157,6 +1159,19 @@
         </div>
       </div>
       <button class="btn-secondary" id="btn-new-period" style="width:auto;margin-bottom:16px;">+ Otevřít nový rok</button>
+
+      <h3>Záloha</h3>
+      <div class="settings-group" id="backup-box">
+        <div class="settings-row"><span class="settings-label">Poslední záloha</span><span class="settings-value" id="backup-last">–</span></div>
+        <div class="settings-row"><span class="settings-label">Složka na 10space</span><span class="settings-value"><span id="backup-folder-name">nevybrána</span> <button class="btn-secondary" id="btn-backup-pick" style="width:auto;margin-left:8px;">Vybrat…</button></span></div>
+        <div style="padding:10px 16px 14px;"><div class="stat-note" id="backup-status" style="margin:0;">ZIP obsahuje všechna data účetnictví (JSON), přehled v Excelu a nahrané doklady.</div></div>
+      </div>
+      <div class="ar-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+        <button class="btn-secondary" id="btn-backup-drive" style="width:auto;">Zálohovat na 10space</button>
+        <button class="btn-secondary" id="btn-backup-dl" style="width:auto;">Stáhnout zálohu</button>
+        <button class="btn-secondary" id="btn-backup-restore" style="width:auto;">Obnovit ze zálohy</button>
+        <input type="file" id="backup-restore-file" accept=".zip,application/zip" multiple style="display:none;" />
+      </div>
 
       <h3>Historie změn</h3>
       <div class="settings-group"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Kdo, kdy a co změnil u dokladů, faktur, žádostí, čítačů a členů. Záznamy vytváří server a nelze je upravit ani smazat.</div></div>
@@ -1486,6 +1501,32 @@
 </div>
 
 <div id="pdf-template" style="display:none;position:fixed;left:-9999px;top:0;"></div>
+<div class="modal-overlay" id="modal-bkfolder">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Složka na 10space</div><button class="modal-close" data-close="modal-bkfolder">✕</button></div>
+    <div class="modal-body">
+      <div class="stat-note" id="bk-path" style="margin:0 0 8px;"></div>
+      <div id="bk-list" style="max-height:46vh;overflow:auto;"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn-secondary" id="bk-new">+ Nová složka</button>
+      <div style="display:flex;gap:8px;"><button class="btn-secondary" data-close="modal-bkfolder">Zrušit</button><button class="btn-primary" id="bk-choose">Vybrat tuto složku</button></div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-bkrestore">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Obnovit ze zálohy</div><button class="modal-close" data-close="modal-bkrestore">✕</button></div>
+    <div class="modal-body">
+      <div id="bkr-info" style="font-size:14px;line-height:1.5;"></div>
+      <div class="stat-note" style="margin:10px 0 0;">Záznamy se stejným ID se přepíšou stavem ze zálohy, ostatní zůstanou. Čítače čísel se nikdy nevrací zpět. Členové, role a historie změn se neobnovují. Před obnovou se do počítače automaticky stáhne záloha současného stavu.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-close="modal-bkrestore">Zrušit</button>
+      <button class="btn-primary" id="bkr-go">Obnovit</button>
+    </div>
+  </div>
+</div>
 <div id="toast"></div>
 
 <!-- ══════════════════════════════════
@@ -1498,7 +1539,8 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
 import { initializeFirestore, doc, getDoc, setDoc, collection, addDoc,
   query, orderBy, onSnapshot, updateDoc, deleteDoc, serverTimestamp, where, getDocs, writeBatch, runTransaction, limit }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject }
+import { Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref as sRef, uploadBytes, getBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 import { getDatabase, ref as dbRef, onValue }
@@ -1804,7 +1846,7 @@ function launchApp(){
     <div class="settings-row"><span class="settings-label">Adresa</span><span class="settings-value">${escHtml(orgData.address||'–')}</span></div>
     <div class="settings-row"><span class="settings-label">Účetní období</span><span class="settings-value">${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}</span></div>
   `;
-  subscribeContacts();subscribeTransactions();subscribeInvoices();subscribeExpenses();subscribeRates();
+  subscribeContacts();subscribeTransactions();subscribeInvoices();subscribeExpenses();subscribeRates();subscribeBackup();
   initAutocompletes();
 }
 
@@ -2341,6 +2383,199 @@ function renderAudit(){
       <div style="margin-top:4px;word-break:break-word;">${escHtml(auditChangeText(a))}</div></div>`;
   }).join('');
 }
+/* ── ZÁLOHA ÚČETNICTVÍ ──
+   ZIP: data.json (všechny kolekce, časy jako {"__ts": ISO}), přehled v Excelu, nahrané doklady (cesty jako ve Storage) a README.
+   Uložení na 10space: strom složek vrací funkce getDriveTree (jen složky, do kterých smí uživatel zapisovat), soubor se posílá funkcí uploadFile
+   (tělo max. cca 32 MB, proto se záloha dělí na díly po ~18 MB). Čas poslední zálohy a vybraná složka jsou v orgs/10men/config/backup.
+   Obnova: nahraný ZIP (nebo více dílů) → přepíšou se záznamy se stejným ID; předtím se stáhne záloha současného stavu. */
+const FN_BASE=['https://uploadfile-etp6s2ynnq-uc.a.run.app','https://getdrivetree-etp6s2ynnq-uc.a.run.app'],BACKUP_URL=FN_BASE[0],TREE_URL=FN_BASE[1],DRIVE_ROOT='0B23cZAlYDWOndmtIZU45WWJrbWM',BACKUP_REMIND_DAYS=14,BACKUP_PART=18*1024*1024;
+let backupMeta=null,unsubBackup=null,backupBusy=false;
+const backupRef=()=>doc(db,'orgs',ORG_ID,'config','backup');
+function subscribeBackup(){
+  if(unsubBackup||userRole!=='treasurer')return;
+  unsubBackup=onSnapshot(backupRef(),snap=>{backupMeta=snap.exists()?snap.data():null;renderBackup();},e=>console.warn('backup meta',e));
+}
+function backupDays(){const l=backupMeta&&backupMeta.lastAt&&backupMeta.lastAt.toDate?backupMeta.lastAt.toDate():null;return l?{d:l,days:Math.floor((Date.now()-l.getTime())/864e5)}:null;}
+function renderBackup(){
+  const b=backupDays();
+  if($('backup-last'))$('backup-last').textContent=b?`${b.d.toLocaleDateString('cs-CZ')} (${b.days===0?'dnes':'před '+b.days+' dny'}${backupMeta.lastDrive?', uloženo na 10space':''})`:'zatím nebyla';
+  if($('backup-folder-name'))$('backup-folder-name').textContent=backupMeta&&backupMeta.driveFolderId?(backupMeta.driveFolderName||'vybrána'):'nevybrána';
+  const r=$('backup-reminder');
+  if(r){const due=userRole==='treasurer'&&(!b||b.days>=BACKUP_REMIND_DAYS);r.style.display=due?'':'none';$('backup-reminder-text').textContent=b?`Poslední záloha účetnictví je stará ${b.days} dní.`:'Účetnictví ještě nebylo zálohováno.';}
+}
+async function bkFn(url,body){
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+await auth.currentUser.getIdToken()},body:JSON.stringify(body||{})});
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(j.error||('HTTP '+res.status));
+  return j;
+}
+/* výběr složky na 10space */
+let bkTree=null,bkCur=DRIVE_ROOT;
+const bkParent=id=>{const f=bkTree.folders[id];return f?(f.parentId||DRIVE_ROOT):null;};
+const bkCanWrite=id=>(bkTree.acc||{})[id]!=='read';
+function bkPathNames(id){const a=[];let c=id,g=0;while(c&&c!==DRIVE_ROOT&&g++<40){a.unshift((bkTree.folders[c]||{}).name||'?');c=bkParent(c);}return ['10space',...a];}
+function renderFolderPicker(){
+  $('bk-path').textContent=bkPathNames(bkCur).join(' › ');
+  const kids=Object.entries(bkTree.folders).filter(([id,f])=>(f.parentId||DRIVE_ROOT)===bkCur).sort((a,b)=>String(a[1].name).localeCompare(String(b[1].name),'cs'));
+  const up=bkCur!==DRIVE_ROOT?`<button type="button" class="inv-menu-item" data-bk="up">↩ O úroveň výš</button>`:'';
+  $('bk-list').innerHTML=up+(kids.length?kids.map(([id,f])=>`<button type="button" class="inv-menu-item" data-bk="${escHtml(id)}"${bkCanWrite(id)?'':' disabled style="opacity:.45"'}>📁 ${escHtml(f.name)}${bkCanWrite(id)?'':' (jen ke čtení)'}</button>`).join(''):'<div style="color:var(--muted);padding:10px 14px;font-size:14px;">Tady nejsou žádné podsložky.</div>');
+  $('bk-choose').disabled=!bkCanWrite(bkCur)&&bkCur!==DRIVE_ROOT;
+  $('bk-list').querySelectorAll('[data-bk]').forEach(b=>b.addEventListener('click',()=>{bkCur=b.dataset.bk==='up'?(bkParent(bkCur)||DRIVE_ROOT):b.dataset.bk;renderFolderPicker();}));
+}
+async function openFolderPicker(){
+  openModal('modal-bkfolder');$('bk-list').innerHTML='<div style="color:var(--muted);padding:14px;font-size:14px;">Načítám složky…</div>';$('bk-path').textContent='';
+  try{bkTree=await bkFn(TREE_URL,{});bkTree.folders=bkTree.folders||{};bkCur=backupMeta&&backupMeta.driveFolderId&&bkTree.folders[backupMeta.driveFolderId]?backupMeta.driveFolderId:DRIVE_ROOT;renderFolderPicker();}
+  catch(e){console.error(e);$('bk-list').innerHTML=`<div style="color:var(--expense);padding:14px;font-size:14px;">Složky se nepodařilo načíst (${escHtml(e.message)}). Zkontroluj, že jsi členem 10space.</div>`;}
+}
+$('btn-backup-pick').addEventListener('click',openFolderPicker);
+$('bk-choose').addEventListener('click',async()=>{
+  try{await setDoc(backupRef(),{driveFolderId:bkCur,driveFolderName:bkPathNames(bkCur).join(' › ')},{merge:true});closeModal('modal-bkfolder');toast('Složka vybrána ✓');}
+  catch(e){console.error(e);toast('Složku se nepodařilo uložit.');}
+});
+$('bk-new').addEventListener('click',async()=>{
+  const name=(prompt('Název nové složky:','Záloha 10korun')||'').trim();if(!name)return;
+  try{
+    const r=await bkFn(BACKUP_URL,{createFolder:true,fileName:name,parentFolderId:bkCur});
+    bkTree.folders[r.driveFileId]={name:r.name||name,parentId:bkCur};bkCur=r.driveFileId;renderFolderPicker();toast('Složka vytvořena ✓');
+  }catch(e){console.error(e);toast('Složku se nepodařilo vytvořit: '+e.message,4500);}
+});
+function bkPlain(v){
+  if(v&&typeof v.toDate==='function')return {__ts:v.toDate().toISOString()};
+  if(Array.isArray(v))return v.map(bkPlain);
+  if(v&&typeof v==='object')return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,bkPlain(x)]));
+  return v;
+}
+async function bkDump(...path){return (await getDocs(collection(db,'orgs',ORG_ID,...path))).docs.map(d=>({id:d.id,data:bkPlain(d.data())}));}
+async function buildBackup(setStatus){
+  if(!window.JSZip)throw new Error('Knihovna ZIP se nenačetla.');
+  setStatus('Čtu data…');
+  const org=await getDoc(doc(db,'orgs',ORG_ID));
+  const out={format:'10korun-zaloha-1',exportedAt:new Date().toISOString(),by:currentUser.email,org:{id:ORG_ID,data:bkPlain(org.data()||{})},collections:{},periods:[]};
+  for(const c of ['members','expenses','expenseReports','contacts','counters','config','summary','auditLog'])out.collections[c]=await bkDump(c);
+  for(const p of await bkDump('periods'))out.periods.push({id:p.id,data:p.data,transactions:await bkDump('periods',p.id,'transactions'),invoices:await bkDump('periods',p.id,'invoices')});
+  // odkazy na soubory ve Storage
+  const paths=new Set(),add=p=>{if(p&&typeof p==='string')paths.add(p);};
+  out.collections.expenses.forEach(e=>add(e.data.receiptPath));
+  out.collections.expenseReports.forEach(r=>{add(r.data.pdfPath);(r.data.items||[]).forEach(i=>add(i.receiptPath));});
+  out.periods.forEach(p=>{p.transactions.forEach(t=>add(t.data.receiptPath));p.invoices.forEach(i=>add(i.data.receiptPath));});
+  // Excel
+  setStatus('Připravuji Excel…');
+  let xlsx=null;
+  if(window.ExcelJS){
+    const wb=new window.ExcelJS.Workbook(),sh=(n,cols,rows)=>{const w=wb.addWorksheet(n);w.columns=cols.map(c=>({header:c[0],key:c[1],width:c[2]||16}));rows.forEach(r=>w.addRow(r));w.getRow(1).font={bold:true};w.views=[{state:'frozen',ySplit:1}];};
+    const tx=[],iv=[];out.periods.forEach(p=>{p.transactions.forEach(t=>tx.push({rok:p.id,...t.data}));p.invoices.forEach(i=>iv.push({rok:p.id,...i.data}));});
+    sh('Transakce',[['Rok','rok',8],['Doklad','docNumber'],['Datum','date'],['Účet','account'],['Typ','type'],['Popis','desc',40],['Částka','amount'],['Kategorie','category'],['Protistrana','party',24],['Kód','projectCode'],['Stornováno','cancelled'],['Soubor','receiptPath',30]],tx);
+    sh('Faktury',[['Rok','rok',8],['Číslo','invNumber'],['Typ','invType',8],['Dodavatel/odběratel','vendor',30],['Částka','amount'],['Datum','date'],['Splatnost','dueDate'],['Uhrazeno','paid',10],['Kód','projectCode'],['Stornováno','cancelled'],['Soubor','receiptPath',30]],iv);
+    sh('Náhrady',[['Datum','date'],['Jméno','name',24],['Popis','desc',40],['Částka','amount'],['Stav','status'],['Kód','projectCode'],['Účtenka','receiptPath',30]],out.collections.expenses.map(e=>e.data));
+    sh('Kontakty',[['Název','name',30],['IČO','ico'],['Adresa','address',34],['E-mail','email',24],['Telefon','phone']],out.collections.contacts.map(c=>c.data));
+    xlsx=await wb.xlsx.writeBuffer();
+  }
+  // soubory
+  const files=[],missing=[];let n=0;
+  for(const p of paths){
+    setStatus(`Stahuji doklady ${++n}/${paths.size}…`);
+    try{files.push({path:p,bytes:new Uint8Array(await getBytes(sRef(storage,p)))});}catch(e){console.warn('doklad',p,e);missing.push(p);}
+  }
+  out.files={included:files.map(f=>f.path),missing};
+  const stamp=new Date().toISOString().slice(0,16).replace('T','-').replace(':','');
+  const base=`10korun-zaloha-${stamp}`;
+  const readme=`Záloha účetnictví 10korun (${out.exportedAt}, ${currentUser.email})\r\n\r\n`+
+    `data.json – všechny kolekce Firestore (orgs/${ORG_ID}); časy jsou ve tvaru {"__ts": "ISO čas"}\r\n`+
+    `prehled.xlsx – čitelný přehled transakcí, faktur, náhrad a kontaktů\r\n`+
+    `soubory/ – nahrané doklady, cesta odpovídá cestě ve Storage (korun/vydaje/<uid>/…)\r\n`+
+    `Záloha se dělí na díly (-dil2, -dil3…), pokud je souborů hodně; data.json je vždy v prvním dílu.\r\n`+
+    (missing.length?`\r\nNEPODAŘILO SE STÁHNOUT ${missing.length} souborů (seznam je v data.json → files.missing).\r\n`:'')+
+    `\r\nObnova: v aplikaci Nastavení → Záloha → Obnovit ze zálohy (vyber tento ZIP; u více dílů všechny najednou).\r\n`;
+  // díly
+  const parts=[];let cur=new window.JSZip(),size=0,idx=1;
+  const flush=async()=>{parts.push({name:idx===1?`${base}.zip`:`${base}-dil${idx}.zip`,blob:await cur.generateAsync({type:'blob',compression:'DEFLATE'})});cur=new window.JSZip();size=0;idx++;};
+  cur.file('README.txt',readme);cur.file('data.json',JSON.stringify(out,null,1));if(xlsx)cur.file('prehled.xlsx',xlsx);
+  for(const f of files){if(size+f.bytes.length>BACKUP_PART&&size>0)await flush();cur.file('soubory/'+f.path,f.bytes);size+=f.bytes.length;}
+  await flush();
+  return {parts,missing,files:files.length};
+}
+const bkB64=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(blob);});
+async function runBackup(toDrive){
+  if(backupBusy)return;
+  if(userRole!=='treasurer'){toast('Zálohovat smí jen hospodář.');return;}
+  const folder=backupMeta&&backupMeta.driveFolderId||'';
+  if(toDrive&&!folder){toast('Nejdřív vyber složku na 10space.');openFolderPicker();return;}
+  const st=t=>{$('backup-status').textContent=t;},btns=['btn-backup-dl','btn-backup-drive','btn-backup-pick','btn-backup-restore','btn-backup-remind'].map($);
+  backupBusy=true;btns.forEach(b=>b&&(b.disabled=true));
+  try{
+    const r=await buildBackup(st);
+    let drive=false;
+    if(toDrive){
+      for(const p of r.parts){st(`Ukládám na 10space: ${p.name}…`);await bkFn(BACKUP_URL,{fileName:p.name,mimeType:'application/zip',base64Data:await bkB64(p.blob),slozkaId:folder});}
+      drive=true;
+    }else bkDownload(r.parts);
+    await setDoc(backupRef(),{lastAt:serverTimestamp(),lastBy:currentUser.email,parts:r.parts.length,files:r.files,missing:r.missing.length,lastDrive:drive},{merge:true});
+    st(`Hotovo: ${r.parts.length} ${r.parts.length===1?'soubor':'soubory'}, ${r.files} dokladů${drive?' (uloženo na 10space)':''}${r.missing.length?`, NEPODAŘILO SE STÁHNOUT ${r.missing.length} dokladů (zkontroluj nastavení CORS úložiště)`:''}.`);
+    toast(r.missing.length?'Záloha hotová, část dokladů chybí.':'Záloha hotová ✓',r.missing.length?5000:2800);
+  }catch(e){console.error('BACKUP:',e);st('Záloha se nezdařila: '+(e&&e.message||e));toast('Záloha se nezdařila.');}
+  backupBusy=false;btns.forEach(b=>b&&(b.disabled=false));
+}
+async function bkDownload(parts){for(const p of parts){const a=document.createElement('a');a.href=URL.createObjectURL(p.blob);a.download=p.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);await new Promise(x=>setTimeout(x,400));}}
+$('btn-backup-dl').addEventListener('click',()=>runBackup(false));
+$('btn-backup-drive').addEventListener('click',()=>runBackup(true));
+$('btn-backup-remind').addEventListener('click',()=>runBackup(!!(backupMeta&&backupMeta.driveFolderId)));
+
+/* obnova z nahraného ZIPu */
+let bkRestore=null;
+const bkRevive=v=>{if(v&&typeof v==='object'&&!Array.isArray(v)){const k=Object.keys(v);if(k.length===1&&k[0]==='__ts'&&typeof v.__ts==='string')return Timestamp.fromDate(new Date(v.__ts));return Object.fromEntries(Object.entries(v).map(([a,b])=>[a,bkRevive(b)]));}return Array.isArray(v)?v.map(bkRevive):v;};
+$('btn-backup-restore').addEventListener('click',()=>{if(userRole!=='treasurer'){toast('Obnovovat smí jen hospodář.');return;}$('backup-restore-file').value='';$('backup-restore-file').click();});
+$('backup-restore-file').addEventListener('change',async e=>{
+  const fl=[...e.target.files];if(!fl.length)return;
+  try{
+    if(!window.JSZip)throw new Error('Knihovna ZIP se nenačetla.');
+    let data=null;const entries=new Map();
+    for(const f of fl){
+      const z=await window.JSZip.loadAsync(f);
+      const dj=z.file('data.json');if(dj)data=JSON.parse(await dj.async('string'));
+      z.forEach((p,o)=>{if(!o.dir&&p.startsWith('soubory/'))entries.set(p.slice(8),o);});
+    }
+    if(!data||data.format!=='10korun-zaloha-1')throw new Error('Soubor nevypadá jako záloha 10korun (chybí data.json). U záloh po dílech vyber všechny díly najednou.');
+    const tx=data.periods.reduce((s,p)=>s+p.transactions.length,0),iv=data.periods.reduce((s,p)=>s+p.invoices.length,0);
+    bkRestore={data,entries};
+    $('bkr-info').innerHTML=`Záloha z <b>${new Date(data.exportedAt).toLocaleString('cs-CZ')}</b> (${escHtml(data.by||'')}).<br>Období: ${data.periods.map(p=>escHtml(p.id)).join(', ')||'–'}<br>Transakce: <b>${tx}</b>, faktury: <b>${iv}</b>, náhrady: <b>${data.collections.expenses.length}</b>, výkazy: <b>${data.collections.expenseReports.length}</b>, kontakty: <b>${data.collections.contacts.length}</b>, doklady ve ZIPu: <b>${entries.size}</b>.`;
+    openModal('modal-bkrestore');
+  }catch(err){console.error(err);toast('Zálohu nelze načíst: '+err.message,5000);}
+});
+$('bkr-go').addEventListener('click',async()=>{
+  if(!bkRestore||backupBusy)return;
+  const {data,entries}=bkRestore,st=t=>{$('backup-status').textContent=t;},btns=['btn-backup-dl','btn-backup-drive','btn-backup-pick','btn-backup-restore','bkr-go'].map($);
+  backupBusy=true;btns.forEach(b=>b&&(b.disabled=true));
+  try{
+    st('Před obnovou ukládám zálohu současného stavu…');
+    const pre=await buildBackup(st);pre.parts.forEach(p=>p.name=p.name.replace('.zip','-pred-obnovou.zip'));await bkDownload(pre.parts);
+    const base=['orgs',ORG_ID],ops=[];
+    ops.push({ref:doc(db,...base),data:bkRevive(data.org.data)});
+    for(const c of ['contacts','expenses','expenseReports'])for(const d of data.collections[c]||[])ops.push({ref:doc(db,...base,c,d.id),data:bkRevive(d.data)});
+    for(const d of data.collections.config||[])if(d.id!=='backup')ops.push({ref:doc(db,...base,'config',d.id),data:bkRevive(d.data)});
+    for(const p of data.periods){
+      ops.push({ref:doc(db,...base,'periods',p.id),data:bkRevive(p.data)});
+      for(const t of p.transactions)ops.push({ref:doc(db,...base,'periods',p.id,'transactions',t.id),data:bkRevive(t.data)});
+      for(const i of p.invoices)ops.push({ref:doc(db,...base,'periods',p.id,'invoices',i.id),data:bkRevive(i.data)});
+    }
+    // čítače: nikdy zpět (jinak by se čísla dokladů opakovala)
+    for(const c of data.collections.counters||[]){
+      const cur=await getDoc(doc(db,...base,'counters',c.id));
+      ops.push({ref:doc(db,...base,'counters',c.id),data:{...bkRevive(c.data),last:Math.max(Number(c.data.last)||0,cur.exists()?Number(cur.data().last)||0:0)}});
+    }
+    for(let i=0;i<ops.length;i+=400){st(`Obnovuji data ${Math.min(i+400,ops.length)}/${ops.length}…`);const b=writeBatch(db);ops.slice(i,i+400).forEach(o=>b.set(o.ref,o.data));await b.commit();}
+    // doklady: jen do vlastní složky (pravidla úložiště), jen ty, které chybí
+    let up=0,skip=0;const mine=`korun/vydaje/${currentUser.uid}/`;
+    for(const [path,o] of entries){
+      if(!path.startsWith(mine)){skip++;continue;}
+      try{await getBytes(sRef(storage,path));}
+      catch(_){try{const bytes=await o.async('uint8array');await uploadBytes(sRef(storage,path),bytes,{contentType:/\.pdf$/i.test(path)?'application/pdf':'image/jpeg'});up++;}catch(e){console.warn('doklad',path,e);skip++;}}
+    }
+    st(`Obnoveno ${ops.length} záznamů${up?`, vráceno ${up} dokladů`:''}${skip?`; ${skip} dokladů se neobnovuje (jsou v úložišti členů)`:''}.`);
+    closeModal('modal-bkrestore');toast('Obnoveno ze zálohy ✓',4000);bkRestore=null;
+  }catch(e){console.error('RESTORE:',e);st('Obnova se nezdařila: '+(e&&e.message||e));toast('Obnova se nezdařila.',4500);}
+  backupBusy=false;btns.forEach(b=>b&&(b.disabled=false));
+});
+
 $('btn-audit-log').addEventListener('click',async()=>{
   openModal('modal-audit');$('audit-list').innerHTML='<div style="color:var(--muted);padding:30px 0;text-align:center;">Načítám…</div>';
   try{

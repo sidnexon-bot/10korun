@@ -1,5 +1,9 @@
 # 10korun: přehled změn
 
+## 3.8.0 (2. 11. 2026)
+- Záloha účetnictví (Nastavení → Záloha, jen hospodář): „Zálohovat na 10space“ (do vybrané složky; složku lze vybrat ze stromu složek 10space nebo vytvořit novou), „Stáhnout zálohu“ (ZIP: data.json, přehled v Excelu, nahrané doklady) a „Obnovit ze zálohy“ (nahraný ZIP; před obnovou se stáhne záloha současného stavu, čítače čísel se nevrací zpět).
+- Upomínka na Přehledu, když poslední záloha je starší než 14 dní nebo žádná nebyla.
+
 ## 3.7.0 (2. 11. 2026)
 - Doklad (foto nebo PDF) lze nahrát při přidání nového dokladu v Účetnictví (Pokladna i Bankovní účet) a u přijaté faktury; u už uloženého záznamu nebo přijaté faktury ho lze doplnit nebo vyměnit v úpravách. Foto se zmenší, soubor se ukládá do stejné složky jako účtenky z náhrad. Otevření: „Doklad (sken)“ u záznamu a v nabídce faktury.
 

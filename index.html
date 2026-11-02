@@ -402,9 +402,10 @@
     .acct-table tr.arow { cursor:pointer; }
     .acct-table tr.arow:hover td { background:var(--bg); }
     .acct-table tr.arow.cx td { color:var(--muted); text-decoration:line-through; }
-    .acct-table tr.aacc { display:none; }
-    .acct-table tr.aacc.open { display:table-row; }
-    .acct-table tr.aacc td { background:var(--bg); padding:8px 12px; }
+    .acct-table tr.aacc td { background:var(--bg); padding:0; border-top:0; }
+    .acct-table tr.aacc .acc-in { display:none; padding:8px 12px; }
+    .acct-table tr.aacc.open td { border-top:1px solid var(--border); }
+    .acct-table tr.aacc.open .acc-in { display:block; }
     .acct-table tr.aacc .accordion-btn { display:inline-block; margin-right:6px; }
     .acct-switch, .acct-new, .acct-form-head, .acct-backdrop { display:none; }
     @media (max-width:767px){
@@ -2662,9 +2663,9 @@ function renderContacts(){
   wrap.querySelectorAll('.doc-row-main').forEach(row=>{
     row.addEventListener('click',()=>{
       const acc=row.nextElementSibling;
-      const isOpen=acc.classList.contains('open');
-      wrap.querySelectorAll('.doc-row-accordion').forEach(a=>a.classList.remove('open'));
-      if(!isOpen) acc.classList.add('open');
+      const isOpen=tenAcc.isOpen(acc);
+      wrap.querySelectorAll('.doc-row-accordion[data-acc="open"]').forEach(a=>{if(a!==acc)tenAcc.set(a,false);});
+      tenAcc.set(acc,!isOpen);
     });
   });
 
@@ -3182,14 +3183,14 @@ function renderAcct(acc){
   const rows=list.map(t=>{
     const cx=!!t.cancelled,pi=t.pairedInvoice?allInvoices.find(i=>i.id===t.pairedInvoice):null;
     return `<tr class="arow${cx?' cx':''}" data-tx-id="${escHtml(t.id)}"><td>${escHtml(t.docNumber||'–')}</td><td>${fmtDate(t.date)}</td><td>${typeLabel(t)}</td><td>${cx?'<span class="badge badge-cancel">STORNO</span> ':''}${escHtml(t.desc)}${t.projectCode?`<span class="kd-chip">${escHtml(t.projectCode)}</span>`:''}${pi?` <span style="color:var(--muted);font-size:11px;">✓ ${escHtml(pi.invNumber||'')}</span>`:''}</td><td class="n ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</td></tr>
-      <tr class="aacc"><td colspan="5">${cx?`<div class="cancel-note">Stornováno${t.cancelledBy?' – '+escHtml(t.cancelledBy):''}: ${escHtml(t.cancelReason||'')}</div>`:`
+      <tr class="aacc"><td colspan="5"><div class="acc-in">${cx?`<div class="cancel-note">Stornováno${t.cancelledBy?' – '+escHtml(t.cancelledBy):''}: ${escHtml(t.cancelReason||'')}</div>`:`
         ${acc==='cash'?`<button class="accordion-btn pdf" data-action="pdf" data-tx-id="${escHtml(t.id)}">Zobrazit PDF</button>`:''}
         ${t.receiptPath?`<button class="accordion-btn pdf" data-action="doklad" data-tx-id="${escHtml(t.id)}">Doklad (sken)</button>`:''}
         <button class="accordion-btn edit" data-action="edit" data-tx-id="${escHtml(t.id)}">Upravit záznam</button>
-        <button class="accordion-btn delete" data-action="delete" data-tx-id="${escHtml(t.id)}">${t.docNumber?'Stornovat':'Smazat záznam'}</button>`}</td></tr>`;
+        <button class="accordion-btn delete" data-action="delete" data-tx-id="${escHtml(t.id)}">${t.docNumber?'Stornovat':'Smazat záznam'}</button>`}</div></td></tr>`;
   }).join('');
   wrap.innerHTML=`<table class="acct-table"><thead><tr><th>Doklad</th><th>Datum</th><th>Typ</th><th>Popis</th><th class="n">Částka</th></tr></thead><tbody>${rows}</tbody></table>`;
-  wrap.querySelectorAll('tr.arow').forEach(r=>r.addEventListener('click',()=>{const a=r.nextElementSibling,open=a.classList.contains('open');wrap.querySelectorAll('tr.aacc').forEach(x=>x.classList.remove('open'));if(!open)a.classList.add('open');}));
+  wrap.querySelectorAll('tr.arow').forEach(r=>r.addEventListener('click',()=>{const a=r.nextElementSibling,open=tenAcc.isOpen(a);wrap.querySelectorAll('tr.aacc[data-acc="open"]').forEach(x=>{if(x!==a)tenAcc.set(x,false,{body:x.querySelector('.acc-in')});});tenAcc.set(a,!open,{body:a.querySelector('.acc-in')});}));
   wrap.querySelectorAll('.accordion-btn').forEach(btn=>btn.addEventListener('click',async e=>{
     e.stopPropagation();const tx=allTx.find(t=>t.id===btn.dataset.txId);if(!tx)return;
     if(btn.dataset.action==='pdf')generateReceiptPDF(tx);

@@ -1,5 +1,10 @@
 # 10korun: přehled změn
 
+## 3.13.0 (3. 11. 2026)
+- Rozbalovací bloky (accordiony) se rozbalují a sbalují jako roleta: obsah se odvíjí shora dolů a stejně se svine. Respektuje nastavení „omezit pohyb“.
+- Výraznější šipka: v zavřeném stavu míří na text, v otevřeném dolů (otáčí se plynule).
+- 10korun: rozbalení kontaktů a řádků účetnictví; u řádků přibyla šipka.
+
 ## 3.12.1 (3. 11. 2026)
 - Záhlaví bottom sheetu: nadpis a křížek jsou ve stejné výšce (v 10space a 10base byl křížek o 10 px níž kvůli zbytku starého pravidla).
 

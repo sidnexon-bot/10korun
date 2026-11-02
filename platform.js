@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   function run() {
     document.querySelectorAll(ROOTS).forEach(function (root) {
-      root.querySelectorAll('.field, label, .detail-field').forEach(build);
+      root.querySelectorAll('.field, label, .detail-field, .field > div:has(> label)').forEach(build);   // i pole s tlačítkem vedle (IČO + ARES): popisek je v obalu pole
     });
     var parents = new Set();
     document.querySelectorAll('.and-unit').forEach(function (u) { parents.add(u.parentElement); });

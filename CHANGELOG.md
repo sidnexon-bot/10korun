@@ -3,6 +3,7 @@
 ## 3.15.2 (3. 11. 2026)
 - Android: formuláře mají zase jen placeholdery místo popisků kolonek. Popisky se po změně písma (3.15.0) omylem ukázaly znovu vedle placeholderů.
 - Android: pole IČO (s tlačítkem ARES) má také jen placeholder, ne popisek vedle něj; pole ve formulářích oken jsou samostatné kapsle.
+- Apple: všechna okna (formuláře, seznamy, volby) jsou plovoucí karta nahoře místo bottom sheetu, jako okno odškrtnutí docházky. Android zůstává u bottom sheetu.
 
 ## 3.15.1 (3. 11. 2026)
 - iPhone: ve spodní liště se useknul spodek písmen; oprava výšky řádku popisků.

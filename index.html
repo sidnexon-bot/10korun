@@ -2414,18 +2414,29 @@ function renderAudit(){
    Nabídne se stažení nebo uložení do složky na 10space (stejná funkce uploadFile jako u zálohy; poslední složka je v config/backup.expFolderId). */
 let mergeJob=null;
 const A4P=[595.28,841.89];
+// soubor ze Storage: nejdřív přes odkaz ke stažení (stejně jako tlačítka Účtenka / PDF; chyba je hned a srozumitelná), záložně přes SDK
+async function storageBytes(path){
+  let first;
+  try{
+    const res=await fetch(await getDownloadURL(sRef(storage,path)),{signal:AbortSignal.timeout(30000)});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    return new Uint8Array(await res.arrayBuffer());
+  }catch(e){first=e;}
+  try{return new Uint8Array(await getBytes(sRef(storage,path)));}
+  catch(e){throw new Error(`${path.split('/').pop()}: ${first&&first.message||first}; ${e&&e.code||e&&e.message||e}`);}
+}
 async function buildMergedPdf(r,setStatus){
   const PDFDocument=window.PDFLib&&window.PDFLib.PDFDocument;
   if(!PDFDocument)throw new Error('Knihovna PDF se nenačetla.');
   const out=await PDFDocument.create();
-  const reqDoc=await PDFDocument.load(await getBytes(sRef(storage,r.pdfPath)));
+  const reqDoc=await PDFDocument.load(await storageBytes(r.pdfPath));
   (await out.copyPages(reqDoc,reqDoc.getPageIndices())).forEach(p=>out.addPage(p));
   const missing=[];let n=0;
   for(const i of (r.items||[])){
     if(!i.receiptPath)continue;
     setStatus(`Přidávám účtenku ${++n}…`);
     try{
-      const bytes=new Uint8Array(await getBytes(sRef(storage,i.receiptPath)));
+      const bytes=await storageBytes(i.receiptPath);
       if(/\.pdf$/i.test(i.receiptPath)){
         const src=await PDFDocument.load(bytes,{ignoreEncryption:true});
         (await out.copyPages(src,src.getPageIndices())).forEach(p=>out.addPage(p));

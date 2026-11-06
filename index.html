@@ -14,6 +14,7 @@
   <script src="platform.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1508,6 +1509,20 @@
 </div>
 
 <div id="pdf-template" style="display:none;position:fixed;left:-9999px;top:0;"></div>
+<div class="modal-overlay" id="modal-exp-merge">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="em-title">Zaúčtováno</div><button class="modal-close" data-close="modal-exp-merge">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:14px;line-height:1.5;">Žádost a doložené účtenky jsou spojené do jednoho PDF: žádost na první straně, každá účtenka na další.</div>
+      <div class="stat-note" id="em-status" style="margin:10px 0 0;">Připravuji PDF…</div>
+      <div class="stat-note" id="em-folder" style="margin:6px 0 0;white-space:pre-line;"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn-secondary" data-close="modal-exp-merge">Zavřít</button>
+      <div style="display:flex;gap:8px;"><button class="btn-secondary" id="em-dl" disabled>Stáhnout PDF</button><button class="btn-primary" id="em-drive" disabled>Uložit na 10space…</button></div>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-bkfolder">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Složka na 10space</div><button class="modal-close" data-close="modal-bkfolder">✕</button></div>
@@ -2200,12 +2215,14 @@ function repCard(r){
     </tr>`).join('');
   let act='';
   if(r.pdfPath) act+=`<button class="a-neutral" data-act="pdf" data-path="${escHtml(r.pdfPath)}">Žádost (PDF)</button>`;
+  if(r.status==='paid'&&r.pdfPath) act+=`<button class="a-neutral" data-act="file" data-id="${escHtml(r.id)}">${r.filedAt?'Zafilovat znovu…':'Zafilovat do složky…'}</button>`;
   if(r.status==='submitted') act+=`<button class="a-ok" data-act="pay" data-id="${escHtml(r.id)}">Schválit a proplatit…</button><button class="a-no" data-act="reject" data-id="${escHtml(r.id)}">Vrátit k úpravě</button>`;
   return `<div class="exp-card">
     <div class="exp-top">
       <div style="min-width:0;">
         <div class="exp-title">${escHtml(r.name)}${f?' · palivo':''}</div>
         <div class="exp-sub">Odesláno ${fmtDate(created)} · ${f?'cesta '+fmtDate(f.date):escHtml(r.count)+' pol.'}${r.docNumber?' · '+escHtml(r.docNumber):''}${r.projectCode?`<span class="kd-chip">${escHtml(r.projectCode)}</span>`:''}</div>
+        ${r.filedAt?`<div class="exp-sub" style="color:var(--income);font-weight:600;" title="Zafilováno${r.filedFolder?' do: '+escHtml(r.filedFolder):''}">✓ Zafilováno${r.filedFolder?' · '+escHtml(r.filedFolder):''}</div>`:''}
       </div>
       <div style="text-align:right;">
         <div class="exp-amount">${fmt(r.total)}</div>
@@ -2240,6 +2257,7 @@ $('exp-list').addEventListener('click',async ev=>{
     }
     const r=allRep.find(x=>x.id===btn.dataset.id); if(!r)return;
     if(btn.dataset.act==='pay') openRepPay(r.id);
+    else if(btn.dataset.act==='file') offerMergedPdf(r,r.docNumber||'');
     else if(btn.dataset.act==='reject'){
       const note=prompt('Který výdaj je třeba opravit a proč?');
       if(note===null)return;
@@ -2310,6 +2328,7 @@ $('btn-exp-pay-save').addEventListener('click',async()=>{
       own.forEach(eRef=>tx.update(eRef,{status:'paid',docNumber}));
     });
     closeModal('modal-exp-pay');toast(`Zaúčtováno ${docNumber} ✓`);
+    if(r.pdfPath)offerMergedPdf(r,docNumber);
   }catch(err){console.error('REPORT PAY:',err);toast(err&&err.message==='REPORT_NOT_SUBMITTED'?'Žádost už byla vyřízena nebo vrácena.':'Zaúčtování se nezdařilo.');}
   btn.disabled=false;
 });
@@ -2390,6 +2409,71 @@ function renderAudit(){
       <div style="margin-top:4px;word-break:break-word;">${escHtml(auditChangeText(a))}</div></div>`;
   }).join('');
 }
+/* ── SLOUČENÉ PDF K PROPLACENÉ ŽÁDOSTI ──
+   1. strana = žádost (PDF uložené při odeslání), další strany = doložené účtenky (obrázek na jednu stranu, PDF účtenka se vloží celá).
+   Nabídne se stažení nebo uložení do složky na 10space (stejná funkce uploadFile jako u zálohy; poslední složka je v config/backup.expFolderId). */
+let mergeJob=null;
+const A4P=[595.28,841.89];
+async function buildMergedPdf(r,setStatus){
+  const PDFDocument=window.PDFLib&&window.PDFLib.PDFDocument;
+  if(!PDFDocument)throw new Error('Knihovna PDF se nenačetla.');
+  const out=await PDFDocument.create();
+  const reqDoc=await PDFDocument.load(await getBytes(sRef(storage,r.pdfPath)));
+  (await out.copyPages(reqDoc,reqDoc.getPageIndices())).forEach(p=>out.addPage(p));
+  const missing=[];let n=0;
+  for(const i of (r.items||[])){
+    if(!i.receiptPath)continue;
+    setStatus(`Přidávám účtenku ${++n}…`);
+    try{
+      const bytes=new Uint8Array(await getBytes(sRef(storage,i.receiptPath)));
+      if(/\.pdf$/i.test(i.receiptPath)){
+        const src=await PDFDocument.load(bytes,{ignoreEncryption:true});
+        (await out.copyPages(src,src.getPageIndices())).forEach(p=>out.addPage(p));
+      }else{
+        let img;try{img=await out.embedJpg(bytes);}catch(_){img=await out.embedPng(bytes);}
+        const [pw,ph]=img.width>img.height?[A4P[1],A4P[0]]:A4P, m=28;
+        const k=Math.min((pw-2*m)/img.width,(ph-2*m)/img.height), w=img.width*k, h=img.height*k;
+        out.addPage([pw,ph]).drawImage(img,{x:(pw-w)/2,y:(ph-h)/2,width:w,height:h});
+      }
+    }catch(e){console.warn('účtenka',i.receiptPath,e);missing.push(i.desc||i.receiptPath);}
+  }
+  return {blob:new Blob([await out.save()],{type:'application/pdf'}),receipts:n-missing.length,missing};
+}
+function offerMergedPdf(r,docNumber){
+  const safe=s=>String(s||'').replace(/[\\/:*?"<>|\u0000-\u001f]/g,'_').trim();
+  mergeJob={r,fileName:`${safe(docNumber)} - Žádost o náhradu výdajů - ${safe(r.name)}.pdf`,blob:null};
+  const job=mergeJob, st=t=>{$('em-status').textContent=t;};
+  $('em-title').textContent=`Zaúčtováno ${docNumber}`;
+  $('em-dl').disabled=true;$('em-drive').disabled=true;
+  $('em-folder').textContent=(r.filedAt?`✓ Už zafilováno${r.filedFolder?' do: '+r.filedFolder:''}. Uložením vznikne další kopie.\n`:'')+(backupMeta&&backupMeta.expFolderId?`Poslední složka: ${backupMeta.expFolderName||'vybrána'}`:'');
+  st('Připravuji PDF…');openModal('modal-exp-merge');
+  buildMergedPdf(r,st).then(res=>{
+    if(mergeJob!==job)return;
+    job.blob=res.blob;
+    const cnt=res.receipts;
+    st(`Hotovo: žádost + ${cnt} ${cnt===1?'účtenka':cnt>=2&&cnt<=4?'účtenky':'účtenek'}.`+(res.missing.length?` NEPODAŘILO SE PŘIDAT ${res.missing.length}: ${res.missing.join(', ')}.`:''));
+    $('em-dl').disabled=false;$('em-drive').disabled=false;
+  }).catch(e=>{console.error('MERGE PDF:',e);st('PDF se nepodařilo sestavit: '+(e&&e.message||e));});
+}
+$('em-dl').addEventListener('click',()=>{
+  if(!mergeJob||!mergeJob.blob)return;
+  const a=document.createElement('a');a.href=URL.createObjectURL(mergeJob.blob);a.download=mergeJob.fileName;document.body.appendChild(a);a.click();a.remove();
+  const u=a.href;setTimeout(()=>URL.revokeObjectURL(u),60000);
+});
+async function saveMergedToDrive(folderId,folderName){
+  const job=mergeJob;if(!job||!job.blob)return;
+  const st=t=>{$('em-status').textContent=t;};
+  $('em-dl').disabled=true;$('em-drive').disabled=true;st(`Ukládám na 10space: ${folderName}…`);
+  try{
+    const res=await bkFn(BACKUP_URL,{fileName:job.fileName,mimeType:'application/pdf',base64Data:await bkB64(job.blob),slozkaId:folderId});
+    st(`Uloženo na 10space: ${folderName}`);toast('Uloženo na 10space ✓');
+    try{await updateDoc(doc(db,'orgs',ORG_ID,'expenseReports',job.r.id),{filedAt:serverTimestamp(),filedFolder:folderName,filedFileId:res.driveFileId||null,filedBy:currentUser.email});}
+    catch(e){console.warn('značka zafilování',e);st(`Uloženo na 10space: ${folderName} (značku se nepodařilo zapsat)`);}
+  }catch(e){console.error('MERGE DRIVE:',e);st('Uložení na 10space se nezdařilo: '+(e&&e.message||e));}
+  $('em-dl').disabled=false;$('em-drive').disabled=false;
+}
+$('em-drive').addEventListener('click',()=>{if(mergeJob&&mergeJob.blob)openFolderPicker('doklad',saveMergedToDrive);});
+
 /* ── ZÁLOHA ÚČETNICTVÍ ──
    ZIP: data.json (všechny kolekce, časy jako {"__ts": ISO}), přehled v Excelu, nahrané doklady (cesty jako ve Storage) a README.
    Uložení na 10space: strom složek vrací funkce getDriveTree (jen složky, do kterých smí uživatel zapisovat), soubor se posílá funkcí uploadFile
@@ -2417,7 +2501,7 @@ async function bkFn(url,body){
   return j;
 }
 /* výběr složky na 10space */
-let bkTree=null,bkCur=DRIVE_ROOT;
+let bkTree=null,bkCur=DRIVE_ROOT,bkMode='backup',bkAfterPick=null;
 const bkParent=id=>{const f=bkTree.folders[id];return f?(f.parentId||DRIVE_ROOT):null;};
 const bkCanWrite=id=>(bkTree.acc||{})[id]!=='read';
 function bkPathNames(id){const a=[];let c=id,g=0;while(c&&c!==DRIVE_ROOT&&g++<40){a.unshift((bkTree.folders[c]||{}).name||'?');c=bkParent(c);}return ['10space',...a];}
@@ -2429,14 +2513,23 @@ function renderFolderPicker(){
   $('bk-choose').disabled=!bkCanWrite(bkCur)&&bkCur!==DRIVE_ROOT;
   $('bk-list').querySelectorAll('[data-bk]').forEach(b=>b.addEventListener('click',()=>{bkCur=b.dataset.bk==='up'?(bkParent(bkCur)||DRIVE_ROOT):b.dataset.bk;renderFolderPicker();}));
 }
-async function openFolderPicker(){
+async function openFolderPicker(mode,after){
+  bkMode=mode==='doklad'?'doklad':'backup';bkAfterPick=bkMode==='doklad'?after:null;
+  $('bk-choose').textContent=bkMode==='doklad'?'Uložit sem':'Vybrat tuto složku';
+  const startId=backupMeta&&(bkMode==='doklad'?backupMeta.expFolderId:backupMeta.driveFolderId);
   openModal('modal-bkfolder');$('bk-list').innerHTML='<div style="color:var(--muted);padding:14px;font-size:14px;">Načítám složky…</div>';$('bk-path').textContent='';
-  try{bkTree=await bkFn(TREE_URL,{});bkTree.folders=bkTree.folders||{};bkCur=backupMeta&&backupMeta.driveFolderId&&bkTree.folders[backupMeta.driveFolderId]?backupMeta.driveFolderId:DRIVE_ROOT;renderFolderPicker();}
+  try{bkTree=await bkFn(TREE_URL,{});bkTree.folders=bkTree.folders||{};bkCur=startId&&bkTree.folders[startId]?startId:DRIVE_ROOT;renderFolderPicker();}
   catch(e){console.error(e);$('bk-list').innerHTML=`<div style="color:var(--expense);padding:14px;font-size:14px;">Složky se nepodařilo načíst (${escHtml(e.message)}). Zkontroluj, že jsi členem 10space.</div>`;}
 }
-$('btn-backup-pick').addEventListener('click',openFolderPicker);
+$('btn-backup-pick').addEventListener('click',()=>openFolderPicker());
 $('bk-choose').addEventListener('click',async()=>{
-  try{await setDoc(backupRef(),{driveFolderId:bkCur,driveFolderName:bkPathNames(bkCur).join(' › ')},{merge:true});closeModal('modal-bkfolder');toast('Složka vybrána ✓');}
+  const name=bkPathNames(bkCur).join(' › ');
+  try{
+    if(bkMode==='doklad'){
+      await setDoc(backupRef(),{expFolderId:bkCur,expFolderName:name},{merge:true});closeModal('modal-bkfolder');
+      if(bkAfterPick)bkAfterPick(bkCur,name);
+    }else{await setDoc(backupRef(),{driveFolderId:bkCur,driveFolderName:name},{merge:true});closeModal('modal-bkfolder');toast('Složka vybrána ✓');}
+  }
   catch(e){console.error(e);toast('Složku se nepodařilo uložit.');}
 });
 $('bk-new').addEventListener('click',async()=>{

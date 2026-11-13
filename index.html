@@ -1152,6 +1152,7 @@
         <button class="filter-btn active" data-inv-filter="all">Vše</button>
         <button class="filter-btn" data-inv-filter="fap">Přijaté (FAP)</button>
         <button class="filter-btn" data-inv-filter="fav">Vystavené (FAV)</button>
+        <button class="filter-btn" data-inv-filter="other">Zálohové a opravné</button>
       </div>
       <div id="invoice-list-wrap"><div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné faktury</div></div>
     </div>
@@ -1399,10 +1400,12 @@
 <div class="modal-overlay" id="modal-fav">
   <div class="modal" style="max-width:540px;">
     <div class="modal-header">
-      <div class="modal-title">Vystavit fakturu</div>
+      <div class="modal-title" id="fav-title">Vystavit fakturu</div>
       <button class="modal-close" data-close="modal-fav">✕</button>
     </div>
     <div class="modal-body">
+      <div class="btn-group" id="fav-type-group" style="margin-bottom:12px;"><button type="button" class="type-btn active-income" id="fav-type-fav">Faktura</button><button type="button" class="type-btn" id="fav-type-zf">Zálohová faktura</button></div>
+      <div class="stat-note" id="fav-advance-info" hidden style="margin:0 0 12px;"></div>
       <div class="field-group">
         <div class="field"><label>Interní číslo</label><input id="fav-number" type="text" readonly placeholder="Generuje se automaticky" /></div>
         <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
@@ -1435,6 +1438,39 @@
 </div>
 
 <!-- PDF PREVIEW -->
+<div class="modal-overlay" id="modal-od">
+  <div class="modal" style="max-width:520px;width:95vw;max-height:92vh;display:flex;flex-direction:column;">
+    <div class="modal-header"><div class="modal-title" id="od-title">Opravný doklad</div><button class="modal-close" data-close="modal-od">✕</button></div>
+    <div class="modal-body" style="overflow:auto;">
+      <div class="stat-note" id="od-info" style="margin:0 0 12px;"></div>
+      <div class="inv-grid">
+        <div class="field"><label>Datum opravného dokladu</label><input id="od-date" type="date" /></div>
+        <div class="field"><label>Snížení částky (Kč)</label><input id="od-amount" type="number" min="0" step="0.01" placeholder="0" /></div>
+        <div class="field span2" id="od-orig-wrap" hidden><label>Číslo opravného dokladu dodavatele</label><input id="od-orig" type="text" /></div>
+        <div class="field span2"><label>Důvod opravy *</label><input id="od-reason" type="text" maxlength="200" placeholder="Např. sleva za nedodanou část plnění" /></div>
+        <div class="field span2" id="od-file-wrap" hidden><label>Doklad dodavatele (sken, nepovinné)</label><input id="od-file" type="file" accept="image/*,application/pdf" /></div>
+      </div>
+      <div class="inv-sum" id="od-sum"></div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" data-close="modal-od">Zrušit</button><button class="btn-primary" id="od-save" type="button">Uložit opravný doklad</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-corr">
+  <div class="modal" style="max-width:520px;width:95vw;max-height:92vh;display:flex;flex-direction:column;">
+    <div class="modal-header"><div class="modal-title">Opravný doklad k zápisu</div><button class="modal-close" data-close="modal-corr">✕</button></div>
+    <div class="modal-body" style="overflow:auto;">
+      <div class="stat-note" id="co-info" style="margin:0 0 12px;"></div>
+      <div class="inv-grid">
+        <div class="field"><label>Správná částka (Kč)</label><input id="co-amount" type="number" min="0" step="0.01" placeholder="0" /></div>
+        <div class="field"><label>Datum opravy</label><input id="co-date" type="date" /></div>
+        <div class="field span2"><label>Důvod opravy *</label><input id="co-reason" type="text" maxlength="200" placeholder="Např. překlep v částce" /></div>
+      </div>
+      <div class="inv-sum" id="co-sum"></div>
+    </div>
+    <div class="modal-footer"><button class="btn-secondary" data-close="modal-corr">Zrušit</button><button class="btn-primary" id="co-save" type="button">Uložit a vytvořit PDF</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-inventura">
   <div class="modal" style="max-width:600px;width:95vw;max-height:92vh;display:flex;flex-direction:column;">
     <div class="modal-header"><div class="modal-title">Inventura k rozvahovému dni</div><button class="modal-close" data-close="modal-inventura">✕</button></div>
@@ -2061,8 +2097,7 @@ function renderReports(){
   const cash=(orgData.cashInit||0)+upTo.filter(t=>t.account==='cash').reduce((s,t)=>s+signed(t),0);
   const bank=(orgData.bankInit||0)+upTo.filter(t=>t.account==='bank').reduce((s,t)=>s+signed(t),0);
   const paidAfter=i=>i.paid&&(!i.paidDate||String(i.paidDate)>endIso);
-  const open_=(type)=>allInvoices.filter(i=>!i.cancelled&&i.invType===type&&String(i.date)<=endIso&&(!i.paid||paidAfter(i)));
-  const rec=open_('fav').reduce((s,i)=>s+i.amount,0), pay=open_('fap').reduce((s,i)=>s+i.amount,0);
+  const rec=openAtDate(REC_TYPES,endIso).reduce((s,i)=>s+invOpenAmount(i),0), pay=openAtDate(PAY_TYPES,endIso).reduce((s,i)=>s+invOpenAmount(i),0);
   const assets=cash+bank+rec; // tranzitní účet je mimo účetnictví
   lastReport={month,acc,open,rows,inc,exp,bal,gi,ge,ti,te,endIso,cash,bank,rec,pay,assets};
   $('rep-bs-date').textContent='k '+fmtDate(endIso);
@@ -2150,8 +2185,8 @@ function vykazyPdfHtml(wb, m, stampUrl) {
 }
 async function vykazyModel() {
   const endIso = activePeriod + '-12-31';
-  const openInv = type => allInvoices.filter(i => !i.cancelled && i.invType === type && String(i.date) <= endIso && (!i.paid || (i.paidDate && String(i.paidDate) > endIso))).reduce((s, i) => s + i.amount, 0);
-  return { year: activePeriod, cashInit: orgData.cashInit || 0, bankInit: orgData.bankInit || 0, tx: liveTx().filter(t => String(t.date).startsWith(activePeriod)), rec: openInv('fav'), pay: openInv('fap'), today: new Date(), stamp: await loadStamp() };
+  const openInv = types => openAtDate(types, endIso).reduce((s, i) => s + invOpenAmount(i), 0);
+  return { year: activePeriod, cashInit: orgData.cashInit || 0, bankInit: orgData.bankInit || 0, tx: liveTx().filter(t => String(t.date).startsWith(activePeriod)), rec: openInv(REC_TYPES), pay: openInv(PAY_TYPES), today: new Date(), stamp: await loadStamp() };
 }
 /* html2canvas posouvá obsah o odscrollovanou výšku stránky, proto se při vykreslení PDF stránka vrátí nahoru */
 async function renderPdf(opts, el) {
@@ -3082,7 +3117,7 @@ function openTxEditModal(tx){
   fillCodeSelect('tx-edit-code',tx.projectCode||'');
   const pw=$('tx-edit-pair'),pi=tx.pairedInvoice?allInvoices.find(i=>i.id===tx.pairedInvoice):null;
   if(tx.pairedInvoice){pw.innerHTML=`<label>Faktura</label><div style="display:flex;gap:8px;align-items:center;justify-content:space-between;"><span>Spárováno s ${escHtml(pi?(pi.invNumber||pi.vendor):'fakturou')}</span><button class="btn-secondary" id="btn-tx-unpair" type="button" style="padding:8px 12px;font-size:13px;">Zrušit spárování</button></div>`;$('btn-tx-unpair').addEventListener('click',()=>doUnpair(tx.id));}
-  else if(allInvoices.some(i=>!i.paid&&!i.cancelled&&i.invType===invTypeFor(tx.type))){pw.innerHTML=`<label>Faktura</label><button class="btn-secondary" id="btn-tx-pair" type="button" style="padding:8px 12px;font-size:13px;">Spárovat s ${tx.type==='income'?'vystavenou (FAV)':'přijatou (FAP)'} fakturou</button>`;$('btn-tx-pair').addEventListener('click',()=>openPairModal('tx',tx.id));}
+  else if(allInvoices.some(i=>!i.paid&&!i.cancelled&&!i.settledByCorrection&&invTypesFor(tx.type).includes(i.invType))){pw.innerHTML=`<label>Faktura</label><button class="btn-secondary" id="btn-tx-pair" type="button" style="padding:8px 12px;font-size:13px;">Spárovat s ${tx.type==='income'?'vystavenou (FAV)':'přijatou (FAP)'} fakturou</button>`;$('btn-tx-pair').addEventListener('click',()=>openPairModal('tx',tx.id));}
   else pw.innerHTML='';
   openModal('modal-tx-edit');
 }
@@ -3124,8 +3159,20 @@ function subscribeInvoices(){
   unsubInv=onSnapshot(q,snap=>{allInvoices=snap.docs.map(d=>({id:d.id,...d.data()}));renderInvoices();renderReports();});
 }
   
+function invStatusLabel(inv,st){
+  if(st==='cancelled')return'Stornována';
+  if(st==='corrected')return inv.invType==='od'||inv.invType==='odp'?'Zúčtován s fakturou':'Opravena opravným dokladem';
+  if(st==='settled')return'Zúčtována';
+  if(inv.settledByAdvance)return'Uhrazena zálohou';
+  if(inv.invType==='zf')return inv.paid?'Záloha uhrazena':({overdue:'Záloha po splatnosti',due:'Čeká na zálohu (brzy splatná)'}[st]||'Čeká na zálohu');
+  if(inv.invType==='od')return inv.paid?'Vráceno':'Vrácení k úhradě';
+  if(inv.invType==='odp')return inv.paid?'Vráceno dodavatelem':'Čeká na vrácení';
+  return({paid:'Uhrazena',unpaid:'Nezaplacena',due:'Brzy splatná',overdue:'Po splatnosti'})[st]||'';
+}
 function invoiceStatus(inv){
   if(inv.cancelled)return'cancelled';
+  if(inv.settledByCorrection)return'corrected';
+  if(inv.invType==='zf'&&inv.settledBy)return'settled';
   if(inv.paid)return'paid';
   const now=new Date();now.setHours(0,0,0,0);const due=new Date(inv.dueDate);
   if(due<now)return'overdue';
@@ -3135,7 +3182,7 @@ function invoiceStatus(inv){
   
 function renderInvoices(){
   const wrap=$('invoice-list-wrap');
-  let list=invFilter==='all'?allInvoices:allInvoices.filter(i=>i.invType===invFilter);
+  let list=invFilter==='all'?allInvoices:invFilter==='other'?allInvoices.filter(i=>['zf','od','odp'].includes(i.invType)):allInvoices.filter(i=>i.invType===invFilter);
   if(!list.length){wrap.innerHTML='<div style="color:var(--muted);font-size:14px;text-align:center;padding:40px 0;">Žádné faktury</div>';return;}
 
   const sL={cancelled:'Stornována',paid:'Uhrazena',unpaid:'Nezaplacena',due:'Brzy splatná',overdue:'Po splatnosti'};
@@ -3145,19 +3192,19 @@ function renderInvoices(){
 
   const rows=list.map(inv=>{
     const st=invoiceStatus(inv);
-    const cx=!!inv.cancelled;
+    const cx=!!inv.cancelled;const stLabel=invStatusLabel(inv,st);const openAmt=invOpenAmount(inv);
     const ltx=inv.paid?linkedTx(inv.id):null;
     return`<div class="doc-row inv-card${cx?' cancelled':''}" data-inv-id="${escHtml(inv.id)}">
       <div class="inv-main">
         <div class="inv-r1">
           <div class="doc-date">${fmtDate(inv.date)}</div>
-          <div class="doc-type">${inv.invType==='fav'?'FAV':'FAP'}</div>
+          <div class="doc-type">${({fav:'FAV',fap:'FAP',zf:'ZF',od:'OD',odp:'OP'})[inv.invType]||'FAP'}</div>
           <div class="doc-num">${escHtml(inv.invNumber||'–')}</div>
-          <div class="doc-amount">${fmt(inv.amount)}</div>
+          <div class="doc-amount">${fmt(inv.amount)}${!cx&&inv.invType==='fav'&&Math.abs(openAmt-(inv.amount||0))>0.004?`<div style="font-size:11px;color:var(--muted);font-weight:400;">zbývá ${fmt(openAmt)}</div>`:''}</div>
           ${cx?'<span></span>':`<button type="button" class="inv-more" data-inv-id="${escHtml(inv.id)}" aria-label="Akce faktury" aria-haspopup="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg></button>`}
         </div>
         <div class="inv-name">${escHtml(inv.vendor)}</div>
-        <div class="inv-r3"><span class="badge ${bC[st]}">${sL[st]}</span>${ltx&&ltx.docNumber?`<span>${escHtml(ltx.docNumber)}</span>`:''}</div>
+        <div class="inv-r3"><span class="badge ${bC[st]||'badge-paid'}">${stLabel}</span>${ltx&&ltx.docNumber?`<span>${escHtml(ltx.docNumber)}</span>`:''}</div>
         ${inv.desc?`<div class="inv-desc">${escHtml(inv.desc)}</div>`:''}
         ${inv.projectCode?`<div class="inv-code">${escHtml(inv.projectCode)}</div>`:''}
         ${cx?`<div class="cancel-note">Stornováno${inv.cancelledBy?' – '+escHtml(inv.cancelledBy):''}: ${escHtml(inv.cancelReason||'')}</div>`:''}
@@ -3172,12 +3219,14 @@ function renderInvoices(){
 /* Nabídka akcí u faktury (tři tečky): u počítače plovoucí menu, na mobilu dolní list */
 function invMenuItems(inv){
   const it=[];
-  if(inv.invType==='fav')it.push({act:'pdf-fav',label:'Zobrazit PDF'});
+  if(['fav','zf','od'].includes(inv.invType))it.push({act:'pdf-fav',label:'Zobrazit PDF'});
+  if(inv.invType==='zf'&&inv.paid&&!inv.settledBy&&!inv.cancelled)it.push({act:'zf-final',label:'Vystavit konečnou fakturu'});
+  if(['fav','fap'].includes(inv.invType)&&!inv.cancelled&&!inv.settledByCorrection)it.push({act:'inv-correct',label:inv.invType==='fav'?'Vystavit opravný doklad':'Zaevidovat opravný doklad dodavatele'});
   if(inv.url)it.push({act:'open-url',label:'Otevřít PDF'});
   if(inv.receiptPath)it.push({act:'open-doklad',label:'Doklad (sken)'});
   if(inv.paid){if(linkedTx(inv.id))it.push({act:'unpair-inv',label:'Zrušit spárování'});}
   else it.push({act:'pair-inv',label:'Spárovat s dokladem'});
-  it.push({act:'edit-inv',label:'Upravit'});
+  if(['fav','fap'].includes(inv.invType))it.push({act:'edit-inv',label:'Upravit'});
   it.push({act:'delete-inv',label:inv.invNumber?'Stornovat':'Smazat',danger:true});
   return it;
 }
@@ -3195,7 +3244,9 @@ function openInvMenu(btn,id){
   m.querySelectorAll('.inv-menu-item').forEach(b=>b.addEventListener('click',async e=>{
     e.stopPropagation();closeInvMenu();const a=b.dataset.action;
     try{
-      if(a==='pdf-fav')await generateInvoicePDF(inv);
+      if(a==='pdf-fav')await (inv.invType==='od'?generateOdPDF(inv):generateInvoicePDF(inv));
+      if(a==='zf-final')await openFav('fav',inv);
+      if(a==='inv-correct')openOd(inv);
       if(a==='open-url')window.open(inv.url,'_blank','noopener');
       if(a==='open-doklad')await openDoklad(inv.receiptPath);
       if(a==='edit-inv')openInvEditModal(inv);
@@ -3285,9 +3336,9 @@ const ACCT={cash:{label:'Pokladna',dot:'dot-cash',series:'PD'},bank:{label:'Bank
 const acctState={cash:{type:'income',pair:null},bank:{type:'income',pair:null}};
 const AC=(acc,k)=>$(`ac-${acc}-${k}`);
 // k příjmu se páruje vystavená faktura (FAV), k výdaji přijatá (FAP)
-const invTypeFor=type=>type==='income'?'fav':'fap';
-const txTypeFor=inv=>inv.invType==='fav'?'income':'expense';
-function pairCandidates(type){return allInvoices.filter(i=>!i.paid&&!i.cancelled&&i.invType===invTypeFor(type));}
+const invTypesFor=type=>type==='income'?INC_INV:EXP_INV;
+const txTypeFor=inv=>isIncomeInv(inv)?'income':'expense';
+function pairCandidates(type){return allInvoices.filter(i=>!i.paid&&!i.cancelled&&!i.settledByCorrection&&invTypesFor(type).includes(i.invType));}
 function buildAcct(acc){
   const c=ACCT[acc];
   $('acct-'+acc).innerHTML=`<div class="ledger-header"><div class="ledger-title"><div class="ledger-dot ${c.dot}"></div> ${c.label}</div><div class="ledger-balance" id="balance-${acc}">0 Kč</div></div>
@@ -3344,7 +3395,7 @@ function renderPairList(acc){
   wrap.innerHTML=unpaid.map(inv=>`<div class="pair-item${st.pair===inv.id?' selected':''}" data-pair-id="${escHtml(inv.id)}"><div class="pair-item-vendor">${escHtml(inv.vendor)}${inv.invNumber?' – '+escHtml(inv.invNumber):''}</div><div>${fmt(inv.amount)}</div><span class="badge badge-unpaid">neuhrazena</span></div>`).join('');
   wrap.querySelectorAll('.pair-item').forEach(item=>item.addEventListener('click',()=>{
     const id=item.dataset.pairId;st.pair=st.pair===id?null:id;
-    if(st.pair){const inv=allInvoices.find(i=>i.id===st.pair);if(inv){if(inv.projectCode)fillCodeSelect(`ac-${acc}-code`,inv.projectCode);AC(acc,'amount').value=inv.amount;AC(acc,'desc').value=AC(acc,'desc').value||'Úhrada FA '+(inv.invNumber||inv.vendor);AC(acc,'party').value=AC(acc,'party').value||inv.vendor;}}
+    if(st.pair){const inv=allInvoices.find(i=>i.id===st.pair);if(inv){if(inv.projectCode)fillCodeSelect(`ac-${acc}-code`,inv.projectCode);AC(acc,'amount').value=invOpenAmount(inv);AC(acc,'desc').value=AC(acc,'desc').value||'Úhrada FA '+(inv.invNumber||inv.vendor);AC(acc,'party').value=AC(acc,'party').value||inv.vendor;}}
     renderPairList(acc);
   }));
 }
@@ -3378,7 +3429,7 @@ async function saveAcct(acc){
   const yr=String(new Date(date).getFullYear());
   if(yr!==activePeriod){toast(`Datum patří do roku ${yr} – přepni aktivní období.`);return;}
   const pc=pickedCode(`ac-${acc}-code`);if(!pc){toast('Vyber projekt / kód.');return;}
-  if(st.pair){const iv=allInvoices.find(i=>i.id===st.pair);if(!iv||iv.paid||iv.cancelled||invTypeFor(st.type)!==iv.invType){toast('Vybraná faktura se k tomuto záznamu nehodí.');return;}}
+  if(st.pair){const iv=allInvoices.find(i=>i.id===st.pair);if(!iv||iv.paid||iv.cancelled||!invTypesFor(st.type).includes(iv.invType)){toast('Vybraná faktura se k tomuto záznamu nehodí.');return;}}
   const btn=AC(acc,'save');btn.disabled=true;
   try{
     const series=ACCT[acc].series+activePeriod, txRef=doc(txCol()), pair=st.pair;
@@ -3404,8 +3455,9 @@ function renderAcct(acc){
   const typeLabel=t=>acc==='cash'?(t.type==='income'?'PPD':'VPD'):(t.type==='income'?'Příjem':'Výdaj');
   const rows=list.map(t=>{
     const cx=!!t.cancelled,pi=t.pairedInvoice?allInvoices.find(i=>i.id===t.pairedInvoice):null;
-    return `<tr class="arow${cx?' cx':''}" data-tx-id="${escHtml(t.id)}"><td>${escHtml(t.docNumber||'–')}</td><td>${fmtDate(t.date)}</td><td>${typeLabel(t)}</td><td>${cx?'<span class="badge badge-cancel">STORNO</span> ':''}${escHtml(t.desc)}${docMissing(t)?' <span class="badge badge-due" title="K dokladu chybí příloha, spárovaná faktura ani žádost o náhradu">bez podkladu</span>':''}${t.projectCode?`<span class="kd-chip">${escHtml(t.projectCode)}</span>`:''}${pi?` <span style="color:var(--muted);font-size:11px;">✓ ${escHtml(pi.invNumber||'')}</span>`:''}</td><td class="n ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</td></tr>
+    return `<tr class="arow${cx?' cx':''}" data-tx-id="${escHtml(t.id)}"><td>${escHtml(t.docNumber||'–')}</td><td>${fmtDate(t.date)}</td><td>${typeLabel(t)}</td><td>${cx?'<span class="badge badge-cancel">STORNO</span> ':''}${escHtml(t.desc)}${t.corrects?` <span class="badge badge-due" title="Opravný zápis k dokladu ${escHtml(t.corrects)}">OPRAVA ${escHtml(t.corrects)}</span>`:''}${docMissing(t)?' <span class="badge badge-due" title="K dokladu chybí příloha, spárovaná faktura ani žádost o náhradu">bez podkladu</span>':''}${t.projectCode?`<span class="kd-chip">${escHtml(t.projectCode)}</span>`:''}${pi?` <span style="color:var(--muted);font-size:11px;">✓ ${escHtml(pi.invNumber||'')}</span>`:''}</td><td class="n ${t.type==='income'?'income-color':'expense-color'}">${(t.type==='income')===(t.amount>=0)?'+':'−'}${fmt(Math.abs(t.amount))}</td></tr>
       <tr class="aacc"><td colspan="5"><div class="acc-in">${cx?`<div class="cancel-note">Stornováno${t.cancelledBy?' – '+escHtml(t.cancelledBy):''}: ${escHtml(t.cancelReason||'')}</div>`:`
+        ${t.docNumber&&!t.corrects?`<button class="accordion-btn edit" data-action="correct" data-tx-id="${escHtml(t.id)}">Opravný doklad</button>`:''}${t.corrects?`<button class="accordion-btn pdf" data-action="corr-pdf" data-tx-id="${escHtml(t.id)}">Zobrazit opravný doklad</button>`:''}
         ${acc==='cash'?`<button class="accordion-btn pdf" data-action="pdf" data-tx-id="${escHtml(t.id)}">Zobrazit PDF</button>`:''}
         ${t.receiptPath?`<button class="accordion-btn pdf" data-action="doklad" data-tx-id="${escHtml(t.id)}">Doklad (sken)</button>`:''}
         <button class="accordion-btn edit" data-action="edit" data-tx-id="${escHtml(t.id)}">Upravit záznam</button>
@@ -3416,6 +3468,8 @@ function renderAcct(acc){
   wrap.querySelectorAll('.accordion-btn').forEach(btn=>btn.addEventListener('click',async e=>{
     e.stopPropagation();const tx=allTx.find(t=>t.id===btn.dataset.txId);if(!tx)return;
     if(btn.dataset.action==='pdf')generateReceiptPDF(tx);
+    if(btn.dataset.action==='correct')openCorr(tx);
+    if(btn.dataset.action==='corr-pdf')corrPdf(tx).catch(err=>{console.error(err);toast('PDF se nepodařilo vytvořit.');});
     if(btn.dataset.action==='doklad'){try{await openDoklad(tx.receiptPath);}catch(err){console.error(err);toast('Doklad se nepodařilo otevřít.');}}
     if(btn.dataset.action==='edit')openTxEditModal(tx);
     if(btn.dataset.action==='delete'){try{await cancelTx(tx.id);}catch(err){console.error(err);toast('Chyba.');}}
@@ -3441,12 +3495,12 @@ function openPairModal(kind,id){
   let items=[],title,base;
   if(kind==='inv'){
     const inv=allInvoices.find(i=>i.id===id);if(!inv)return;
-    base=inv.amount;title=`Spárovat ${escHtml(inv.invNumber||'fakturu')} s dokladem`;
+    base=invOpenAmount(inv);title=`Spárovat ${escHtml(inv.invNumber||'fakturu')} s dokladem`;
     items=liveTx().filter(t=>!t.pairedInvoice&&t.type===txTypeFor(inv)).map(t=>({id:t.id,main:`${t.docNumber||'bez čísla'} · ${fmtDate(t.date)}`,sub:t.desc||'',amount:t.amount}));
   }else{
     const t=allTx.find(x=>x.id===id);if(!t)return;
     base=t.amount;title=`Spárovat ${escHtml(t.docNumber||'doklad')} s fakturou`;
-    items=pairCandidates(t.type).map(i=>({id:i.id,main:`${i.invNumber||'bez čísla'} · ${i.vendor||''}`,sub:`splatnost ${fmtDate(i.dueDate)}`,amount:i.amount}));
+    items=pairCandidates(t.type).map(i=>({id:i.id,main:`${i.invNumber||'bez čísla'} · ${i.vendor||''}`,sub:`splatnost ${fmtDate(i.dueDate)}`,amount:invOpenAmount(i)}));
   }
   items.forEach(x=>x.match=Math.abs(x.amount-base)<0.005);
   items.sort((a,b)=>(b.match-a.match));
@@ -3468,7 +3522,7 @@ async function pairInvTx(invId,txId){
     const iv=i.data(),td=t.data();
     if(iv.cancelled||td.cancelled)throw new Error('CANCELLED');
     if(iv.paid||td.pairedInvoice)throw new Error('TAKEN');
-    if((iv.invType==='fav')!==(td.type==='income'))throw new Error('TYPE');
+    if(isIncomeInv(iv)!==(td.type==='income'))throw new Error('TYPE');
     tx.update(txDoc(txId),{pairedInvoice:invId});
     tx.update(invDoc(invId),{paid:true,paidDate:td.date});
   });
@@ -3508,14 +3562,28 @@ $('btn-add-fap').addEventListener('click',async()=>{
   fillCodeSelect('inv-code','');
   openModal('modal-invoice');
 });
-$('btn-add-fav').addEventListener('click',async()=>{
+let favMode='fav', favAdvance=null;
+function favModeUi(){
+  $('fav-title').textContent=favAdvance?'Vystavit konečnou fakturu':favMode==='zf'?'Vystavit zálohovou fakturu':'Vystavit fakturu';
+  $('fav-type-group').style.display=favAdvance?'none':'';
+  $('fav-type-fav').className='type-btn'+(favMode==='fav'?' active-income':'');$('fav-type-zf').className='type-btn'+(favMode==='zf'?' active-income':'');
+  const inf=$('fav-advance-info');inf.hidden=!favAdvance;
+  if(favAdvance)inf.textContent=`Konečná faktura k záloze ${favAdvance.zfNumber} (${fmt(favAdvance.amount)}, uhrazeno ${fmtDate(favAdvance.paidDate)}). Záloha se na faktuře odečte, zbývá uhradit rozdíl. Uprav položky tak, aby daly celou fakturovanou částku.`;
+  $('btn-fav-save').textContent=favMode==='zf'?'Uložit a zobrazit PDF zálohové faktury':'Uložit a zobrazit PDF';
+}
+async function openFav(mode,zf){
   if(!guardPeriod())return;
-  favItems=[{desc:'Umělecké vystoupení',qty:1,price:0}];
-  const num=await generateInvNumber('fav');
-  $('fav-number').value=num;$('fav-ico').value='';$('fav-vendor').value='';
-  $('fav-date').value=today();$('fav-due').value='';$('fav-vs').value=num.replace(/\D/g,'');$('fav-ks').value='';$('fav-desc').value='';
-  renderFavItems();fillCodeSelect('fav-code','');openModal('modal-fav');
-});
+  favMode=mode;favAdvance=null;
+  const unAdv=d=>{const t=String(d||'').replace(/^Záloha\s+(na|za)\s+/i,'');return t?t.charAt(0).toUpperCase()+t.slice(1):'';};
+  favItems=zf?JSON.parse(JSON.stringify(zf.items||[{desc:zf.desc||'',qty:1,price:zf.amount}])).map(i=>({...i,desc:unAdv(i.desc)})):[{desc:mode==='zf'?'Záloha na umělecké vystoupení':'Umělecké vystoupení',qty:1,price:0}];
+  const num=await generateInvNumber(mode);
+  $('fav-number').value=num;$('fav-ico').value=zf?zf.ico||'':'';$('fav-vendor').value=zf?zf.vendor||'':'';$('fav-vendor').dataset.address=zf?zf.address||'':'';
+  $('fav-date').value=today();$('fav-due').value='';$('fav-vs').value=zf?zf.vs||num.replace(/\D/g,''):num.replace(/\D/g,'');$('fav-ks').value=zf?zf.ks||'':'';$('fav-desc').value=zf?zf.desc||'':'';
+  if(zf)favAdvance={zfId:zf.id,zfNumber:zf.invNumber,amount:zf.amount,paidDate:zf.paidDate||''};
+  favModeUi();renderFavItems();fillCodeSelect('fav-code',zf?zf.projectCode||'':'');openModal('modal-fav');
+}
+$('btn-add-fav').addEventListener('click',()=>openFav('fav'));
+['fav','zf'].forEach(m=>$('fav-type-'+m).addEventListener('click',async()=>{favMode=m;favModeUi();const num=await generateInvNumber(m);$('fav-number').value=num;$('fav-vs').value=num.replace(/\D/g,'');}));
 
 async function aresLookup(ico,nameEl,addrEl){
   const res=await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
@@ -3586,21 +3654,24 @@ $('btn-fav-save').addEventListener('click',async()=>{
   const vendor=$('fav-vendor').value.trim(),dueDate=$('fav-due').value;
   const total=favItems.reduce((s,i)=>s+(i.qty||1)*(i.price||0),0);
   if(!vendor){toast('Zadej odběratele.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}if(total<=0){toast('Zadej ceny položek.');return;}
+  if(favAdvance&&favAdvance.amount>total+0.005){toast('Záloha je vyšší než fakturovaná částka. Rozdíl vyřeš opravným dokladem k záloze nebo uprav položky.');return;}
   const pc=pickedCode('fav-code');if(!pc){toast('Vyber projekt / kód.');return;}
   $('btn-fav-save').disabled=true;
   try{
     const proposed=$('fav-number').value, proposedVs=proposed.replace(/\D/g,'');
-    const baseData={invType:'fav',...pc,vendor,ico:$('fav-ico').value.trim(),address:$('fav-vendor').dataset.address||'',date:$('fav-date').value,dueDate,vs:$('fav-vs').value.trim(),ks:$('fav-ks').value.trim(),desc:$('fav-desc').value.trim(),items:favItems,amount:total,paid:false,createdAt:serverTimestamp()};
+    const baseData={invType:favMode,...(favAdvance?{advance:favAdvance}:{}),...pc,vendor,ico:$('fav-ico').value.trim(),address:$('fav-vendor').dataset.address||'',date:$('fav-date').value,dueDate,vs:$('fav-vs').value.trim(),ks:$('fav-ks').value.trim(),desc:$('fav-desc').value.trim(),items:favItems,amount:total,paid:false,createdAt:serverTimestamp()};
+    if(favAdvance&&total-favAdvance.amount<0.005){baseData.paid=true;baseData.paidDate=favAdvance.paidDate||baseData.date;baseData.settledByAdvance=true;}   // celá částka už je uhrazena zálohou
     const invRef=doc(invCol());
     let invData=null;
-    await withNumber('FAV'+activePeriod,'inv',null,(tx,num)=>{
+    await withNumber(serOf(favMode)+activePeriod,'inv',null,(tx,num)=>{
       invData={...baseData,invNumber:num,vs:baseData.vs===proposedVs?num.replace(/\D/g,''):baseData.vs};
       tx.set(invRef,invData);
     });
     if(invData.invNumber!==proposed)toast(`Přiděleno číslo ${invData.invNumber}.`);
+    if(favAdvance)await updateDoc(invDoc(favAdvance.zfId),{settledBy:invRef.id,settledNumber:invData.invNumber});   // záloha je zúčtovaná konečnou fakturou
     await saveContactIfNew(vendor,$('fav-ico').value.trim(),$('fav-vendor').dataset.address||'');
     await generateInvoicePDF({...invData});
-    closeModal('modal-fav');toast('Faktura uložena ✓');
+    closeModal('modal-fav');toast(favMode==='zf'?'Zálohová faktura uložena ✓':'Faktura uložena ✓');
   }catch(e){console.error(e);toast('Chyba při ukládání.');}
   $('btn-fav-save').disabled=false;
 });
@@ -3636,7 +3707,7 @@ async function withNumber(series,kind,prepare,write){
   });
 }
 async function generateInvNumber(type){ // návrh čísla do formuláře; závazné číslo se přidělí při uložení
-  const series=(type==='fap'?'FAP':'FAV')+activePeriod;
+  const series=serOf(type)+activePeriod;
   return fmtSeries(series,await seriesNext(series,'inv'));
 }
 
@@ -3660,10 +3731,11 @@ function pdfShell(title,sub,body){
 function invoiceHtml(inv){
   const items=inv.items||[{desc:inv.desc||'',qty:1,price:inv.amount}];
   const total=items.reduce((s,i)=>s+(i.qty||1)*(i.price||0),0);
+  const adv=inv.advance||null,toPay=round2(Math.max(0,total-(adv?adv.amount:0)));
   const vs=inv.vs||inv.invNumber.replace(/\D/g,'');
   const ks=inv.ks||'0308';
-  const qrUrl=`https://api.paylibo.com/paylibo/generator/czech/image?compress=false&size=200&accountNumber=348479366&bankCode=0300&amount=${total.toFixed(2)}&currency=CZK&vs=${encodeURIComponent(vs)}&ks=${encodeURIComponent(ks)}`;
-  const fav=inv.invType==='fav';
+  const qrUrl=`https://api.paylibo.com/paylibo/generator/czech/image?compress=false&size=200&accountNumber=348479366&bankCode=0300&amount=${toPay.toFixed(2)}&currency=CZK&vs=${encodeURIComponent(vs)}&ks=${encodeURIComponent(ks)}`;
+  const fav=inv.invType!=='fap',zf=inv.invType==='zf';
   const party=(label,name,lines)=>`<div style="flex:1;min-width:0;">${pdfLabel(label)}<div style="font-size:14px;font-weight:700;margin-top:6px;">${name}</div><div style="color:${PDF_TEXT2};margin-top:3px;">${lines}</div></div>`;
   const orgP=party(fav?'Dodavatel':'Odběratel',escHtml(orgData.name),`IČO: ${escHtml(orgData.ico)}${orgData.address?'<br>'+escHtml(orgData.address):''}`);
   const venP=party(fav?'Odběratel':'Dodavatel',escHtml(inv.vendor||'–'),`${inv.ico?'IČO: '+escHtml(inv.ico):''}${inv.address?'<br>'+escHtml(inv.address):''}${inv.origNumber?'<br>Č. faktury dodavatele: '+escHtml(inv.origNumber):''}`);
@@ -3681,21 +3753,21 @@ function invoiceHtml(inv){
       <tbody>${items.map(i=>td(escHtml(i.desc||''),'left')+td(i.qty||1,'center')+td(fmt(i.price||0),'right')+td(fmt((i.qty||1)*(i.price||0)),'right',1)).map(r=>`<tr>${r}</tr>`).join('')}</tbody>
     </table>
     <div style="display:flex;justify-content:flex-end;margin-top:16px;"><div style="min-width:250px;text-align:right;border-top:1.5px solid ${PDF_INK};padding-top:10px;">
-      ${pdfLabel('Celkem k úhradě')}<div style="font-size:26px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;">${fmt(total)}</div>
-      <div style="font-size:10px;color:${PDF_MUTED};margin-top:3px;">Faktura je vystavena bez DPH</div>
+      ${adv?`<div style="font-size:11.5px;text-align:right;color:${PDF_TEXT2};margin-bottom:6px;">Celkem ${fmt(total)}<br>Uhrazená záloha ${escHtml(adv.zfNumber)}${adv.paidDate?' ('+fmtDate(adv.paidDate)+')':''}: −${fmt(adv.amount)}</div>`:''}${pdfLabel(zf?'Záloha k úhradě':'Celkem k úhradě')}<div style="font-size:26px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;">${fmt(toPay)}</div>
+      <div style="font-size:10px;color:${PDF_MUTED};margin-top:3px;">${zf?'Nejde o účetní ani daňový doklad. Po úhradě bude vystavena faktura (vyúčtování), ve které se záloha odečte. Vystavitel není plátcem DPH.':(toPay<=0?'Uhrazeno zálohou. ':'')+'Faktura je vystavena bez DPH'}</div>
     </div></div>
     <div style="display:flex;gap:24px;margin-top:30px;align-items:stretch;">
       <div style="flex:1;display:flex;align-items:center;gap:22px;padding:16px 20px;border:1px solid ${PDF_LINE};border-radius:6px;">
         <img src="${qrUrl}" style="width:88px;height:88px;flex:none;"/>
         <div style="flex:1;"><div style="margin-bottom:6px;">${pdfLabel('Platební údaje')}</div>
-          <table style="border-collapse:collapse;font-size:12px;">${dl('Číslo účtu',ORG_BANK)}${dl('IBAN',ORG_IBAN)}${dl('Variabilní symbol',escHtml(vs))}${dl('Částka k úhradě',fmt(total))}${dl('Splatnost',fmtDate(inv.dueDate))}</table></div>
+          <table style="border-collapse:collapse;font-size:12px;">${dl('Číslo účtu',ORG_BANK)}${dl('IBAN',ORG_IBAN)}${dl('Variabilní symbol',escHtml(vs))}${dl(zf?'Záloha k úhradě':'Částka k úhradě',fmt(toPay))}${dl('Splatnost',fmtDate(inv.dueDate))}</table></div>
       </div>
       <div style="width:${STAMP_PX_W+14}px;flex:none;display:flex;flex-direction:column;justify-content:flex-end;text-align:center;">
         <img src="https://cash.10men.cz/razitko.png" style="width:${STAMP_PX_W}px;height:${STAMP_PX_H}px;margin:0 auto;display:block;"/>
         <div style="border-top:1px solid ${PDF_LINE};margin-top:4px;padding-top:4px;font-size:9.5px;color:${PDF_MUTED};">Razítko a podpis</div>
       </div>
     </div>`;
-  return pdfShell(fav?'FAKTURA':'PŘIJATÁ FAKTURA',escHtml(inv.invNumber),body);
+  return pdfShell(zf?'ZÁLOHOVÁ FAKTURA':fav?'FAKTURA':'PŘIJATÁ FAKTURA',escHtml(inv.invNumber),body);
 }
 async function generateInvoicePDF(inv){
   const html=invoiceHtml(inv);
@@ -3946,6 +4018,122 @@ document.addEventListener('click',e=>{
 $('kasa-save').addEventListener('click',kasaSave);
 $('kasa-reset').addEventListener('click',()=>{$('kasa-rows').querySelectorAll('input').forEach(i=>{i.value='';});kasaRefresh();const f=$('kasa-rows').querySelector('input');if(f)f.focus();});
 
+/* ── OPRAVNÝ DOKLAD K FAKTUŘE (dobropis) ──
+   Vystavená faktura (FAV) se opravným dokladem OD snižuje, přijatá (FAP) se opravuje evidencí opravného dokladu dodavatele (OP).
+   Je-li faktura neuhrazená, snížení zmenší zbývající částku; co je navíc nebo co už bylo uhrazeno, vzniká jako částka k vrácení
+   (OD = závazek vůči odběrateli, OP = pohledávka za dodavatelem) a uzavře se spárováním s platbou. Nejde o daňový doklad (spolek není plátce DPH). */
+let odCtx=null;
+function odCompute(){
+  const inv=odCtx,amount=parseFloat($('od-amount').value)||0,max=round2((inv.amount||0)-(inv.credited||0)),unpaid=inv.paid?0:invOpenAmount(inv);
+  return{amount,max,unpaid,refund:round2(Math.max(0,amount-unpaid))};
+}
+function odRefreshSum(){
+  const c=odCompute(),inv=odCtx;
+  $('od-sum').innerHTML=c.amount>0?`Nová fakturovaná částka: <b>${fmt(round2((inv.amount||0)-(inv.credited||0)-c.amount))}</b><br>Zbývá uhradit po opravě: <b>${fmt(round2(Math.max(0,c.unpaid-c.amount)))}</b>${c.refund>0?`<br>Částka k vrácení: <b>${fmt(c.refund)}</b> ${inv.invType==='fav'?'(závazek vůči odběrateli, uzavře se spárováním s výdajem)':'(pohledávka za dodavatelem, uzavře se spárováním s příjmem)'}`:''}`:`Největší možné snížení: ${fmt(c.max)}`;
+}
+function openOd(inv){
+  if(!guardPeriod())return;
+  odCtx=inv;const fav=inv.invType==='fav';
+  $('od-title').textContent=fav?'Opravný doklad (dobropis) k faktuře':'Opravný doklad dodavatele';
+  $('od-info').innerHTML=`${fav?'Opravuje fakturu':'K přijaté faktuře'} <b>${escHtml(inv.invNumber||'')}</b> (${escHtml(inv.vendor||'')}, ${fmt(inv.amount)}${inv.credited?', už opraveno o '+fmt(inv.credited):''}). ${inv.paid?'Faktura je uhrazená, snížení vznikne jako částka k vrácení.':'Zbývá uhradit '+fmt(invOpenAmount(inv))+'.'}`;
+  $('od-date').value=today();$('od-amount').value='';$('od-reason').value='';$('od-orig').value='';$('od-file').value='';
+  $('od-orig-wrap').hidden=fav;$('od-file-wrap').hidden=fav;
+  odRefreshSum();openModal('modal-od');
+}
+['od-amount'].forEach(id=>$(id).addEventListener('input',odRefreshSum));
+$('od-save').addEventListener('click',async()=>{
+  if(!guardPeriod()||!odCtx)return;
+  const inv=odCtx,c=odCompute(),reason=$('od-reason').value.trim(),date=$('od-date').value,fav=inv.invType==='fav';
+  if(!(c.amount>0)){toast('Zadej o kolik se částka snižuje.');return;}
+  if(c.amount>c.max+0.005){toast(`Snížení nesmí být vyšší než zbývající fakturovaná částka (${fmt(c.max)}).`);return;}
+  if(reason.length<3){toast('Napiš důvod opravy.');return;}
+  if(!date||date.slice(0,4)!==activePeriod){toast(`Datum opravného dokladu musí být v období ${activePeriod}.`);return;}
+  const btn=$('od-save');btn.disabled=true;
+  try{
+    const type=fav?'od':'odp',newRef=doc(invCol()),receiptPath=fav?null:await uploadDoklad($('od-file').files[0],newRef.id);
+    let od=null;
+    await withNumber(serOf(type)+activePeriod,'inv',null,(tx,num)=>{
+      const settled=c.refund<0.005;
+      od={invType:type,invNumber:num,correctsId:inv.id,correctsNumber:inv.invNumber||'',correctsDate:inv.date||'',origAmount:inv.amount,vendor:inv.vendor||'',ico:inv.ico||'',address:inv.address||'',projectCode:inv.projectCode||'',projectName:inv.projectName||'',
+        date,dueDate:date,amount:c.amount,reason,refundAmount:c.refund,newAmount:round2((inv.amount||0)-(inv.credited||0)-c.amount),...(fav?{}:{origNumber:$('od-orig').value.trim()}),...(receiptPath?{receiptPath}:{}),
+        paid:settled,...(settled?{paidDate:date,settledByCorrection:true}:{}),createdAt:serverTimestamp()};
+      tx.set(newRef,od);
+      tx.update(invDoc(inv.id),{credited:round2((inv.credited||0)+c.amount),...((!inv.paid&&round2(c.unpaid-c.amount)<0.005)?{paid:true,paidDate:date,settledByCorrection:true}:{})});
+    });
+    closeModal('modal-od');toast('Opravný doklad uložen ✓');
+    if(fav)await generateOdPDF(od);
+  }catch(e){console.error(e);toast('Opravný doklad se nepodařilo uložit.');}
+  btn.disabled=false;
+});
+function odPdfHtml(od){
+  const party=(label,name,lines)=>`<div style="flex:1;min-width:0;">${pdfLabel(label)}<div style="font-size:14px;font-weight:700;margin-top:6px;">${name}</div><div style="color:${PDF_TEXT2};margin-top:3px;">${lines}</div></div>`;
+  const cell=(l,v)=>`<td style="padding:11px 0;vertical-align:top;">${pdfLabel(l)}<div style="font-weight:700;font-size:13px;margin-top:3px;">${v}</div></td>`;
+  const row=(k,v,b)=>`<tr><td style="padding:4px 18px 4px 0;color:${PDF_MUTED};">${k}</td><td style="padding:4px 0;text-align:right;font-variant-numeric:tabular-nums;${b?'font-weight:700;font-size:15px;':'font-weight:600;'}">${v}</td></tr>`;
+  const orig=od.origAmount||0,after=od.newAmount!=null?od.newAmount:round2(orig-od.amount);
+  const body=`<div style="display:flex;gap:40px;">${party('Dodavatel',escHtml(orgData.name),`IČO: ${escHtml(orgData.ico)}${orgData.address?'<br>'+escHtml(orgData.address):''}`)}${party('Odběratel',escHtml(od.vendor||'–'),`${od.ico?'IČO: '+escHtml(od.ico):''}${od.address?'<br>'+escHtml(od.address):''}`)}</div>
+    <table style="width:100%;border-collapse:collapse;margin-top:22px;border-top:1px solid ${PDF_LINE};border-bottom:1px solid ${PDF_LINE};"><tr>${cell('Datum vystavení',fmtDate(od.date))}${cell('Opravuje fakturu',escHtml(od.correctsNumber||'–'))}${cell('Ze dne',fmtDate(od.correctsDate))}${cell('Původní částka faktury',fmt(orig))}</tr></table>
+    <div style="margin-top:24px;">${pdfLabel('Důvod opravy')}<div style="margin-top:5px;font-size:13px;">${escHtml(od.reason||'')}</div></div>
+    <table style="width:100%;border-collapse:collapse;margin-top:26px;font-size:12.5px;"><thead><tr>${pdfTh('Popis','left')}${pdfTh('Částka','right',130)}</tr></thead><tbody><tr>${pdfTd('Snížení fakturované částky: '+escHtml(od.reason||''),'left')}${pdfTd('−'+fmt(od.amount),'right','font-weight:700;')}</tr></tbody></table>
+    <div style="display:flex;justify-content:flex-end;margin-top:18px;"><div style="min-width:300px;border-top:1.5px solid ${PDF_INK};padding-top:8px;"><table style="border-collapse:collapse;font-size:12.5px;width:100%;">${row('Původní částka faktury',fmt(orig))}${row('Opravný doklad',('−'+fmt(od.amount)))}${row('Nová částka faktury',fmt(after),1)}${od.refundAmount>0?row('Částka k vrácení odběrateli',fmt(od.refundAmount),1):''}</table></div></div>
+    <div style="margin-top:22px;font-size:10px;color:${PDF_MUTED};">Opravný doklad nahrazuje původní fakturu pouze v opravené části. Nejde o daňový doklad, vystavitel není plátcem DPH.</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:26px;"><div style="width:${STAMP_PX_W+14}px;text-align:center;"><img src="https://cash.10men.cz/razitko.png" style="width:${STAMP_PX_W}px;height:${STAMP_PX_H}px;display:block;margin:0 auto;"/><div style="border-top:1px solid ${PDF_LINE};margin-top:4px;padding-top:4px;font-size:9.5px;color:${PDF_MUTED};">Razítko a podpis</div></div></div>`;
+  return pdfShell('OPRAVNÝ DOKLAD (DOBROPIS)',escHtml(od.invNumber),body);
+}
+const generateOdPDF=od=>showA4Pdf(odPdfHtml(od),`${od.invNumber}.pdf`,`Opravný doklad ${od.invNumber}`);
+
+/* ── OPRAVNÝ DOKLAD K ZÁPISU (§ 35 zákona o účetnictví) ──
+   Původní doklad se nemění. Rozdíl proti správné částce se zaúčtuje novým dokladem v běžném otevřeném období (záporná částka = snížení,
+   „červené storno“ ve stejném sloupci deníku); nese odkaz na opravovaný doklad, důvod, osobu a čas. */
+let coCtx=null;
+function coCompute(){const t=coCtx,v=parseFloat($('co-amount').value);return{valid:!isNaN(v)&&v>0,delta:isNaN(v)?0:round2(v-(t.amount||0)),right:isNaN(v)?0:v};}
+function coRefresh(){
+  const c=coCompute(),t=coCtx;
+  $('co-sum').innerHTML=!c.valid?'Zadej správnou částku.':Math.abs(c.delta)<0.005?'<span class="inv-warn">Částka se neliší od původní.</span>':`Opravný zápis: <b>${c.delta>0?'zvýšení':'snížení'} ${t.type==='income'?'příjmů':'výdajů'} o ${fmt(Math.abs(c.delta))}</b> (správná částka ${fmt(c.right)}, původně ${fmt(t.amount)}). ${t.type==='income'?(c.delta>0?'Zůstatek účtu vzroste.':'Zůstatek účtu klesne.'):(c.delta>0?'Zůstatek účtu klesne.':'Zůstatek účtu vzroste.')}`;
+}
+function openCorr(t){
+  if(!guardPeriod())return;
+  coCtx=t;
+  $('co-info').innerHTML=`Opravuje doklad <b>${escHtml(t.docNumber)}</b> ze dne ${fmtDate(t.date)}: ${escHtml(t.desc||'')} (${t.type==='income'?'příjem':'výdaj'} ${fmt(t.amount)}, ${t.account==='cash'?'pokladna':'banka'}). Původní doklad zůstane beze změny, rozdíl se zaúčtuje novým opravným dokladem.`;
+  $('co-amount').value=t.amount;$('co-date').value=today();$('co-reason').value='';coRefresh();openModal('modal-corr');
+}
+$('co-amount').addEventListener('input',coRefresh);
+$('co-save').addEventListener('click',async()=>{
+  if(!guardPeriod()||!coCtx)return;
+  const t=coCtx,c=coCompute(),reason=$('co-reason').value.trim(),date=$('co-date').value;
+  if(!c.valid){toast('Zadej správnou částku.');return;}
+  if(Math.abs(c.delta)<0.005){toast('Částka se neliší od původní.');return;}
+  if(reason.length<3){toast('Napiš důvod opravy.');return;}
+  if(!date||date.slice(0,4)!==activePeriod){toast(`Datum opravy musí být v období ${activePeriod}.`);return;}
+  const btn=$('co-save');btn.disabled=true;
+  try{
+    const ref=doc(txCol());let data=null;
+    await withNumber(ACCT[t.account].series+activePeriod,'tx',null,(tx,num)=>{
+      data={desc:`Oprava dokladu ${t.docNumber}: ${reason}`,amount:c.delta,date,account:t.account,type:t.type,category:t.category||'',party:t.party||'',pairedInvoice:null,docNumber:num,projectCode:t.projectCode||'',projectName:t.projectName||'',
+        corrects:t.docNumber,correctsId:t.id,correctionReason:reason,correctionOrig:{amount:t.amount,date:t.date,desc:t.desc||'',type:t.type},docKind:'jiny',createdAt:serverTimestamp()};
+      tx.set(ref,data);
+    });
+    closeModal('modal-corr');toast('Opravný doklad uložen ✓');
+    await corrPdf(data);
+  }catch(e){console.error(e);toast('Opravný doklad se nepodařilo uložit.');}
+  btn.disabled=false;
+});
+function corrPdfHtml(d){
+  const o=d.correctionOrig||{},who=(currentUser&&(currentUser.displayName||currentUser.email))||'';
+  const cell=(l,v)=>`<td style="padding:11px 0;vertical-align:top;">${pdfLabel(l)}<div style="font-weight:700;font-size:13px;margin-top:3px;">${v}</div></td>`;
+  const right=round2((o.amount||0)+d.amount),sign=d.amount>0?'+':'−';
+  const body=`<table style="width:100%;border-collapse:collapse;border-top:1px solid ${PDF_LINE};border-bottom:1px solid ${PDF_LINE};"><tr>${cell('Datum opravy',fmtDate(d.date))}${cell('Opravuje doklad',escHtml(d.corrects))}${cell('Původní datum',fmtDate(o.date))}${cell('Účet',d.account==='cash'?'Pokladna':'Banka')}</tr></table>
+    <div style="margin-top:24px;">${pdfLabel('Důvod opravy')}<div style="margin-top:5px;font-size:13px;">${escHtml(d.correctionReason||'')}</div></div>
+    <table style="width:100%;border-collapse:collapse;margin-top:26px;font-size:12.5px;"><thead><tr>${pdfTh('Údaj','left')}${pdfTh('Původně','right',130)}${pdfTh('Správně','right',130)}${pdfTh('Rozdíl','right',110)}</tr></thead><tbody>
+      <tr>${pdfTd('Částka ('+(d.type==='income'?'příjem':'výdaj')+')','left')}${pdfTd(fmt(o.amount),'right')}${pdfTd(fmt(right),'right','font-weight:700;')}${pdfTd(sign+fmt(Math.abs(d.amount)),'right','font-weight:700;')}</tr>
+      </tbody></table>
+    <div style="margin-top:12px;font-size:11.5px;color:${PDF_TEXT2};"><b>Původní doklad:</b> ${escHtml(o.desc||'')} (beze změny)</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:18px;"><div style="min-width:300px;border-top:1.5px solid ${PDF_INK};padding-top:8px;font-size:12.5px;">${pdfLabel('Opravný zápis')}<div style="margin-top:4px;font-size:20px;font-weight:700;">${d.amount>0?'Zvýšení':'Snížení'} ${d.type==='income'?'příjmů':'výdajů'} o ${fmt(Math.abs(d.amount))}</div><div style="font-size:10.5px;color:${PDF_MUTED};margin-top:2px;">zaúčtováno dokladem ${escHtml(d.docNumber)} (částka zápisu ${d.amount>0?'+':'−'}${fmt(Math.abs(d.amount))}, ${d.account==='cash'?'pokladna':'banka'})</div></div></div>
+    <div style="margin-top:24px;font-size:10.5px;color:${PDF_TEXT2};line-height:1.55;">Původní doklad zůstává beze změny. Oprava je zaúčtována samostatným zápisem v období ${escHtml(String(d.date||'').slice(0,4))}, aby bylo možné zjistit obsah záznamu před opravou i po ní, osobu odpovědnou za opravu a okamžik jejího provedení.</div>
+    <div style="display:flex;gap:40px;margin-top:48px;font-size:11px;">${['Opravu provedl: '+escHtml(who),'Schválil'].map(t=>`<div style="flex:1;"><div style="height:34px;border-bottom:1px solid ${PDF_INK};"></div><div style="padding-top:4px;">${t}</div><div style="font-size:9px;color:${PDF_MUTED};">jméno, datum a podpis</div></div>`).join('')}</div>`;
+  return pdfShell('OPRAVNÝ ÚČETNÍ DOKLAD',escHtml(d.docNumber),body);
+}
+const corrPdf=d=>showA4Pdf(corrPdfHtml(d),`${d.docNumber} – opravný doklad.pdf`,`Opravný doklad ${d.docNumber}`);
+
 /* ── UZÁVĚRKA OBDOBÍ, TYPY PODKLADŮ, KNIHA POHLEDÁVEK A ZÁVAZKŮ, INVENTURNÍ SOUPIS ──
    Uzavřené období (orgs/10men/periods/{rok}.locked) blokuje v aplikaci přidávání, úpravy, storna a párování; je to ochrana na straně aplikace
    (pravidla databáze ho nevynucují). Historie uzavření a znovuotevření se ukládá v lockLog. */
@@ -3996,7 +4184,13 @@ $('btn-lock-period').addEventListener('click',()=>toggleLock().catch(e=>{console
 function docKinds(){return [['','— nevybráno —'],['faktura','Faktura'],['uctenka','Účtenka'],['smlouva','Smlouva / dohoda (+ protokol o předání)'],['vypis','Jen výpis z banky (poplatek, příspěvek)'],['jiny','Jiný doklad']];}
 function fillDocKinds(sel,val){if(sel)sel.innerHTML=docKinds().map(([v,l])=>`<option value="${v}"${v===(val||'')?' selected':''}>${l}</option>`).join('');}
 function docMissing(t){return t.account==='bank'&&!t.cancelled&&!t.receiptPath&&!t.pairedInvoice&&!t.reportId&&!t.pdfPath&&t.docKind!=='vypis';}
-const invOpenAmount=i=>i.amount||0;   // zbývá uhradit (u dokladů se zálohou a opravou se upřesní)
+// zbývá uhradit: faktura po odečtení zálohy a opravných dokladů; u opravného dokladu částka k vrácení
+const invOpenAmount=i=>(i.invType==='od'||i.invType==='odp')?(i.refundAmount||0):Math.max(0,round2((i.amount||0)-((i.advance&&i.advance.amount)||0)-(i.credited||0)));
+const INC_INV=['fav','zf','odp'], EXP_INV=['fap','od'];   // druhy faktur, které se páruje s příjmem / výdajem (odp = vrácení od dodavatele, od = vrácení odběrateli)
+const isIncomeInv=i=>INC_INV.includes(i.invType);
+const REC_TYPES=['fav','odp'], PAY_TYPES=['fap','od'];    // pohledávky a závazky v knihách a přehledu o majetku a závazcích (zálohová faktura sama pohledávkou není)
+const openAtDate=(types,asOf)=>allInvoices.filter(i=>!i.cancelled&&types.includes(i.invType)&&String(i.date)<=asOf&&(!i.paid||(i.paidDate&&String(i.paidDate)>asOf)));
+const serOf=t=>({fav:'FAV',fap:'FAP',zf:'ZF',od:'OD',odp:'OP'}[t]||'FAV');
 
 /* společné zobrazení A4 PDF v náhledu */
 async function showA4Pdf(html,filename,title){
@@ -4023,7 +4217,7 @@ function knihaPdfHtml(asOf){
     const tot=list.filter(i=>!i.cancelled).reduce((s,i)=>s+(i.amount||0),0),rest=list.reduce((s,i)=>s+open(i),0);
     return pdfH2(label)+`<table style="width:100%;border-collapse:collapse;font-size:10.5px;"><thead><tr>${pdfTh('Doklad','left',78)}${pdfTh('Protistrana','left')}${pdfTh('Vznik','left',66)}${pdfTh('Splatnost','left',66)}${pdfTh('Částka','right',72)}${pdfTh('Uhrazeno','left',110)}${pdfTh('Zbývá k '+fmtDate(asOf),'right',82)}</tr></thead><tbody>${body||`<tr><td colspan="7" style="padding:10px 6px;color:${PDF_MUTED};">V období nejsou žádné doklady.</td></tr>`}<tr>${pdfTd('<b>Celkem</b>','left')}${pdfTd('','left')}${pdfTd('','left')}${pdfTd('','left')}${pdfTd('<b>'+fmt(tot)+'</b>','right')}${pdfTd('','left')}${pdfTd('<b>'+fmt(rest)+'</b>','right')}</tr></tbody></table>`;
   };
-  return pdfShell('KNIHA POHLEDÁVEK A ZÁVAZKŮ',`období ${activePeriod}, stav k ${fmtDate(asOf)}`,rows(['fav'],'Kniha pohledávek (vystavené faktury)')+rows(['fap'],'Kniha závazků (přijaté faktury)')+`<div style="margin-top:18px;font-size:10px;color:${PDF_MUTED};">Neuhrazené doklady k danému dni jsou pohledávkami a závazky v přehledu o majetku a závazcích. Stornované doklady zůstávají v řadě a do součtů se nepočítají.</div>`);
+  return pdfShell('KNIHA POHLEDÁVEK A ZÁVAZKŮ',`období ${activePeriod}, stav k ${fmtDate(asOf)}`,rows(['fav','odp'],'Kniha pohledávek (vystavené faktury, vrácení od dodavatelů)')+rows(['fap','od'],'Kniha závazků (přijaté faktury, vrácení odběratelům)')+rows(['zf'],'Zálohové faktury (evidence; nejsou pohledávkou)')+`<div style="margin-top:18px;font-size:10px;color:${PDF_MUTED};">Neuhrazené doklady k danému dni jsou pohledávkami a závazky v přehledu o majetku a závazcích. Stornované doklady zůstávají v řadě a do součtů se nepočítají.</div>`);
 }
 $('btn-knihy').addEventListener('click',()=>showA4Pdf(knihaPdfHtml(asOfDefault()),`Kniha pohledávek a závazků ${activePeriod}.pdf`,`Kniha pohledávek a závazků ${activePeriod}`).catch(e=>{console.error(e);toast('PDF se nepodařilo vytvořit.');}));
 
@@ -4033,8 +4227,8 @@ function ivSnapshot(date){
   const upTo=liveTx().filter(t=>String(t.date)<=date);
   const bal=acc=>round2((acc==='cash'?(orgData.cashInit||0):(orgData.bankInit||0))+upTo.filter(t=>t.account===acc).reduce((s,t)=>s+signed(t),0));
   const paidAfter=i=>i.paid&&(!i.paidDate||String(i.paidDate)>date);
-  const open=types=>allInvoices.filter(i=>!i.cancelled&&types.includes(i.invType)&&String(i.date)<=date&&(!i.paid||paidAfter(i))).map(i=>({doc:i.invNumber||'',name:i.vendor||'',due:i.dueDate||'',amount:round2(invOpenAmount(i))}));
-  return{cashLedger:bal('cash'),bankLedger:bal('bank'),rec:open(['fav']),pay:open(['fap']),income:round2(liveTx().filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0))};
+  const open=types=>openAtDate(types,date).map(i=>({doc:i.invNumber||'',name:i.vendor||'',due:i.dueDate||'',amount:round2(invOpenAmount(i))}));
+  return{cashLedger:bal('cash'),bankLedger:bal('bank'),rec:open(REC_TYPES),pay:open(PAY_TYPES),income:round2(liveTx().filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0))};
 }
 let ivCash=null;
 async function ivFindCashCount(date){

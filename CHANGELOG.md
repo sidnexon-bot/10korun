@@ -1,5 +1,12 @@
 # 10korun: přehled změn
 
+## 3.19.0 (13. 11. 2026)
+Zálohové a opravné doklady.
+- **Zálohová faktura (ZF):** ve formuláři vystavené faktury volba Faktura / Zálohová faktura, vlastní řada ZF2026001, PDF „ZÁLOHOVÁ FAKTURA“ s upozorněním, že nejde o účetní ani daňový doklad (vystavitel není plátce DPH). Neuhrazená záloha se nepočítá do pohledávek. Po úhradě (spárování s příjmem) jde z ní vystavit **konečnou fakturu**: položky se předvyplní, záloha se na faktuře odečte (zbývá uhradit rozdíl), záloha se označí jako zúčtovaná. Pohledávka z konečné faktury je jen zbývající částka.
+- **Opravný doklad k faktuře (dobropis OD):** u vystavené faktury „Vystavit opravný doklad“, u přijaté „Zaevidovat opravný doklad dodavatele“ (řada OP). Snížení zmenší zbývající částku; co přesahuje nebo už bylo uhrazeno, vzniká jako částka k vrácení (OD = závazek vůči odběrateli, OP = pohledávka za dodavatelem) a uzavře se spárováním s platbou. PDF opravného dokladu odkazuje na opravovanou fakturu, důvod a novou částku. Plně opravená neuhrazená faktura se označí „Opravena opravným dokladem“.
+- **Opravný doklad k zápisu (§ 35 zákona o účetnictví):** u číslovaného dokladu tlačítko „Opravný doklad“: zadá se správná částka, rozdíl se zaúčtuje novým dokladem s odkazem na původní (záporná částka = snížení, jako červené storno), původní doklad zůstane beze změny. PDF ukazuje původně / správně / rozdíl, důvod, osobu a podpisová pole. V seznamu je štítek OPRAVA a v peněžním deníku záporná částka ve stejném sloupci a kategorii.
+- Pohledávky a závazky v přehledu o majetku a závazcích, v knize a v inventurním soupisu počítají zbývající částku (po záloze a opravách) a zahrnují částky k vrácení. Spárování nabízí k příjmu faktury, zálohy a opravné doklady dodavatelů, k výdaji faktury přijaté a opravné doklady vystavené.
+
 ## 3.18.0 (13. 11. 2026)
 Opravy z kontroly souladu se zákonem o účetnictví (zpráva v `audit-10korun/SOULAD-SE-ZAKONEM-2026-11-13.md`).
 - **Uzávěrka období:** v Nastavení lze období uzavřít a znovu otevřít (s důvodem). V uzavřeném období nejde přidávat, upravovat, stornovat ani párovat doklady a faktury, nahoře je pruh „Období je uzavřeno“. Historie uzavření a otevření se ukládá u období. Před uzavřením aplikace upozorní, že chybí inventura kasy nebo inventurní soupis a že jsou doklady bez podkladu. Zámek platí v aplikaci, databázová pravidla ho nevynucují.

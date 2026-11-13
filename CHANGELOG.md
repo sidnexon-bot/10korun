@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.19.1 (13. 11. 2026)
+- Razítko má na všech dokumentech (faktura, zálohová faktura, opravný doklad, pokladní doklady, výkazy v PDF i v Excelu) velikost, při které se celý obrázek včetně podpisu vejde do pole razítka Trodat Printy 4913 (58 × 22 mm): 47,6 × 22 mm (omezuje výška). Dřív se měřil tmavý blok textu na 58 mm a celý obrázek byl 62,1 × 28,7 mm, tedy větší než pole. Výkazy mají podpisový řádek zpět na původním rozměru.
+
 ## 3.19.0 (13. 11. 2026)
 Zálohové a opravné doklady.
 - **Zálohová faktura (ZF):** ve formuláři vystavené faktury volba Faktura / Zálohová faktura, vlastní řada ZF2026001, PDF „ZÁLOHOVÁ FAKTURA“ s upozorněním, že nejde o účetní ani daňový doklad (vystavitel není plátce DPH). Neuhrazená záloha se nepočítá do pohledávek. Po úhradě (spárování s příjmem) jde z ní vystavit **konečnou fakturu**: položky se předvyplní, záloha se na faktuře odečte (zbývá uhradit rozdíl), záloha se označí jako zúčtovaná. Pohledávka z konečné faktury je jen zbývající částka.

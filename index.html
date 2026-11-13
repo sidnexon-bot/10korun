@@ -1736,9 +1736,10 @@ const today = () => new Date().toISOString().slice(0,10);
 const ORG_BANK = '348479366/0300';
 const ORG_IBAN = 'CZ6803000000000348479366';
 const ORG_LOGO = 'https://cash.10men.cz/logo.png';
-// Razítko Trodat Printy 4913: otisk 58 × 22 mm. Obrázek razítka (razitko.png, 810 × 374 px, otisk v něm zabírá 756 × 285 px) má proto na papíře měřit 62,1 mm na šířku.
+// Razítko Trodat Printy 4913: pole razítka 58 × 22 mm. Celý obrázek razítka (razitko.png, 810 × 374 px, včetně podpisu) se musí do pole vejít.
+// Poměr stran obrázku (2,17) je užší než pole (2,64), takže rozměr omezuje výška: 22 mm na výšku, 47,6 mm na šířku.
 // PDF stránky mají 794 px = 210 mm (A4 na výšku i A5 na šířku), tedy 3,781 px/mm; Excel počítá obrázky v px při 96 dpi (3,780 px/mm).
-const STAMP_MM_W = 810 / 756 * 58, STAMP_PX_W = Math.round(STAMP_MM_W * 794 / 210), STAMP_PX_H = Math.round(STAMP_PX_W * 374 / 810);
+const STAMP_MM_H = 22, STAMP_MM_W = STAMP_MM_H * 810 / 374, STAMP_PX_H = Math.round(STAMP_MM_H * 794 / 210), STAMP_PX_W = Math.round(STAMP_PX_H * 810 / 374);
 
 const INCOME_CATS = ['Prodej zboží','Prodej výrobků a služeb','Příjmy z veřejných sbírek','Přijaté peněžní dary mimo veřejné sbírky','Přijaté členské příspěvky','Dotace a příspěvky z veřejných rozpočtů','Ostatní','Průběžné položky','Kurzové rozdíly'];
 const EXPENSE_CATS = ['Dlouhodobý nehmotný a hmotný majetek','Materiál','Zboží','Služby','Mzdy','Pojistné za zaměstnance a zaměstnavatele','Ostatní osobní výdaje','Ostatní','Průběžné položky','Kurzové rozdíly'];
@@ -2178,8 +2179,8 @@ function vykazyPdfHtml(wb, m, stampUrl) {
     .vk-tab{width:100%;border-collapse:collapse}.vk-tab th,.vk-tab td{border:1px solid #9aa0a6;padding:4px 7px}
     .vk-tab th{background:#eef1ee;font-size:10px;text-align:center}.vk-tab td.c{text-align:center;width:34px}.vk-tab td.n{text-align:right;width:90px;font-variant-numeric:tabular-nums}
     .vk-tab tr.sec td{background:#f6f8f6;font-weight:700}.vk-tab tr.tot td{font-weight:700;background:#f6f8f6}
-    .vk-sign{display:flex;gap:28px;margin-top:14px}.vk-sign>div{flex:1}.vk-sign .l{font-size:10px;color:#444;font-weight:600}
-    .vk-sign .box{height:122px;border-bottom:1px solid #9aa0a6;position:relative}.vk-sign img{position:absolute;left:6px;top:6px;width:${STAMP_PX_W}px;height:${STAMP_PX_H}px}
+    .vk-sign{display:flex;gap:28px;margin-top:26px}.vk-sign>div{flex:1}.vk-sign .l{font-size:10px;color:#444;font-weight:600}
+    .vk-sign .box{height:110px;border-bottom:1px solid #9aa0a6;position:relative}.vk-sign img{position:absolute;left:6px;top:8px;width:${STAMP_PX_W}px;height:${STAMP_PX_H}px}
   </style>`;
   return css + page1 + page2;
 }

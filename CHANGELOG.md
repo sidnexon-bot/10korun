@@ -1,5 +1,9 @@
 # 10korun: přehled změn
 
+## 3.16.0 (13. 11. 2026)
+- Počítání kasy: v záložce Účetnictví > Pokladna je tlačítko „Spočítat kasu“. Okno má tabulku 12 nominálů od mince 1 Kč po bankovku 5 000 Kč (počet kusů × nominál), mezisoučty mincí a bankovek a vždy viditelný součet. Napočítaná částka se porovná se stavem pokladny z účetnictví (stejné číslo jako zůstatek Pokladny) a ukáže se rozdíl: Sedí / Přebytek / Manko. Enter přeskočí na další nominál, rozepsané počty se při zavření nezahodí bez dotazu.
+- „Uložit a vytvořit PDF“ uloží inventuru (datum, počty, součet, stav účetnictví, rozdíl, poznámka, kdo počítal) do orgs/10men/cashCounts a otevře náhled PDF protokolu o inventuře s místem pro podpis „Počítal / Zkontroloval“. V okně je historie posledních 20 inventur s PDF ke každé. Inventury vidí a zapisuje jen hospodář (stávající pravidla databáze, nic se nenasazuje).
+
 ## 3.15.2 (3. 11. 2026)
 - Android: formuláře mají zase jen placeholdery místo popisků kolonek. Popisky se po změně písma (3.15.0) omylem ukázaly znovu vedle placeholderů.
 - Android: pole IČO (s tlačítkem ARES) má také jen placeholder, ne popisek vedle něj; pole ve formulářích oken jsou samostatné kapsle.

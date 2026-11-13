@@ -706,6 +706,30 @@
     }
     .modal-footer > div { display: flex; gap: 8px; margin-left: auto; }
 
+    /* ── POČÍTÁNÍ KASY ── */
+    .kasa-open { padding:6px 12px; font-size:13px; min-height:0; white-space:nowrap; }
+    .kasa-table { width:100%; border-collapse:collapse; font-size:14px; }
+    .kasa-table th { text-align:left; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:10px 0 4px; border-bottom:1px solid var(--border); }
+    .kasa-table td { padding:4px 0; vertical-align:middle; }
+    .kasa-table .k-den { font-weight:600; white-space:nowrap; width:34%; }
+    .kasa-table .k-x { color:var(--muted); width:5%; text-align:center; }
+    .kasa-table .k-in { width:30%; }
+    .kasa-table .k-in input { width:100%; max-width:110px; padding:8px 10px; text-align:right; font-variant-numeric:tabular-nums; }
+    .kasa-table .k-sub { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .kasa-table tr.k-group td { padding:10px 0 2px; font-size:12px; font-weight:600; color:var(--muted); }
+    .kasa-table tr.k-subtotal td { border-top:1px solid var(--border); padding-top:6px; font-size:13px; color:var(--muted); }
+    .kasa-badge { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; background:#b07800; vertical-align:-1px; }
+    .kasa-badge.note { border-radius:2px; width:14px; height:9px; background:var(--accent); }
+    .kasa-sum { flex:none; padding:10px 20px; border-top:1px solid var(--border); background:var(--bg); display:grid; grid-template-columns:1fr auto; gap:3px 12px; font-size:14px; }
+    .kasa-sum .big { font-size:19px; font-weight:700; }
+    .kasa-sum .lbl { color:var(--muted); }
+    .kasa-ok { color:var(--income); } .kasa-bad { color:var(--expense); }
+    .kasa-hist { margin-top:14px; border-top:1px solid var(--border); padding-top:10px; }
+    .kasa-hist summary { cursor:pointer; font-size:13px; font-weight:600; color:var(--muted); }
+    .kasa-hist table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+    .kasa-hist td { padding:6px 0; border-bottom:1px solid var(--border); }
+    .kasa-hist td.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .kasa-hist .btn-secondary { padding:4px 10px; font-size:12px; min-height:0; }
     /* ── TYPE TOGGLE ── */
     .btn-group { display: flex; gap: 8px; margin-bottom: 16px; }
     .type-btn {
@@ -1382,6 +1406,31 @@
 </div>
 
 <!-- PDF PREVIEW -->
+<div class="modal-overlay" id="modal-cash-count">
+  <div class="modal" style="max-width:520px;width:95vw;max-height:92vh;display:flex;flex-direction:column;">
+    <div class="modal-header">
+      <div class="modal-title">Počítání kasy</div>
+      <button class="modal-close" data-close="modal-cash-count">✕</button>
+    </div>
+    <div class="modal-body" style="overflow:auto;">
+      <table class="kasa-table" id="kasa-rows"></table>
+      <div class="field" style="margin-top:12px;"><label>Datum inventury</label><input id="kasa-date" type="date" /></div>
+      <div class="field"><label>Poznámka (nepovinné)</label><input id="kasa-note" type="text" maxlength="300" placeholder="Např. vysvětlení rozdílu" /></div>
+      <details class="kasa-hist" id="kasa-hist"><summary>Historie inventur</summary><div id="kasa-hist-list"></div></details>
+    </div>
+    <div class="kasa-sum">
+      <span class="lbl">Napočítáno</span><span class="big" id="kasa-total">0 Kč</span>
+      <span class="lbl">Stav pokladny v účetnictví</span><span id="kasa-expected">0 Kč</span>
+      <span class="lbl">Rozdíl</span><span id="kasa-diff">0 Kč</span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="kasa-reset" type="button">Vynulovat</button>
+      <button class="btn-secondary" data-close="modal-cash-count">Zrušit</button>
+      <button class="btn-primary" id="kasa-save" type="button">Uložit a vytvořit PDF</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-pdf-preview">
   <div class="modal" style="max-width:860px;width:95vw;max-height:90vh;display:flex;flex-direction:column;">
     <div class="modal-header">
@@ -3176,7 +3225,7 @@ const txTypeFor=inv=>inv.invType==='fav'?'income':'expense';
 function pairCandidates(type){return allInvoices.filter(i=>!i.paid&&!i.cancelled&&i.invType===invTypeFor(type));}
 function buildAcct(acc){
   const c=ACCT[acc];
-  $('acct-'+acc).innerHTML=`<div class="ledger-header"><div class="ledger-title"><div class="ledger-dot ${c.dot}"></div> ${c.label}</div><div class="ledger-balance" id="balance-${acc}">0 Kč</div></div>
+  $('acct-'+acc).innerHTML=`<div class="ledger-header"><div class="ledger-title"><div class="ledger-dot ${c.dot}"></div> ${c.label}</div><div style="display:flex;align-items:center;gap:10px;">${acc==='cash'?'<button type="button" class="btn-secondary kasa-open" id="kasa-open">Spočítat kasu</button>':''}<div class="ledger-balance" id="balance-${acc}">0 Kč</div></div></div>
     <button type="button" class="btn-primary acct-new" id="ac-${acc}-new">+ Nový doklad</button>
     <div class="acct-backdrop" id="ac-${acc}-backdrop"></div>
     <div class="acct-form">
@@ -3722,6 +3771,117 @@ async function generateReceiptPDF(tx) {
   $('pdf-preview-title').textContent = `${tx.docNumber||'Doklad'} – ${isIncome?'PPD':'VPD'}`;
   openModal('modal-pdf-preview');
 }
+
+/* ── POČÍTÁNÍ KASY ──
+   Tabulka nominálů (od 1 Kč po 5 000 Kč) × počet, součet se porovná se stavem pokladny z účetnictví (stejný výpočet jako zůstatek
+   v záložce Pokladna). Uložená inventura je v orgs/10men/cashCounts (číst a zapisovat smí jen hospodář, viz pravidla) a má PDF protokol. */
+const KASA_DEN=[1,2,5,10,20,50,100,200,500,1000,2000,5000], KASA_MINCE=50;
+const kasaRound=n=>Math.round(n*100)/100;
+const kasaTotal=c=>KASA_DEN.reduce((s,v)=>s+v*(Number(c[v])||0),0);
+const kasaExpected=()=>kasaRound(liveTx().filter(t=>t.account==='cash').reduce((s,t)=>s+(t.type==='income'?t.amount:-t.amount),orgData.cashInit||0));
+const kasaDen=v=>v.toLocaleString('cs-CZ')+' Kč';
+function kasaCounts(){const c={};document.querySelectorAll('#kasa-rows input[data-v]').forEach(i=>{const n=Math.floor(Number(i.value));if(n>0)c[i.dataset.v]=n;});return c;}
+function kasaDiffHtml(diff){
+  if(Math.abs(diff)<0.005)return '<span class="kasa-ok">Sedí ✓</span>';
+  return diff>0?`<span class="kasa-bad">Přebytek +${fmt(diff)}</span>`:`<span class="kasa-bad">Manko −${fmt(-diff)}</span>`;
+}
+function kasaRefresh(){
+  const c=kasaCounts(),total=kasaTotal(c),exp=kasaExpected(),diff=kasaRound(total-exp);
+  KASA_DEN.forEach(v=>{const el=$('kasa-sub-'+v);if(el)el.textContent=fmt((c[v]||0)*v);});
+  const part=f=>KASA_DEN.filter(f).reduce((s,v)=>s+v*(c[v]||0),0);
+  $('kasa-st-mince').textContent=fmt(part(v=>v<=KASA_MINCE));$('kasa-st-bankovky').textContent=fmt(part(v=>v>KASA_MINCE));
+  $('kasa-total').textContent=fmt(total);$('kasa-expected').textContent=fmt(exp);$('kasa-diff').innerHTML=kasaDiffHtml(diff);
+}
+function kasaBuildRows(){
+  const row=v=>`<tr><td class="k-den"><span class="kasa-badge${v>KASA_MINCE?' note':''}"></span>${kasaDen(v)}</td><td class="k-x">×</td><td class="k-in"><input type="number" inputmode="numeric" min="0" step="1" placeholder="0" data-v="${v}" aria-label="Počet: ${kasaDen(v)}" /></td><td class="k-sub" id="kasa-sub-${v}">0 Kč</td></tr>`;
+  $('kasa-rows').innerHTML='<thead><tr><th>Nominál</th><th></th><th style="text-align:right;">Počet kusů</th><th style="text-align:right;">Částka</th></tr></thead><tbody>'+
+    '<tr class="k-group"><td colspan="4">Mince</td></tr>'+KASA_DEN.filter(v=>v<=KASA_MINCE).map(row).join('')+'<tr class="k-subtotal"><td colspan="3">Mince celkem</td><td class="k-sub" id="kasa-st-mince">0 Kč</td></tr>'+
+    '<tr class="k-group"><td colspan="4">Bankovky</td></tr>'+KASA_DEN.filter(v=>v>KASA_MINCE).map(row).join('')+'<tr class="k-subtotal"><td colspan="3">Bankovky celkem</td><td class="k-sub" id="kasa-st-bankovky">0 Kč</td></tr></tbody>';
+  $('kasa-rows').querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input',kasaRefresh);
+    inp.addEventListener('focus',()=>inp.select());
+    inp.addEventListener('keydown',e=>{ // Enter = další nominál, ať se dá počítat jen z klávesnice
+      if(e.key!=='Enter')return;e.preventDefault();
+      const all=[...$('kasa-rows').querySelectorAll('input')],n=all[all.indexOf(inp)+1];(n||$('kasa-save')).focus();
+    });
+  });
+}
+function kasaOpen(){
+  if(!orgData)return;
+  kasaBuildRows();$('kasa-date').value=new Date().toLocaleDateString('sv-SE');$('kasa-note').value='';
+  kasaRefresh();openModal('modal-cash-count');kasaHistory();
+  setTimeout(()=>{const f=$('kasa-rows').querySelector('input');if(f)f.focus();},60);
+}
+function kasaPdfHtml(r){
+  const cell='padding:7px 16px;border-bottom:1px solid #e5e5ea;';
+  const rows=KASA_DEN.map(v=>{const n=Number((r.counts||{})[v])||0;return `<tr><td style="${cell}font-weight:600;">${kasaDen(v)} <span style="color:#7a80a0;font-weight:400;font-size:11px;">${v>KASA_MINCE?'bankovka':'mince'}</span></td><td style="${cell}text-align:right;">${n?n:'–'}</td><td style="${cell}text-align:right;">${n?fmt(n*v):'–'}</td></tr>`;}).join('');
+  const diff=kasaRound(r.diff),dc=Math.abs(diff)<0.005?'#1a7a3a':'#c00000';
+  const dtxt=Math.abs(diff)<0.005?'Sedí':(diff>0?`Přebytek +${fmt(diff)}`:`Manko −${fmt(-diff)}`);
+  return `<div style="font-family:Arial,sans-serif;font-size:13px;color:#1a1a2e;width:794px;padding:0;margin:0;background:#fff;">
+    <div style="background:#ee220c;height:4px;width:100%;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:24px 40px 16px;">
+      <img src="${ORG_LOGO}" style="height:48px;object-fit:contain;" crossorigin="anonymous"/>
+      <div style="text-align:right;font-size:11px;color:#7a80a0;line-height:1.8;"><div style="font-weight:bold;font-size:13px;color:#1a1a2e;">${escHtml(orgData.name)}</div><div>IČO: ${escHtml(orgData.ico)}</div>${orgData.address?`<div>${escHtml(orgData.address)}</div>`:''}</div>
+    </div>
+    <div style="height:1px;background:#ee220c;margin:0 40px;"></div>
+    <div style="padding:20px 40px 0;"><div style="font-size:22px;font-weight:bold;">PROTOKOL O INVENTUŘE POKLADNY</div><div style="font-size:12px;color:#7a80a0;margin-top:4px;">Datum inventury: ${fmtDate(r.date)}</div></div>
+    <div style="margin:20px 40px 0;background:#f5f6fa;border-radius:8px;overflow:hidden;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr><th style="${cell}text-align:left;color:#7a80a0;font-size:11px;">Nominál</th><th style="${cell}text-align:right;color:#7a80a0;font-size:11px;">Počet kusů</th><th style="${cell}text-align:right;color:#7a80a0;font-size:11px;">Částka</th></tr>${rows}
+    </table></div>
+    <div style="margin:20px 40px 0;display:flex;justify-content:flex-end;"><table style="border-collapse:collapse;font-size:14px;min-width:340px;">
+      <tr><td style="padding:6px 16px;color:#7a80a0;">Napočítáno</td><td style="padding:6px 16px;text-align:right;font-weight:bold;font-size:18px;">${fmt(r.total)}</td></tr>
+      <tr><td style="padding:6px 16px;color:#7a80a0;">Stav pokladny v účetnictví</td><td style="padding:6px 16px;text-align:right;">${fmt(r.expected)}</td></tr>
+      <tr><td style="padding:6px 16px;color:#7a80a0;">Rozdíl</td><td style="padding:6px 16px;text-align:right;font-weight:bold;color:${dc};">${dtxt}</td></tr>
+    </table></div>
+    ${r.note?`<div style="margin:16px 40px 0;font-size:12px;"><span style="color:#7a80a0;">Poznámka:</span> ${escHtml(r.note)}</div>`:''}
+    <div style="margin:56px 40px 0;display:flex;justify-content:space-between;gap:40px;font-size:12px;">
+      <div style="flex:1;"><div style="border-top:1px solid #1a1a2e;padding-top:6px;">Počítal: ${escHtml((r.by&&r.by.name)||'')}</div></div>
+      <div style="flex:1;"><div style="border-top:1px solid #1a1a2e;padding-top:6px;">Zkontroloval:</div></div>
+    </div>
+    <div style="height:90px;"></div>
+    <div style="background:#ee220c;padding:10px 40px;text-align:center;font-size:10px;color:rgba(255,255,255,.8);">Vystaveno v aplikaci 10korun – účetním systému skupiny 10men</div>
+  </div>`;
+}
+async function kasaPdf(r){
+  const wrap=$('pdf-template');wrap.style.display='block';wrap.innerHTML=kasaPdfHtml(r);
+  try{
+    await Promise.all([...wrap.querySelectorAll('img')].map(img=>new Promise(res=>{if(img.complete)res();else{img.onload=res;img.onerror=res;}})));
+    const blob=await renderPdf({margin:0,filename:`Inventura pokladny ${r.date}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:3,useCORS:true,allowTaint:false},jsPDF:{unit:'px',format:[794,1123],orientation:'portrait'}},wrap.firstElementChild);
+    currentPdfBlob=blob;$('pdf-preview-frame').src=URL.createObjectURL(blob);
+    $('pdf-preview-title').textContent=`Inventura pokladny ${r.date}`;openModal('modal-pdf-preview');
+  }finally{wrap.style.display='none';wrap.innerHTML='';}
+}
+async function kasaSave(){
+  const counts=kasaCounts(),total=kasaTotal(counts);
+  if(!total){toast('Zadej počty kusů aspoň u jednoho nominálu.');return;}
+  const date=$('kasa-date').value;if(!date){toast('Zadej datum inventury.');return;}
+  const rec={date,counts,total:kasaRound(total),expected:kasaExpected(),note:$('kasa-note').value.trim().slice(0,300),year:activePeriod,
+    by:{uid:currentUser.uid,name:currentUser.displayName||currentUser.email||'',email:currentUser.email||''}};
+  rec.diff=kasaRound(rec.total-rec.expected);
+  const btn=$('kasa-save');btn.disabled=true;
+  try{
+    await addDoc(collection(db,'orgs',ORG_ID,'cashCounts'),{...rec,createdAt:serverTimestamp()});
+  }catch(e){console.error(e);btn.disabled=false;toast('Inventuru se nepodařilo uložit: '+(e.message||e));return;}
+  btn.disabled=false;closeModal('modal-cash-count');toast('Inventura uložena ✓');
+  try{await kasaPdf(rec);}catch(e){console.error(e);toast('Inventura je uložená, ale PDF se nepodařilo vytvořit. Najdeš ho v historii inventur.');}
+}
+async function kasaHistory(){
+  const box=$('kasa-hist-list');box.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0;">Načítám…</div>';
+  try{
+    const snap=await getDocs(query(collection(db,'orgs',ORG_ID,'cashCounts'),orderBy('createdAt','desc'),limit(20)));
+    const list=snap.docs.map(d=>({id:d.id,...d.data()}));
+    window.__kasaHist=list;
+    if(!list.length){box.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0;">Zatím žádná uložená inventura.</div>';return;}
+    box.innerHTML='<table>'+list.map((r,i)=>`<tr><td>${fmtDate(r.date)}<div style="color:var(--muted);font-size:11px;">${escHtml((r.by&&r.by.name)||'')}</div></td><td class="n">${fmt(r.total)}</td><td class="n">${kasaDiffHtml(r.diff)}</td><td class="n"><button class="btn-secondary" type="button" data-kasa-pdf="${i}">PDF</button></td></tr>`).join('')+'</table>';
+  }catch(e){console.error(e);box.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px 0;">Historii se nepodařilo načíst.</div>';}
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('#kasa-open'))return kasaOpen();
+  const b=e.target.closest('[data-kasa-pdf]');
+  if(b){const r=(window.__kasaHist||[])[Number(b.dataset.kasaPdf)];if(r)kasaPdf(r).catch(err=>{console.error(err);toast('PDF se nepodařilo vytvořit.');});}
+});
+$('kasa-save').addEventListener('click',kasaSave);
+$('kasa-reset').addEventListener('click',()=>{$('kasa-rows').querySelectorAll('input').forEach(i=>{i.value='';});kasaRefresh();const f=$('kasa-rows').querySelector('input');if(f)f.focus();});
 
 function formatAddress(sid){
   if(!sid) return '';

@@ -712,8 +712,20 @@
     .pdf-copies[hidden], #btn-pdf-download-all[hidden] { display:none; }
     .pdf-copies button { flex:1; border:0; background:transparent; color:var(--muted); font:inherit; font-size:13px; font-weight:600; padding:8px 6px; border-radius:9px; cursor:pointer; }
     .pdf-copies button.on { background:var(--card); color:var(--text,#1a1a2e); box-shadow:0 1px 3px rgba(0,0,0,.12); }
+    /* ── uzávěrka, inventura, podklady ── */
+    .lock-banner { margin:0 0 12px; padding:10px 14px; border-radius:12px; background:rgba(176,120,0,.12); color:#8a5a00; font-size:13px; font-weight:600; }
+    .lock-banner[hidden] { display:none; }
+    body.dark .lock-banner { background:rgba(255,179,64,.16); color:#ffb340; }
+    .tool-row { display:flex; flex-wrap:wrap; gap:8px; }
+    .inv-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; }
+    .inv-grid .span2 { grid-column:1 / -1; }
+    @media (max-width:520px){ .inv-grid { grid-template-columns:1fr; } }
+    .inv-sum { margin-top:12px; padding:12px 14px; border-radius:12px; background:var(--bg); font-size:13px; line-height:1.55; }
+    .inv-sum b { font-variant-numeric:tabular-nums; }
+    .inv-warn { color:var(--expense); font-weight:600; }
+    textarea.plain { width:100%; min-height:64px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); font:inherit; font-size:14px; background:var(--input-bg,var(--card)); color:var(--text,inherit); resize:vertical; }
     /* ── POČÍTÁNÍ KASY ── */
-    .acct-tools { margin:0 0 12px; }
+    .acct-tools { margin:0 0 12px; display:flex; flex-wrap:wrap; gap:8px; }
     .kasa-open { display:inline-flex; align-items:center; gap:8px; padding:9px 16px; font-size:14px; min-height:0; white-space:nowrap; }
     .kasa-table { width:100%; border-collapse:collapse; font-size:14px; }
     .kasa-table th { text-align:left; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; padding:10px 0 4px; border-bottom:1px solid var(--border); }
@@ -1129,11 +1141,13 @@
     <div id="view-invoices" class="view">
       <div class="view-header">
         <div class="view-title">Faktury</div>
-        <div class="ar-row" style="display:flex;gap:8px;">
+        <div class="ar-row" style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-secondary" id="btn-knihy" style="padding:9px 14px;font-size:14px;">Kniha pohledávek a závazků</button>
           <button class="btn-secondary" id="btn-add-fap" style="padding:9px 14px;font-size:14px;">+ Přijatá</button>
           <button class="btn-primary"   id="btn-add-fav" style="padding:9px 14px;font-size:14px;flex:none;">+ Vystavená</button>
         </div>
       </div>
+      <div class="lock-banner" hidden></div>
       <div class="doc-filters">
         <button class="filter-btn active" data-inv-filter="all">Vše</button>
         <button class="filter-btn" data-inv-filter="fap">Přijaté (FAP)</button>
@@ -1145,11 +1159,12 @@
     <!-- ── DOKLADY ── -->
     <div id="view-accounting" class="view" data-acct="cash">
       <div class="view-header"><div class="view-title">Účetnictví</div></div>
+      <div class="lock-banner" hidden></div>
       <div class="acct-switch" id="acct-switch">
         <button type="button" class="active" data-acct="cash">Pokladna</button>
         <button type="button" data-acct="bank">Bankovní účet</button>
       </div>
-      <div class="acct-tools" id="acct-tools"><button type="button" class="btn-secondary kasa-open" id="kasa-open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8.01" y2="11"/><line x1="12" y1="11" x2="12.01" y2="11"/><line x1="16" y1="11" x2="16.01" y2="11"/><line x1="8" y1="15" x2="8.01" y2="15"/><line x1="12" y1="15" x2="12.01" y2="15"/><line x1="16" y1="15" x2="16.01" y2="15"/><line x1="8" y1="19" x2="12" y2="19"/></svg>Spočítat kasu</button></div>
+      <div class="acct-tools" id="acct-tools"><button type="button" class="btn-secondary kasa-open" id="kasa-open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8.01" y2="11"/><line x1="12" y1="11" x2="12.01" y2="11"/><line x1="16" y1="11" x2="16.01" y2="11"/><line x1="8" y1="15" x2="8.01" y2="15"/><line x1="12" y1="15" x2="12.01" y2="15"/><line x1="16" y1="15" x2="16.01" y2="15"/><line x1="8" y1="19" x2="12" y2="19"/></svg>Spočítat kasu</button><button type="button" class="btn-secondary kasa-open" id="inv-open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Inventura k rozvahovému dni</button></div>
       <div class="acct-grid">
         <div class="ledger acct-card" id="acct-cash"></div>
         <div class="ledger acct-card" id="acct-bank"></div>
@@ -1199,6 +1214,11 @@
         </div>
       </div>
       <button class="btn-secondary" id="btn-new-period" style="width:auto;margin-bottom:16px;">+ Otevřít nový rok</button>
+
+      <h3>Uzávěrka období</h3>
+      <div class="settings-group"><div class="settings-row"><span class="settings-label">Stav aktivního období</span><span class="settings-value" id="lock-state">–</span></div></div>
+      <div class="stat-note" style="margin:0 0 10px;">Po uzavření nejde v období doklady přidávat, upravovat ani stornovat. Opravy se zadávají opravným dokladem v otevřeném období. Uzavřít doporučuji po inventuře, schválení výkazů a záloze.</div>
+      <button class="btn-secondary" id="btn-lock-period" style="width:auto;margin-bottom:16px;">Uzavřít období</button>
 
       <h3>Záloha</h3>
       <div class="settings-group" id="backup-box">
@@ -1272,7 +1292,8 @@
         <div class="field"><label>Datum</label><input id="tx-edit-date" type="date" /></div>
         <div class="field"><label>Kategorie</label><select id="tx-edit-category"></select></div>
         <div class="field"><label>Projekt / kód *</label><select id="tx-edit-code"></select></div>
-        <div class="field"><label>Protistrana</label><input id="tx-edit-party" type="text" /></div>
+        <div class="field"><label>Protistrana *</label><input id="tx-edit-party" type="text" /></div>
+        <div class="field"><label>Typ podkladu</label><select id="tx-edit-dockind"></select></div>
         <div class="field field-wide"><label>Doklad (foto nebo PDF)</label><input id="tx-edit-file" type="file" accept="image/*,application/pdf" /><div class="stat-note" id="tx-edit-file-note" style="margin:4px 0 0;display:none;"></div></div>
         <div class="field" id="tx-edit-pair"></div>
       </div>
@@ -1414,6 +1435,32 @@
 </div>
 
 <!-- PDF PREVIEW -->
+<div class="modal-overlay" id="modal-inventura">
+  <div class="modal" style="max-width:600px;width:95vw;max-height:92vh;display:flex;flex-direction:column;">
+    <div class="modal-header"><div class="modal-title">Inventura k rozvahovému dni</div><button class="modal-close" data-close="modal-inventura">✕</button></div>
+    <div class="modal-body" style="overflow:auto;">
+      <div class="stat-note" style="margin:0 0 12px;">Inventurní soupis (§ 29 a 30 zákona o účetnictví): skutečný stav pokladny, banky, pohledávek a závazků ke dni sestavení závěrky. Inventuru lze zahájit nejdříve 4 měsíce před rozvahovým dnem a ukončit nejpozději 2 měsíce po něm.</div>
+      <div class="inv-grid">
+        <div class="field"><label>Rozvahový den</label><input id="iv-date" type="date" /></div>
+        <div class="field"><label>Stav účtu podle výpisu banky (Kč)</label><input id="iv-bank" type="number" step="0.01" placeholder="např. 740,35" /></div>
+        <div class="field"><label>Inventura zahájena</label><input id="iv-start" type="date" /></div>
+        <div class="field"><label>Inventura ukončena</label><input id="iv-end" type="date" /></div>
+        <div class="field span2"><label>Ostatní pohledávky (každý řádek: popis; částka)</label><textarea class="plain" id="iv-orec" placeholder="např. Nedoplatek členského příspěvku; 500"></textarea></div>
+        <div class="field span2"><label>Ostatní závazky (každý řádek: popis; částka)</label><textarea class="plain" id="iv-opay" placeholder="např. Nevyplacená odměna; 7000"></textarea></div>
+        <div class="field span2"><label>Dlouhodobý a ostatní majetek</label><input id="iv-prop" type="text" value="Neevidován" /></div>
+        <div class="field"><label>Inventuru provedl</label><input id="iv-by" type="text" /></div>
+        <div class="field"><label>Zkontroloval</label><input id="iv-check" type="text" placeholder="jméno druhé osoby" /></div>
+        <div class="field span2"><label>Poznámka (nepovinné)</label><input id="iv-note" type="text" maxlength="300" /></div>
+      </div>
+      <div class="inv-sum" id="iv-sum"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-close="modal-inventura">Zrušit</button>
+      <button class="btn-primary" id="iv-save" type="button">Uložit a vytvořit PDF</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-cash-count">
   <div class="modal" style="max-width:520px;width:95vw;max-height:92vh;display:flex;flex-direction:column;">
     <div class="modal-header">
@@ -1737,6 +1784,7 @@ function askCancelReason(what){
 const cancelFields=reason=>({cancelled:true,cancelReason:reason,cancelledAt:serverTimestamp(),cancelledBy:(currentUser&&currentUser.email)||null});
 // Storno úhrady vrací spárovanou fakturu mezi neuhrazené; vše v jedné transakci.
 async function cancelTx(id){
+  if(!guardPeriod())return false;
   const t=allTx.find(x=>x.id===id); if(!t)return false;
   if(!t.docNumber){ // starý záznam bez čísla v řadě – lze smazat
     if(!confirm('Opravdu smazat?'))return false;
@@ -1755,6 +1803,7 @@ async function cancelTx(id){
   }catch(e){console.error(e);toast(e.message==='ALREADY_CANCELLED'?'Doklad už je stornovaný.':'Storno se nezdařilo.');return false;}
 }
 async function cancelInv(id){
+  if(!guardPeriod())return false;
   const inv=allInvoices.find(x=>x.id===id); if(!inv)return false;
   if(!inv.invNumber){
     if(!confirm('Opravdu smazat?'))return false;
@@ -1784,6 +1833,7 @@ async function loadPeriods() {
 
 async function switchPeriod(year) {
   activePeriod = year.toString();
+  subscribePeriodMeta();
   if(unsubTx)  unsubTx();
   if(unsubInv) unsubInv();
   updatePeriodUI();
@@ -1930,7 +1980,7 @@ function launchApp(){
     <div class="settings-row"><span class="settings-label">Adresa</span><span class="settings-value">${escHtml(orgData.address||'–')}</span></div>
     <div class="settings-row"><span class="settings-label">Účetní období</span><span class="settings-value">${fmtDate(orgData.periodFrom)} – ${fmtDate(orgData.periodTo)}</span></div>
   `;
-  subscribeContacts();subscribeTransactions();subscribeInvoices();subscribeExpenses();subscribeRates();subscribeBackup();
+  subscribePeriodMeta();subscribeContacts();subscribeTransactions();subscribeInvoices();subscribeExpenses();subscribeRates();subscribeBackup();
   initAutocompletes();
 }
 
@@ -3024,7 +3074,7 @@ function openTxEditModal(tx){
   $('tx-edit-docnumber').readOnly=!!tx.docNumber; // přidělené číslo se nemění (ochrana číselné řady)
   $('tx-edit-desc').value=tx.desc||'';$('tx-edit-amount').value=tx.amount||'';
   $('tx-edit-file').value='';{const n=$('tx-edit-file-note');n.style.display=tx.receiptPath?'':'none';n.textContent=tx.receiptPath?'Doklad je nahraný (v seznamu: Doklad (sken)). Nový soubor ho nahradí.':'';}
-  $('tx-edit-date').value=tx.date||'';$('tx-edit-party').value=tx.party||'';
+  $('tx-edit-date').value=tx.date||'';$('tx-edit-party').value=tx.party||'';fillDocKinds($('tx-edit-dockind'),tx.docKind||'');
   const iB=$('tx-edit-type-income'),eB=$('tx-edit-type-expense');
   if(tx.type==='income'){iB.classList.add('active-income');eB.classList.remove('active-expense');}
   else{eB.classList.add('active-expense');iB.classList.remove('active-income');}
@@ -3042,8 +3092,10 @@ $('tx-edit-type-income').addEventListener('click',()=>{editTxType='income';$('tx
 $('tx-edit-type-expense').addEventListener('click',()=>{editTxType='expense';$('tx-edit-type-expense').classList.add('active-expense');$('tx-edit-type-income').classList.remove('active-income');setCatOptions('expense','tx-edit-category');});
 
 $('btn-tx-update').addEventListener('click',async()=>{
+  if(!guardPeriod())return;
   const desc=$('tx-edit-desc').value.trim(),amount=parseFloat($('tx-edit-amount').value),date=$('tx-edit-date').value;
   if(!desc){toast('Zadej popis.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!date){toast('Zadej datum.');return;}
+  if(!$('tx-edit-party').value.trim()){toast('Zadej protistranu (účastníka účetního případu).');return;}
   const yr=String(new Date(date).getFullYear());
   if(yr!==activePeriod){toast(`Datum patří do roku ${yr} – záznam patří do období ${activePeriod}.`);return;}
   const pc=pickedCode('tx-edit-code');if(!pc){toast('Vyber projekt / kód.');return;}
@@ -3056,7 +3108,7 @@ $('btn-tx-update').addEventListener('click',async()=>{
       if(dup.docs.some(d=>d.id!==editTxId)){toast('Toto číslo dokladu už existuje.');$('btn-tx-update').disabled=false;return;}
     }
     const receiptPath=await uploadDoklad($('tx-edit-file').files[0],editTxId);
-    await updateDoc(txDoc(editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),...pc,...(locked?{}:{docNumber:typed}),...(receiptPath?{receiptPath}:{})});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
+    await updateDoc(txDoc(editTxId),{desc,amount,date,type:editTxType,category:$('tx-edit-category').value,party:$('tx-edit-party').value.trim(),docKind:$('tx-edit-dockind').value||'',...pc,...(locked?{}:{docNumber:typed}),...(receiptPath?{receiptPath}:{})});closeModal('modal-tx-edit');toast('Záznam upraven ✓');}
   catch(e){console.error(e);toast('Chyba při ukládání.');}
   $('btn-tx-update').disabled=false;
 });
@@ -3249,7 +3301,8 @@ function buildAcct(acc){
       <div class="field"><label>Datum</label><input id="ac-${acc}-date" type="date" /></div>
       <div class="field"><label>Kategorie</label><select id="ac-${acc}-category"></select></div>
       <div class="field"><label>Projekt / kód *</label><select id="ac-${acc}-code"></select></div>
-      <div class="field acct-span"><label>Protistrana (nepovinné)</label><input id="ac-${acc}-party" type="text" placeholder="Název organizace nebo osoby" /></div>
+      <div class="field acct-span"><label>Protistrana *</label><input id="ac-${acc}-party" type="text" placeholder="Název organizace nebo osoby" /></div>
+      <div class="field acct-span"><label>Typ podkladu</label><select id="ac-${acc}-dockind"></select></div>
       <div class="field acct-span"><label>Doklad (foto nebo PDF, nepovinné)</label><input id="ac-${acc}-file" type="file" accept="image/*,application/pdf" /></div>
       <div class="field acct-span" id="ac-${acc}-pair-wrap" style="display:none;"><label id="ac-${acc}-pair-label"></label><div class="pair-list" id="ac-${acc}-pair-list"></div></div>
       <div class="acct-span"><button type="button" class="btn-primary" id="ac-${acc}-save" style="width:100%;">Uložit záznam</button></div>
@@ -3266,6 +3319,7 @@ function buildAcct(acc){
 }
 function resetAcctForm(acc){
   ['desc','amount','party'].forEach(k=>AC(acc,k).value='');
+  fillDocKinds(AC(acc,'dockind'),'');
   AC(acc,'file').value='';
   AC(acc,'date').value=today();
   setAcctType(acc,acctState[acc].type);
@@ -3317,8 +3371,10 @@ async function openDoklad(path){
   catch(e){if(w)w.close();throw e;}
 }
 async function saveAcct(acc){
+  if(!guardPeriod())return;
   const st=acctState[acc],desc=AC(acc,'desc').value.trim(),amount=parseFloat(AC(acc,'amount').value),date=AC(acc,'date').value;
   if(!desc){toast('Zadej popis.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!date){toast('Zadej datum.');return;}
+  if(!AC(acc,'party').value.trim()){toast('Zadej protistranu (účastníka účetního případu).');return;}
   const yr=String(new Date(date).getFullYear());
   if(yr!==activePeriod){toast(`Datum patří do roku ${yr} – přepni aktivní období.`);return;}
   const pc=pickedCode(`ac-${acc}-code`);if(!pc){toast('Vyber projekt / kód.');return;}
@@ -3328,7 +3384,7 @@ async function saveAcct(acc){
     const series=ACCT[acc].series+activePeriod, txRef=doc(txCol()), pair=st.pair;
     const receiptPath=await uploadDoklad(AC(acc,'file').files[0],txRef.id);
     await withNumber(series,'tx',null,(tx,docNumber)=>{
-      tx.set(txRef,{desc,amount,date,account:acc,type:st.type,category:AC(acc,'category').value,party:AC(acc,'party').value.trim(),pairedInvoice:pair||null,docNumber,...(receiptPath?{receiptPath}:{}),...pc,createdAt:serverTimestamp()});
+      tx.set(txRef,{desc,amount,date,account:acc,type:st.type,category:AC(acc,'category').value,party:AC(acc,'party').value.trim(),pairedInvoice:pair||null,docNumber,...(AC(acc,'dockind').value?{docKind:AC(acc,'dockind').value}:{}),...(receiptPath?{receiptPath}:{}),...pc,createdAt:serverTimestamp()});
       if(pair)tx.update(invDoc(pair),{paid:true,paidDate:date});
     });
     resetAcctForm(acc);$('acct-'+acc).classList.remove('form-open');toast('Záznam uložen ✓');
@@ -3348,7 +3404,7 @@ function renderAcct(acc){
   const typeLabel=t=>acc==='cash'?(t.type==='income'?'PPD':'VPD'):(t.type==='income'?'Příjem':'Výdaj');
   const rows=list.map(t=>{
     const cx=!!t.cancelled,pi=t.pairedInvoice?allInvoices.find(i=>i.id===t.pairedInvoice):null;
-    return `<tr class="arow${cx?' cx':''}" data-tx-id="${escHtml(t.id)}"><td>${escHtml(t.docNumber||'–')}</td><td>${fmtDate(t.date)}</td><td>${typeLabel(t)}</td><td>${cx?'<span class="badge badge-cancel">STORNO</span> ':''}${escHtml(t.desc)}${t.projectCode?`<span class="kd-chip">${escHtml(t.projectCode)}</span>`:''}${pi?` <span style="color:var(--muted);font-size:11px;">✓ ${escHtml(pi.invNumber||'')}</span>`:''}</td><td class="n ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</td></tr>
+    return `<tr class="arow${cx?' cx':''}" data-tx-id="${escHtml(t.id)}"><td>${escHtml(t.docNumber||'–')}</td><td>${fmtDate(t.date)}</td><td>${typeLabel(t)}</td><td>${cx?'<span class="badge badge-cancel">STORNO</span> ':''}${escHtml(t.desc)}${docMissing(t)?' <span class="badge badge-due" title="K dokladu chybí příloha, spárovaná faktura ani žádost o náhradu">bez podkladu</span>':''}${t.projectCode?`<span class="kd-chip">${escHtml(t.projectCode)}</span>`:''}${pi?` <span style="color:var(--muted);font-size:11px;">✓ ${escHtml(pi.invNumber||'')}</span>`:''}</td><td class="n ${t.type==='income'?'income-color':'expense-color'}">${t.type==='income'?'+':'−'}${fmt(t.amount)}</td></tr>
       <tr class="aacc"><td colspan="5"><div class="acc-in">${cx?`<div class="cancel-note">Stornováno${t.cancelledBy?' – '+escHtml(t.cancelledBy):''}: ${escHtml(t.cancelReason||'')}</div>`:`
         ${acc==='cash'?`<button class="accordion-btn pdf" data-action="pdf" data-tx-id="${escHtml(t.id)}">Zobrazit PDF</button>`:''}
         ${t.receiptPath?`<button class="accordion-btn pdf" data-action="doklad" data-tx-id="${escHtml(t.id)}">Doklad (sken)</button>`:''}
@@ -3427,6 +3483,7 @@ async function unpairTx(txId){
   });
 }
 $('btn-pair-confirm').addEventListener('click',async()=>{
+  if(!guardPeriod())return;
   if(!pairPick||!pairCtx)return;
   const x=pairCtx.items.find(i=>i.id===pairPick);
   if(!x.match&&!confirm(`Částky se liší (${fmt(x.amount)} × ${fmt(pairCtx.base)}). Přesto spárovat?`))return;
@@ -3436,6 +3493,7 @@ $('btn-pair-confirm').addEventListener('click',async()=>{
   catch(e){console.error(e);toast(e.message==='TAKEN'?'Jedna z položek je už spárovaná.':e.message==='CANCELLED'?'Stornovanou položku nelze spárovat.':e.message==='TYPE'?'Příjem se páruje s FAV, výdaj s FAP.':'Spárování se nezdařilo.');$('btn-pair-confirm').disabled=false;}
 });
 async function doUnpair(txId){
+  if(!guardPeriod())return;
   if(!confirm('Zrušit spárování? Faktura se vrátí mezi neuhrazené.'))return;
   try{await unpairTx(txId);closeModal('modal-tx-edit');toast('Spárování zrušeno.');}
   catch(e){console.error(e);toast('Zrušení se nezdařilo.');}
@@ -3443,6 +3501,7 @@ async function doUnpair(txId){
 
 /* ── INVOICE MODALS ── */
 $('btn-add-fap').addEventListener('click',async()=>{
+  if(!guardPeriod())return;
   $('inv-ico').value='';$('inv-vendor').value='';$('inv-number').value=await generateInvNumber('fap');
   $('inv-orig-number').value='';$('inv-amount').value='';$('inv-date').value=today();
   $('inv-due').value='';$('inv-url').value='';$('inv-desc').value='';$('inv-vs').value='';$('inv-ks').value='';$('inv-file').value='';
@@ -3450,6 +3509,7 @@ $('btn-add-fap').addEventListener('click',async()=>{
   openModal('modal-invoice');
 });
 $('btn-add-fav').addEventListener('click',async()=>{
+  if(!guardPeriod())return;
   favItems=[{desc:'Umělecké vystoupení',qty:1,price:0}];
   const num=await generateInvNumber('fav');
   $('fav-number').value=num;$('fav-ico').value='';$('fav-vendor').value='';
@@ -3478,6 +3538,7 @@ async function aresLookup(ico,nameEl,addrEl){
 });
 
 $('btn-invoice-save').addEventListener('click',async()=>{
+  if(!guardPeriod())return;
   const vendor=$('inv-vendor').value.trim(),amount=parseFloat($('inv-amount').value),dueDate=$('inv-due').value;
   if(!vendor){toast('Zadej dodavatele.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}
   const pc=pickedCode('inv-code');if(!pc){toast('Vyber projekt / kód.');return;}
@@ -3495,6 +3556,7 @@ $('btn-invoice-save').addEventListener('click',async()=>{
   $('btn-invoice-save').disabled=false;
 });
 $('btn-invoice-update').addEventListener('click',async()=>{
+  if(!guardPeriod())return;
   const vendor=$('inv-edit-vendor').value.trim(),amount=parseFloat($('inv-edit-amount').value),dueDate=$('inv-edit-due').value;
   if(!vendor){toast('Zadej dodavatele.');return;}if(!amount||amount<=0){toast('Zadej částku.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}
   const pc=pickedCode('inv-edit-code');if(!pc){toast('Vyber projekt / kód.');return;}
@@ -3520,6 +3582,7 @@ function renderFavItems(){
 }
 $('btn-fav-add-item').addEventListener('click',()=>{favItems.push({desc:'',qty:1,price:0});renderFavItems();});
 $('btn-fav-save').addEventListener('click',async()=>{
+  if(!guardPeriod())return;
   const vendor=$('fav-vendor').value.trim(),dueDate=$('fav-due').value;
   const total=favItems.reduce((s,i)=>s+(i.qty||1)*(i.price||0),0);
   if(!vendor){toast('Zadej odběratele.');return;}if(!dueDate){toast('Zadej datum splatnosti.');return;}if(total<=0){toast('Zadej ceny položek.');return;}
@@ -3882,6 +3945,168 @@ document.addEventListener('click',e=>{
 });
 $('kasa-save').addEventListener('click',kasaSave);
 $('kasa-reset').addEventListener('click',()=>{$('kasa-rows').querySelectorAll('input').forEach(i=>{i.value='';});kasaRefresh();const f=$('kasa-rows').querySelector('input');if(f)f.focus();});
+
+/* ── UZÁVĚRKA OBDOBÍ, TYPY PODKLADŮ, KNIHA POHLEDÁVEK A ZÁVAZKŮ, INVENTURNÍ SOUPIS ──
+   Uzavřené období (orgs/10men/periods/{rok}.locked) blokuje v aplikaci přidávání, úpravy, storna a párování; je to ochrana na straně aplikace
+   (pravidla databáze ho nevynucují). Historie uzavření a znovuotevření se ukládá v lockLog. */
+let periodMeta=null, unsubPeriod=null;
+const tsDate=v=>v&&typeof v.toDate==='function'?v.toDate():(v?new Date(v):null);
+function subscribePeriodMeta(){
+  if(unsubPeriod)unsubPeriod();
+  periodMeta=null;updateLockUI();
+  unsubPeriod=onSnapshot(doc(db,'orgs',ORG_ID,'periods',activePeriod),s=>{periodMeta=s.exists()?s.data():null;updateLockUI();},e=>console.warn('period meta',e));
+}
+const periodLocked=()=>!!(periodMeta&&periodMeta.locked);
+function guardPeriod(){
+  if(!periodLocked())return true;
+  toast(`Období ${activePeriod} je uzavřeno. Změny nejsou možné, opravu zadej opravným dokladem v otevřeném období.`,5200);return false;
+}
+function updateLockUI(){
+  const lk=periodLocked(),d=lk?tsDate(periodMeta.lockedAt):null;
+  document.querySelectorAll('.lock-banner').forEach(b=>{b.hidden=!lk;if(lk)b.textContent=`🔒 Období ${activePeriod} je uzavřeno${d?' ('+d.toLocaleDateString('cs-CZ')+')':''}. Doklady nelze přidávat, upravovat ani stornovat.`;});
+  const st=$('lock-state'),bt=$('btn-lock-period');
+  if(st)st.textContent=lk?'Uzavřeno':'Otevřeno';
+  if(bt)bt.textContent=lk?`Znovu otevřít období ${activePeriod}`:`Uzavřít období ${activePeriod}`;
+}
+async function toggleLock(){
+  const y=activePeriod,ref=doc(db,'orgs',ORG_ID,'periods',y),log=(periodMeta&&periodMeta.lockLog)||[],me=(currentUser&&currentUser.email)||'';
+  if(!periodLocked()){
+    const warns=[];
+    try{
+      const [cc,iv]=await Promise.all([getDocs(collection(db,'orgs',ORG_ID,'cashCounts')),getDocs(collection(db,'orgs',ORG_ID,'inventury'))]);
+      const inY=d=>{const x=String(d.data().date||'');return x.startsWith(y)||(x>=`${+y+1}-01-01`&&x<=`${+y+1}-02-28`);};
+      if(!cc.docs.some(inY))warns.push('nebyla provedena inventura kasy (tlačítko Spočítat kasu)');
+      if(!iv.docs.some(inY))warns.push('nebyl vytvořen inventurní soupis (tlačítko Inventura k rozvahovému dni)');
+    }catch(e){console.warn(e);}
+    const miss=allTx.filter(docMissing).length;if(miss)warns.push(`${miss} dokladů je označeno „bez podkladu“`);
+    if(!confirm(`Uzavřít období ${y}?\n\nPo uzavření nepůjde v tomto období doklady přidávat, upravovat ani stornovat.${warns.length?'\n\nUpozornění:\n• '+warns.join('\n• '):''}\n\nPokračovat?`))return;
+    await setDoc(ref,{locked:true,lockedAt:serverTimestamp(),lockedBy:me,lockLog:[...log,{at:new Date().toISOString(),by:me,action:'uzavřeno'}]},{merge:true});
+    toast(`Období ${y} uzavřeno.`);
+  }else{
+    const r=prompt(`Důvod znovuotevření období ${y} (uloží se do historie uzávěrky):`);
+    if(r===null)return;
+    if(r.trim().length<5){toast('Napiš prosím důvod (aspoň 5 znaků).');return;}
+    await setDoc(ref,{locked:false,reopenedAt:serverTimestamp(),reopenedBy:me,lockLog:[...log,{at:new Date().toISOString(),by:me,action:'znovu otevřeno',reason:r.trim().slice(0,200)}]},{merge:true});
+    toast(`Období ${y} znovu otevřeno.`);
+  }
+}
+$('btn-lock-period').addEventListener('click',()=>toggleLock().catch(e=>{console.error(e);toast('Změna uzávěrky se nezdařila.');}));
+
+/* typ podkladu k dokladu: co doloží obsah transakce (výpis sám dokládá jen poplatky a podobné pohyby) */
+function docKinds(){return [['','— nevybráno —'],['faktura','Faktura'],['uctenka','Účtenka'],['smlouva','Smlouva / dohoda (+ protokol o předání)'],['vypis','Jen výpis z banky (poplatek, příspěvek)'],['jiny','Jiný doklad']];}
+function fillDocKinds(sel,val){if(sel)sel.innerHTML=docKinds().map(([v,l])=>`<option value="${v}"${v===(val||'')?' selected':''}>${l}</option>`).join('');}
+function docMissing(t){return t.account==='bank'&&!t.cancelled&&!t.receiptPath&&!t.pairedInvoice&&!t.reportId&&!t.pdfPath&&t.docKind!=='vypis';}
+const invOpenAmount=i=>i.amount||0;   // zbývá uhradit (u dokladů se zálohou a opravou se upřesní)
+
+/* společné zobrazení A4 PDF v náhledu */
+async function showA4Pdf(html,filename,title){
+  const wrap=$('pdf-template');wrap.style.display='block';wrap.innerHTML=html;
+  try{
+    await Promise.all([...wrap.querySelectorAll('img')].map(img=>new Promise(res=>{if(img.complete)res();else{img.onload=res;img.onerror=res;}})));
+    const blob=await renderPdf({margin:0,filename,image:{type:'jpeg',quality:0.98},html2canvas:{scale:3,useCORS:true,allowTaint:false},jsPDF:{unit:'pt',format:'a4',orientation:'portrait'}},wrap.firstElementChild);
+    pdfCopiesOff();currentPdfBlob=blob;currentPdfName=filename;$('pdf-preview-frame').src=URL.createObjectURL(blob);$('pdf-preview-title').textContent=title;openModal('modal-pdf-preview');
+  }finally{wrap.style.display='none';wrap.innerHTML='';}
+}
+const pdfTh=(t,al,w)=>`<th style="text-align:${al};padding:7px 6px;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:${PDF_MUTED};font-weight:700;border-bottom:1.5px solid ${PDF_INK};${w?'width:'+w+'px;':''}">${t}</th>`;
+const pdfTd=(v,al,x)=>`<td style="text-align:${al};padding:6px;border-bottom:1px solid ${PDF_LINE};vertical-align:top;font-variant-numeric:tabular-nums;${x||''}">${v}</td>`;
+const pdfH2=t=>`<div style="margin:22px 0 6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">${t}</div>`;
+const diffText=d=>Math.abs(d)<0.005?'Bez rozdílu':(d>0?`Přebytek +${fmt(d)}`:`Manko −${fmt(-d)}`);
+const asOfDefault=()=>activePeriod<String(new Date().getFullYear())?`${activePeriod}-12-31`:today();
+
+/* Kniha pohledávek a závazků (§ 13b zákona o účetnictví): všechny faktury období, stav úhrady a zbývající částka k datu */
+function knihaPdfHtml(asOf){
+  const rows=(types,label)=>{
+    const list=allInvoices.filter(i=>types.includes(i.invType)).sort((a,b)=>String(a.invNumber||'').localeCompare(String(b.invNumber||'')));
+    const open=i=>{if(i.cancelled)return 0;if(i.paid&&(!i.paidDate||String(i.paidDate)<=asOf))return 0;return invOpenAmount(i);};
+    const body=list.map(i=>{const lt=i.paid?linkedTx(i.id):null,cx=!!i.cancelled,muted=cx?`color:${PDF_MUTED};text-decoration:line-through;`:'';
+      return `<tr style="page-break-inside:avoid;">${pdfTd(escHtml(i.invNumber||'–'),'left','font-weight:700;'+muted)}${pdfTd(escHtml(i.vendor||'–')+(cx?' <span style="text-decoration:none;color:#c00000;">STORNO</span>':''),'left',muted)}${pdfTd(fmtDate(i.date),'left')}${pdfTd(fmtDate(i.dueDate),'left')}${pdfTd(fmt(i.amount),'right',muted)}${pdfTd(i.paid?fmtDate(i.paidDate)+(lt&&lt.docNumber?' · '+escHtml(lt.docNumber):''):'–','left')}${pdfTd(fmt(open(i)),'right','font-weight:700;')}</tr>`;}).join('');
+    const tot=list.filter(i=>!i.cancelled).reduce((s,i)=>s+(i.amount||0),0),rest=list.reduce((s,i)=>s+open(i),0);
+    return pdfH2(label)+`<table style="width:100%;border-collapse:collapse;font-size:10.5px;"><thead><tr>${pdfTh('Doklad','left',78)}${pdfTh('Protistrana','left')}${pdfTh('Vznik','left',66)}${pdfTh('Splatnost','left',66)}${pdfTh('Částka','right',72)}${pdfTh('Uhrazeno','left',110)}${pdfTh('Zbývá k '+fmtDate(asOf),'right',82)}</tr></thead><tbody>${body||`<tr><td colspan="7" style="padding:10px 6px;color:${PDF_MUTED};">V období nejsou žádné doklady.</td></tr>`}<tr>${pdfTd('<b>Celkem</b>','left')}${pdfTd('','left')}${pdfTd('','left')}${pdfTd('','left')}${pdfTd('<b>'+fmt(tot)+'</b>','right')}${pdfTd('','left')}${pdfTd('<b>'+fmt(rest)+'</b>','right')}</tr></tbody></table>`;
+  };
+  return pdfShell('KNIHA POHLEDÁVEK A ZÁVAZKŮ',`období ${activePeriod}, stav k ${fmtDate(asOf)}`,rows(['fav'],'Kniha pohledávek (vystavené faktury)')+rows(['fap'],'Kniha závazků (přijaté faktury)')+`<div style="margin-top:18px;font-size:10px;color:${PDF_MUTED};">Neuhrazené doklady k danému dni jsou pohledávkami a závazky v přehledu o majetku a závazcích. Stornované doklady zůstávají v řadě a do součtů se nepočítají.</div>`);
+}
+$('btn-knihy').addEventListener('click',()=>showA4Pdf(knihaPdfHtml(asOfDefault()),`Kniha pohledávek a závazků ${activePeriod}.pdf`,`Kniha pohledávek a závazků ${activePeriod}`).catch(e=>{console.error(e);toast('PDF se nepodařilo vytvořit.');}));
+
+/* Inventurní soupis (§ 29 a 30): skutečné stavy a rozdíly k rozvahovému dni, podpisy odpovědných osob */
+function ivParse(text){return String(text||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.lastIndexOf(';'),a=i>=0?parseFloat(l.slice(i+1).replace(/\s/g,'').replace(',','.')):NaN;return{name:(i>=0?l.slice(0,i):l).trim(),amount:isNaN(a)?0:round2(a)};});}
+function ivSnapshot(date){
+  const upTo=liveTx().filter(t=>String(t.date)<=date);
+  const bal=acc=>round2((acc==='cash'?(orgData.cashInit||0):(orgData.bankInit||0))+upTo.filter(t=>t.account===acc).reduce((s,t)=>s+signed(t),0));
+  const paidAfter=i=>i.paid&&(!i.paidDate||String(i.paidDate)>date);
+  const open=types=>allInvoices.filter(i=>!i.cancelled&&types.includes(i.invType)&&String(i.date)<=date&&(!i.paid||paidAfter(i))).map(i=>({doc:i.invNumber||'',name:i.vendor||'',due:i.dueDate||'',amount:round2(invOpenAmount(i))}));
+  return{cashLedger:bal('cash'),bankLedger:bal('bank'),rec:open(['fav']),pay:open(['fap']),income:round2(liveTx().filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0))};
+}
+let ivCash=null;
+async function ivFindCashCount(date){
+  const d0=new Date(date),lo=new Date(d0);lo.setMonth(lo.getMonth()-4);const hi=new Date(d0);hi.setMonth(hi.getMonth()+2);
+  const iso=d=>d.toLocaleDateString('sv-SE');
+  try{
+    const snap=await getDocs(query(collection(db,'orgs',ORG_ID,'cashCounts'),orderBy('createdAt','desc'),limit(40)));
+    const list=snap.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.date>=iso(lo)&&c.date<=iso(hi)).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    return list[0]||null;
+  }catch(e){console.warn(e);return null;}
+}
+function ivRead(){
+  const date=$('iv-date').value,snap=date?ivSnapshot(date):null,bankStmt=$('iv-bank').value===''?null:round2(parseFloat($('iv-bank').value));
+  return{date,snap,bankStmt,orec:ivParse($('iv-orec').value),opay:ivParse($('iv-opay').value)};
+}
+function ivRefreshSum(){
+  const r=ivRead();if(!r.snap){$('iv-sum').textContent='Zadej rozvahový den.';return;}
+  const cc=ivCash,cashDiff=cc?round2(cc.total-r.snap.cashLedger):null,bankDiff=r.bankStmt==null?null:round2(r.bankStmt-r.snap.bankLedger);
+  const sum=a=>round2(a.reduce((s,x)=>s+x.amount,0));
+  $('iv-sum').innerHTML=`Hotovost v účetnictví: <b>${fmt(r.snap.cashLedger)}</b>${cc?`, inventura kasy z ${fmtDate(cc.date)}: <b>${fmt(cc.total)}</b> (${diffText(cashDiff)})`:'<br><span class="inv-warn">Inventura kasy v povoleném období (4 měsíce před až 2 měsíce po rozvahovém dni) chybí, proveď ji tlačítkem Spočítat kasu.</span>'}
+    <br>Banka v účetnictví: <b>${fmt(r.snap.bankLedger)}</b>${bankDiff==null?'<br><span class="inv-warn">Zadej stav účtu podle výpisu banky.</span>':`, podle výpisu: <b>${fmt(r.bankStmt)}</b> (${diffText(bankDiff)})`}
+    <br>Pohledávky: <b>${fmt(sum(r.snap.rec)+sum(r.orec))}</b> (faktury ${r.snap.rec.length}, ostatní ${r.orec.length}) · Závazky: <b>${fmt(sum(r.snap.pay)+sum(r.opay))}</b> (faktury ${r.snap.pay.length}, ostatní ${r.opay.length})
+    <br>Příjmy za období: <b>${fmt(r.snap.income)}</b> z limitu 3 000 000 Kč pro jednoduché účetnictví spolku.`;
+}
+async function ivOpen(){
+  if(!orgData)return;
+  const dflt=`${activePeriod}-12-31`;
+  $('iv-date').value=dflt;$('iv-start').value=today();$('iv-end').value=today();$('iv-bank').value='';$('iv-orec').value='';$('iv-opay').value='';$('iv-prop').value='Neevidován';$('iv-check').value='';$('iv-note').value='';
+  $('iv-by').value=(currentUser&&(currentUser.displayName||currentUser.email))||'';
+  ivCash=null;ivRefreshSum();openModal('modal-inventura');
+  ivCash=await ivFindCashCount($('iv-date').value);ivRefreshSum();
+}
+$('inv-open').addEventListener('click',()=>ivOpen());
+['iv-date','iv-bank','iv-orec','iv-opay'].forEach(id=>$(id).addEventListener('input',async()=>{if(id==='iv-date')ivCash=await ivFindCashCount($('iv-date').value);ivRefreshSum();}));
+function ivPdfHtml(rec){
+  const cell=(l,v)=>`<td style="padding:10px 0;vertical-align:top;">${pdfLabel(l)}<div style="font-weight:700;font-size:12.5px;margin-top:3px;">${v||'–'}</div></td>`;
+  const kv=(a,b,c)=>`<table style="width:100%;border-collapse:collapse;font-size:11.5px;"><tr>${pdfTh(a,'left')}${pdfTh(b,'right',150)}${pdfTh(c,'right',150)}</tr></table>`;
+  const three=(l1,v1,l2,v2,l3,v3)=>`<table style="width:100%;border-collapse:collapse;font-size:11.5px;"><thead><tr>${pdfTh(l1,'right')}${pdfTh(l2,'right')}${pdfTh(l3,'right')}</tr></thead><tbody><tr>${pdfTd(v1,'right')}${pdfTd(v2,'right')}${pdfTd(v3,'right','font-weight:700;')}</tr></tbody></table>`;
+  const list=(items,label)=>`<table style="width:100%;border-collapse:collapse;font-size:11px;"><thead><tr>${pdfTh('Doklad / popis','left',92)}${pdfTh('Protistrana','left')}${pdfTh('Splatnost','left',70)}${pdfTh('Částka','right',90)}</tr></thead><tbody>${items.map(x=>`<tr style="page-break-inside:avoid;">${pdfTd(escHtml(x.doc||'ostatní'),'left','font-weight:700;')}${pdfTd(escHtml(x.name||''),'left')}${pdfTd(x.due?fmtDate(x.due):'–','left')}${pdfTd(fmt(x.amount),'right')}</tr>`).join('')||`<tr><td colspan="4" style="padding:8px 6px;color:${PDF_MUTED};">Žádné.</td></tr>`}<tr><td colspan="3" style="padding:6px;border-bottom:1px solid ${PDF_LINE};font-weight:700;">${label}</td>${pdfTd('<b>'+fmt(items.reduce((s,x)=>s+x.amount,0))+'</b>','right')}</tr></tbody></table>`;
+  const cc=rec.cashCount,cashDiff=cc?round2(cc.total-rec.cashLedger):null,bankDiff=rec.bankStatement==null?null:round2(rec.bankStatement-rec.bankLedger);
+  const body=`<table style="width:100%;border-collapse:collapse;border-top:1px solid ${PDF_LINE};border-bottom:1px solid ${PDF_LINE};"><tr>${cell('Rozvahový den',fmtDate(rec.date))}${cell('Inventura zahájena',fmtDate(rec.start))}${cell('Inventura ukončena',fmtDate(rec.end))}${cell('Provedl',escHtml(rec.by&&rec.by.name))}${cell('Zkontroloval',escHtml(rec.checker))}</tr></table>
+    ${pdfH2('A. Peněžní prostředky v hotovosti – fyzická inventura')}
+    ${three('Stav v účetnictví',fmt(rec.cashLedger),cc?'Skutečný stav (inventura kasy '+fmtDate(cc.date)+')':'Skutečný stav',cc?fmt(cc.total):'inventura nebyla provedena','Rozdíl',cashDiff==null?'–':diffText(cashDiff))}
+    ${pdfH2('B. Peněžní prostředky na bankovním účtu – dokladová inventura (výpis z banky)')}
+    ${three('Stav v účetnictví',fmt(rec.bankLedger),'Stav podle výpisu banky',rec.bankStatement==null?'nezadáno':fmt(rec.bankStatement),'Rozdíl',bankDiff==null?'–':diffText(bankDiff))}
+    ${pdfH2('C. Pohledávky – dokladová inventura')}${list([...rec.receivables.map(x=>({...x})),...rec.otherReceivables],'Pohledávky celkem')}
+    ${pdfH2('D. Závazky – dokladová inventura')}${list([...rec.payables.map(x=>({...x})),...rec.otherPayables],'Závazky celkem')}
+    ${pdfH2('E. Dlouhodobý a ostatní majetek')}<div style="font-size:11.5px;">${escHtml(rec.property||'Neevidován')}</div>
+    ${pdfH2('F. Způsob zjištění a ocenění')}<div style="font-size:10.5px;color:${PDF_TEXT2};line-height:1.55;">Hotovost: fyzické přepočítání nominálních hodnot (protokol o inventuře kasy). Bankovní účet: porovnání stavu v účetnictví s výpisem banky k rozvahovému dni. Pohledávky a závazky: soupis neuhrazených dokladů k rozvahovému dni z evidence faktur a ostatních dokladů. Ocenění ve jmenovité hodnotě. Příjmy za období ${fmt(rec.income)} (limit pro jednoduché účetnictví spolku 3 000 000 Kč).</div>
+    ${rec.note?`<div style="margin-top:10px;font-size:11px;"><b>Poznámka:</b> ${escHtml(rec.note)}</div>`:''}
+    <div style="display:flex;gap:36px;margin-top:44px;font-size:11px;">
+      ${['Inventuru provedl: '+escHtml(rec.by&&rec.by.name||''),'Zkontroloval: '+escHtml(rec.checker||''),'Schválil statutární orgán'].map(t=>`<div style="flex:1;"><div style="height:34px;border-bottom:1px solid ${PDF_INK};"></div><div style="padding-top:4px;">${t}</div><div style="font-size:9px;color:${PDF_MUTED};">jméno, datum a podpis</div></div>`).join('')}
+    </div>`;
+  return pdfShell('INVENTURNÍ SOUPIS',`k rozvahovému dni ${fmtDate(rec.date)}`,body);
+}
+$('iv-save').addEventListener('click',async()=>{
+  const r=ivRead();
+  if(!r.date){toast('Zadej rozvahový den.');return;}
+  if(r.date.slice(0,4)!==activePeriod){toast(`Rozvahový den patří do roku ${r.date.slice(0,4)}, přepni aktivní období.`);return;}
+  if(!$('iv-start').value||!$('iv-end').value){toast('Zadej zahájení a ukončení inventury.');return;}
+  if(r.bankStmt==null){toast('Zadej stav účtu podle výpisu banky.');return;}
+  if(!$('iv-check').value.trim()){toast('Zadej, kdo inventuru zkontroloval (druhá odpovědná osoba).');return;}
+  const rec={date:r.date,start:$('iv-start').value,end:$('iv-end').value,year:activePeriod,cashLedger:r.snap.cashLedger,bankLedger:r.snap.bankLedger,bankStatement:r.bankStmt,
+    cashCount:ivCash?{id:ivCash.id,date:ivCash.date,total:ivCash.total,diff:round2(ivCash.total-r.snap.cashLedger)}:null,
+    receivables:r.snap.rec,payables:r.snap.pay,otherReceivables:r.orec,otherPayables:r.opay,property:$('iv-prop').value.trim()||'Neevidován',income:r.snap.income,
+    note:$('iv-note').value.trim().slice(0,300),checker:$('iv-check').value.trim(),by:{uid:currentUser.uid,name:$('iv-by').value.trim()||currentUser.displayName||currentUser.email||'',email:currentUser.email||''}};
+  const btn=$('iv-save');btn.disabled=true;
+  try{await addDoc(collection(db,'orgs',ORG_ID,'inventury'),{...rec,createdAt:serverTimestamp()});}
+  catch(e){console.error(e);btn.disabled=false;toast('Inventurní soupis se nepodařilo uložit: '+(e.message||e));return;}
+  btn.disabled=false;closeModal('modal-inventura');toast('Inventurní soupis uložen ✓');
+  try{await showA4Pdf(ivPdfHtml(rec),`Inventurní soupis ${rec.date}.pdf`,`Inventurní soupis ${fmtDate(rec.date)}`);}catch(e){console.error(e);toast('Soupis je uložený, ale PDF se nepodařilo vytvořit.');}
+});
 
 function formatAddress(sid){
   if(!sid) return '';

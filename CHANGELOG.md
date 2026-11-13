@@ -1,5 +1,13 @@
 # 10korun: přehled změn
 
+## 3.18.0 (13. 11. 2026)
+Opravy z kontroly souladu se zákonem o účetnictví (zpráva v `audit-10korun/SOULAD-SE-ZAKONEM-2026-11-13.md`).
+- **Uzávěrka období:** v Nastavení lze období uzavřít a znovu otevřít (s důvodem). V uzavřeném období nejde přidávat, upravovat, stornovat ani párovat doklady a faktury, nahoře je pruh „Období je uzavřeno“. Historie uzavření a otevření se ukládá u období. Před uzavřením aplikace upozorní, že chybí inventura kasy nebo inventurní soupis a že jsou doklady bez podkladu. Zámek platí v aplikaci, databázová pravidla ho nevynucují.
+- **Inventurní soupis** (tlačítko „Inventura k rozvahovému dni“ v Účetnictví): hotovost (podle uložené inventury kasy z povoleného období), banka (porovnání s výpisem), pohledávky a závazky z neuhrazených faktur plus ostatní řádky, majetek, způsob zjištění, zahájení a ukončení, podpisy provedl / zkontroloval / schválil statutární orgán. Ukládá se do `orgs/10men/inventury` a vzniká PDF (A4). Ukazuje i příjmy za rok proti limitu 3 000 000 Kč pro jednoduché účetnictví spolku.
+- **Kniha pohledávek a závazků** (tlačítko ve Fakturách): PDF se všemi fakturami období, úhradou (datum a doklad) a zbývající částkou k datu, součty zvlášť pro pohledávky a závazky.
+- **Protistrana je povinná** u dokladu v pokladně a v bance (účastník účetního případu), v novém dokladu i při úpravě.
+- **Typ podkladu** u dokladu (faktura, účtenka, smlouva / dohoda, jen výpis z banky, jiný). Bankovní doklad bez přílohy, spárované faktury, žádosti o náhradu a bez volby „jen výpis“ má v seznamu štítek „bez podkladu“.
+
 ## 3.17.0 (13. 11. 2026)
 - Pokladní doklady PPD a VPD mají vzhled tištěné listiny: pole s linkami (datum, přijato od / vyplaceno komu, účel platby, projekt / kód), částka číslem v rámečku i **slovy**, podpisová pole (pokladník, odevzdal / převzal) a razítko. Vznikají **dvě PDF ve formátu A5 na šířku**: kopie pro pokladnu a kopie pro druhou stranu. Náhled má záložky obou kopií, „Stáhnout PDF“ stáhne zobrazenou kopii a „Stáhnout obě kopie“ obě naráz (`PD2026001 – kopie pro pokladnu.pdf`, `PD2026001 – kopie pro druhou stranu.pdf`).
 - Vystavená faktura a protokol o inventuře mají nový, střízlivější vzhled: bílá stránka, tenké linky, červená jen jako krátký akcent, dodavatel vlevo a odběratel vpravo, tabulka položek bez barevné hlavičky, celkem k úhradě jako velké tmavé číslo, platební údaje s QR kódem a razítko v jedné řadě, patička s údaji organizace. Popis položky faktury se do PDF vkládá ošetřený.

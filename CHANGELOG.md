@@ -1,5 +1,12 @@
 # 10korun: přehled změn
 
+## 3.17.0 (13. 11. 2026)
+- Pokladní doklady PPD a VPD mají vzhled tištěné listiny: pole s linkami (datum, přijato od / vyplaceno komu, účel platby, projekt / kód), částka číslem v rámečku i **slovy**, podpisová pole (pokladník, odevzdal / převzal) a razítko. Vznikají **dvě PDF ve formátu A5 na šířku**: kopie pro pokladnu a kopie pro druhou stranu. Náhled má záložky obou kopií, „Stáhnout PDF“ stáhne zobrazenou kopii a „Stáhnout obě kopie“ obě naráz (`PD2026001 – kopie pro pokladnu.pdf`, `PD2026001 – kopie pro druhou stranu.pdf`).
+- Vystavená faktura a protokol o inventuře mají nový, střízlivější vzhled: bílá stránka, tenké linky, červená jen jako krátký akcent, dodavatel vlevo a odběratel vpravo, tabulka položek bez barevné hlavičky, celkem k úhradě jako velké tmavé číslo, platební údaje s QR kódem a razítko v jedné řadě, patička s údaji organizace. Popis položky faktury se do PDF vkládá ošetřený.
+- PDF mají skutečné rozměry: faktura a protokol A4 (595 × 842 pt), doklady A5 na šířku (595 × 420 pt). Dřív byla stránka asi 373 × 528 mm, takže se hodilo jen tisknout „přizpůsobit stránce“.
+- Razítko (Trodat Printy 4913, otisk 58 × 22 mm) má na všech dokumentech skutečnou velikost: faktura, pokladní doklady, výkazy v PDF a v Excelu. Celý obrázek s podpisem měří 62,1 × 28,8 mm. Ve výkazech zůstala podpisová čára na původní výšce stránky.
+- Tlačítko „Spočítat kasu“ je nad kartou Pokladna (na telefonu nad kartou, jen na záložce Pokladna), ne v její hlavičce. Obě karty mají zase stejně vysokou hlavičku.
+
 ## 3.16.0 (13. 11. 2026)
 - Počítání kasy: v záložce Účetnictví > Pokladna je tlačítko „Spočítat kasu“. Okno má tabulku 12 nominálů od mince 1 Kč po bankovku 5 000 Kč (počet kusů × nominál), mezisoučty mincí a bankovek a vždy viditelný součet. Napočítaná částka se porovná se stavem pokladny z účetnictví (stejné číslo jako zůstatek Pokladny) a ukáže se rozdíl: Sedí / Přebytek / Manko. Enter přeskočí na další nominál, rozepsané počty se při zavření nezahodí bez dotazu.
 - „Uložit a vytvořit PDF“ uloží inventuru (datum, počty, součet, stav účetnictví, rozdíl, poznámka, kdo počítal) do orgs/10men/cashCounts a otevře náhled PDF protokolu o inventuře s místem pro podpis „Počítal / Zkontroloval“. V okně je historie posledních 20 inventur s PDF ke každé. Inventury vidí a zapisuje jen hospodář (stávající pravidla databáze, nic se nenasazuje).

@@ -1,5 +1,9 @@
 # 10korun: přehled změn
 
+## 3.20.0 (25. 11. 2026)
+- Proplacení paliva: ve formuláři je výběr „Auto z profilu v 10base“ (Nastavení → Moje auta). Výchozí auto, nebo jediné auto člena se předvybere a předvyplní spotřebu a druh paliva (benzín = Benzin 95, nafta, elektro = elektřina); obojí lze přepsat, u jiného paliva (LPG, CNG, hybrid) se druh vybere ručně. Auto se uloží do žádosti a vypíše se na PDF. Bez aut v profilu se formulář chová jako dosud.
+- Data aut se čtou jen z RTDB `/memberAuta/{e-mail}`, žádné nové zápisy ani pravidla.
+
 ## 3.19.1 (13. 11. 2026)
 - Razítko má na všech dokumentech (faktura, zálohová faktura, opravný doklad, pokladní doklady, výkazy v PDF i v Excelu) velikost, při které se celý obrázek včetně podpisu vejde do pole razítka Trodat Printy 4913 (58 × 22 mm): 47,6 × 22 mm (omezuje výška). Dřív se měřil tmavý blok textu na 58 mm a celý obrázek byl 62,1 × 28,7 mm, tedy větší než pole. Výkazy mají podpisový řádek zpět na původním rozměru.
 

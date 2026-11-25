@@ -277,6 +277,7 @@
     <div class="field"><label>Místo konání akce</label><input id="fu-place" type="text" maxlength="200" placeholder="Např. Kladno, kostel sv. Vavřince" /></div>
     <div class="field"><label>Účel cesty</label><input id="fu-purpose" type="text" maxlength="200" placeholder="Např. koncert" /></div>
     <div class="field"><label>Ujeté km (celkem tam i zpět)</label><input id="fu-km" type="number" inputmode="decimal" min="0" max="4999" step="0.1" placeholder="0" /></div>
+    <div class="field" id="fu-car-wrap" style="display:none;"><label>Auto z profilu v 10base</label><select id="fu-car"></select><div class="small" style="margin-top:4px;color:var(--muted);">Spotřeba a palivo se předvyplní z profilu (10base → Nastavení → Moje auta), lze je přepsat.</div></div>
     <div class="field"><label>Průměrná spotřeba dle technického průkazu (l/100 km, u elektřiny kWh/100 km)</label><input id="fu-cons" type="number" inputmode="decimal" min="0" max="59" step="0.1" placeholder="0" /></div>
     <div class="field"><label>Druh paliva</label><select id="fu-fuel"></select></div>
     <div class="field"><label>Projekt / kód *</label><select id="fu-code"></select></div>
@@ -333,7 +334,7 @@ import { initializeFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collect
 import { getStorage, ref as sRef, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-import { getDatabase, ref as dbRef, onValue }
+import { getDatabase, ref as dbRef, onValue, get as dbGet }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -880,8 +881,39 @@ function renderFuelOptions(){
 }
 $('fu-date').addEventListener('change', ()=>{ renderFuelOptions(); updateFuelSummary(); });
 
+/* Auta člena z profilu v 10base: RTDB /memberAuta/{e-mail s . a @ nahrazenými _} */
+let myCars = [];
+const PALIVO_NA_KLIC = {'Benzín':'95', 'Nafta':'nafta', 'Elektro':'elektrina'};
+async function loadMyCars(){
+  myCars = [];
+  try {
+    const key = String(currentUser?.email||'').toLowerCase().replace(/\./g,'_').replace(/@/g,'_');
+    if (key){
+      const v = (await dbGet(dbRef(rdb, '/memberAuta/' + key))).val() || {};
+      myCars = Object.entries(v).map(([id,a])=>({id, ...a}))
+        .sort((x,y)=>(y.vychozi?1:0)-(x.vychozi?1:0) || String(x.nazev).localeCompare(String(y.nazev),'cs'));
+    }
+  } catch(e){ console.error('AUTA:', e); }
+}
+function renderCarOptions(selectedName){
+  $('fu-car-wrap').style.display = myCars.length ? '' : 'none';
+  $('fu-car').innerHTML = '<option value="">Jiné auto (zadat ručně)</option>' + myCars.map(a=>
+    `<option value="${escHtml(a.id)}">${escHtml(a.nazev)}${a.spotreba?' · '+escHtml(String(a.spotreba).replace('.',','))+' l/100 km':''}</option>`).join('');
+  const hit = selectedName ? myCars.find(a=>a.nazev===selectedName) : null;
+  $('fu-car').value = hit ? hit.id : '';
+}
+function applyCar(){
+  const a = myCars.find(x=>x.id===$('fu-car').value);
+  if (!a) return;
+  if (a.spotreba) $('fu-cons').value = a.spotreba;
+  const klic = PALIVO_NA_KLIC[a.palivo];
+  if (klic) $('fu-fuel').value = klic;
+  updateFuelSummary();
+}
+$('fu-car').addEventListener('change', applyCar);
+
 let fuelRejId = null;
-function openFuel(prefill, rej){
+async function openFuel(prefill, rej){
   fuelRejId = rej ? rej.id : null;
   $('fu-rej-actions').style.display = rej ? '' : 'none';
   $('fu-rej-note').style.display = (rej && rej.rejectNote) ? '' : 'none';
@@ -898,7 +930,14 @@ function openFuel(prefill, rej){
   $('fu-fuel').value = prefill ? prefill.fuelKey : FUELS[0].key;
   updateFuelSummary();
   fillCodeSelect('fu-code', (rej && rej.projectCode) || '');
+  $('fu-car-wrap').style.display = 'none';
   openModal('modal-fuel');
+  await loadMyCars();
+  renderCarOptions(prefill ? prefill.car : '');
+  if (!prefill){
+    const vychozi = myCars.find(a=>a.vychozi) || (myCars.length===1 ? myCars[0] : null);
+    if (vychozi){ $('fu-car').value = vychozi.id; applyCar(); }
+  }
 }
 $('btn-fuel').addEventListener('click', ()=>openFuel(null));
 
@@ -913,6 +952,7 @@ function readFuel(){
   const phmAmount = r2(km/100*consumption*price);
   return {
     date, place: $('fu-place').value.trim(), purpose: $('fu-purpose').value.trim(),
+    car: (myCars.find(a=>a.id===$('fu-car').value)||{}).nazev || '',
     km, consumption, fuelKey: fu.key, fuelLabel: fu.label, price, rate,
     kmAmount, phmAmount, total: r2(km*rate + km/100*consumption*price)
   };
@@ -974,6 +1014,7 @@ async function buildFuelPdf(f, name){
     </div>
     <table style="width:100%;border-collapse:collapse;margin-top:26px;">
       <tr><td style="${lbl}">Řidič</td><td style="${val}">${escHtml(name)}</td></tr>
+      ${f.car ? `<tr><td style="${lbl}">Vozidlo</td><td style="${val}">${escHtml(f.car)}</td></tr>` : ''}
       <tr><td style="${lbl}">Datum akce</td><td style="${val}">${fmtDate(f.date)}</td></tr>
       <tr><td style="${lbl}">Místo konání akce</td><td style="${val}">${escHtml(f.place)}</td></tr>
       <tr><td style="${lbl}">Účel cesty</td><td style="${val}">${escHtml(f.purpose)}</td></tr>

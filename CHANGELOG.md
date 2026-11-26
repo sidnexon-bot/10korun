@@ -1,5 +1,12 @@
 # 10korun: přehled změn
 
+## 3.22.0 (26. 11. 2026)
+- Vystavené doklady (faktura, zálohová faktura, opravný doklad k vystavené faktuře) se po vystavení samy uloží jako PDF na 10space do `01_Účetnictví/<rok>/<MM-RRRR>` podle data vystavení. Složky rok a měsíc se podle potřeby založí. Soubor se pojmenuje číslem dokladu a v 10space je propojený s dokladem (údaje v podrobnostech souboru se berou z 10korun).
+- Úprava vystavené faktury nahradí uložené PDF novou verzí (původní verze zůstane v historii souboru), a změní-li se datum vystavení, soubor se přesune do správného měsíce. Soubor, který u dokladu ručně přiřadil člověk v 10space, se nepřepisuje.
+- Nastavení → Vystavené doklady na 10space: tlačítko „Uložit dosud neuložené doklady“ uloží zpětně všechny vystavené doklady zvoleného období (bez stornovaných a bez těch, které už uložené jsou), s průběhem a výpisem případných chyb. Doklady se ukládají po jednom, takže lze tlačítko po chybě bezpečně spustit znovu.
+- Vystavené doklady mají v nabídce jedno „Zobrazit PDF“ (dřív by se po uložení na Disk objevilo dvakrát).
+- Náhled PDF přijaté faktury: než se soubor z Disku načte, náhled se otevře hned s kolečkem „Načítám PDF…“ a tlačítko Stáhnout je vypnuté. Při chybě se náhled zavře a otevře se odkaz na Disk jako dřív.
+
 ## 3.21.0 (26. 11. 2026)
 - Přijaté faktury: „Zobrazit PDF“ (dřív „Otevřít PDF“, které vedlo do Google Disku) otevře soubor ve stejném náhledu jako u vystavených faktur, včetně tlačítka „Stáhnout PDF“. Použije se soubor propojený z 10space (Doklad v podrobnostech souboru), nebo soubor z uloženého odkazu na Disk. Když se PDF nenačte, otevře se odkaz na Disk jako dřív.
 

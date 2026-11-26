@@ -3223,7 +3223,7 @@ function invMenuItems(inv){
   if(['fav','zf','od'].includes(inv.invType))it.push({act:'pdf-fav',label:'Zobrazit PDF'});
   if(inv.invType==='zf'&&inv.paid&&!inv.settledBy&&!inv.cancelled)it.push({act:'zf-final',label:'Vystavit konečnou fakturu'});
   if(['fav','fap'].includes(inv.invType)&&!inv.cancelled&&!inv.settledByCorrection)it.push({act:'inv-correct',label:inv.invType==='fav'?'Vystavit opravný doklad':'Zaevidovat opravný doklad dodavatele'});
-  if(inv.url)it.push({act:'open-url',label:'Otevřít PDF'});
+  if(inv.url||inv.driveFileId)it.push({act:'open-url',label:'Zobrazit PDF'});
   if(inv.receiptPath)it.push({act:'open-doklad',label:'Doklad (sken)'});
   if(inv.paid){if(linkedTx(inv.id))it.push({act:'unpair-inv',label:'Zrušit spárování'});}
   else it.push({act:'pair-inv',label:'Spárovat s dokladem'});
@@ -3248,7 +3248,7 @@ function openInvMenu(btn,id){
       if(a==='pdf-fav')await (inv.invType==='od'?generateOdPDF(inv):generateInvoicePDF(inv));
       if(a==='zf-final')await openFav('fav',inv);
       if(a==='inv-correct')openOd(inv);
-      if(a==='open-url')window.open(inv.url,'_blank','noopener');
+      if(a==='open-url')await openInvPdf(inv);
       if(a==='open-doklad')await openDoklad(inv.receiptPath);
       if(a==='edit-inv')openInvEditModal(inv);
       if(a==='pair-inv')openPairModal('inv',inv.id);
@@ -3416,6 +3416,28 @@ async function uploadDoklad(file,id){
   const path=`korun/vydaje/${currentUser.uid}/${id}-${Date.now()}.${isPdf?'pdf':'jpg'}`;
   await uploadBytes(sRef(storage,path),await prepareDoklad(file),{contentType:isPdf?'application/pdf':'image/jpeg'});
   return path;
+}
+/* PDF přijaté faktury z Google Disku se ukáže ve stejném náhledu jako vystavená faktura (se stažením), ne v nové záložce Disku.
+   Soubor se bere z driveFileId (propojení z 10space) nebo z uloženého odkazu na Disk; když se nenačte, otevře se odkaz jako dřív. */
+const FILE_STREAM_URL='https://getfilestream-etp6s2ynnq-uc.a.run.app';
+const driveIdOf=inv=>inv.driveFileId||((/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]{5,100})/.exec(inv.url||'')||[])[1])||null;
+async function openInvPdf(inv){
+  const id=driveIdOf(inv);
+  if(!id){window.open(inv.url,'_blank','noopener');return;}
+  try{
+    const res=await fetch(`${FILE_STREAM_URL}?driveFileId=${encodeURIComponent(id)}`,{headers:{Authorization:'Bearer '+await auth.currentUser.getIdToken()}});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const blob=await res.blob();
+    if(!/pdf/i.test(blob.type))throw new Error('soubor není PDF');
+    pdfCopiesOff();currentPdfBlob=blob;currentPdfName=`${inv.invNumber||'faktura'}.pdf`;
+    $('pdf-preview-frame').src=URL.createObjectURL(blob);
+    $('pdf-preview-title').textContent=`Náhled – ${inv.invNumber||inv.vendor||'faktura'}`;
+    openModal('modal-pdf-preview');
+  }catch(e){
+    console.warn('openInvPdf:',e.message);
+    if(inv.url){toast('PDF se nepodařilo načíst, otevírám odkaz na Disk.');window.open(inv.url,'_blank','noopener');}
+    else toast('PDF se nepodařilo načíst.');
+  }
 }
 async function openDoklad(path){
   const w=window.open('','_blank');

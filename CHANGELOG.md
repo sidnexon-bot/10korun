@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.21.0 (26. 11. 2026)
+- Přijaté faktury: „Zobrazit PDF“ (dřív „Otevřít PDF“, které vedlo do Google Disku) otevře soubor ve stejném náhledu jako u vystavených faktur, včetně tlačítka „Stáhnout PDF“. Použije se soubor propojený z 10space (Doklad v podrobnostech souboru), nebo soubor z uloženého odkazu na Disk. Když se PDF nenačte, otevře se odkaz na Disk jako dřív.
+
 ## 3.20.0 (25. 11. 2026)
 - Proplacení paliva: ve formuláři je výběr „Auto z profilu v 10base“ (Nastavení → Moje auta). Výchozí auto, nebo jediné auto člena se předvybere a předvyplní spotřebu a druh paliva (benzín = Benzin 95, nafta, elektro = elektřina); obojí lze přepsat, u jiného paliva (LPG, CNG, hybrid) se druh vybere ručně. Auto se uloží do žádosti a vypíše se na PDF. Bez aut v profilu se formulář chová jako dosud.
 - Data aut se čtou jen z RTDB `/memberAuta/{e-mail}`, žádné nové zápisy ani pravidla.

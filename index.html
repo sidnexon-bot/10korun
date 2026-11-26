@@ -898,6 +898,11 @@
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .pdf-loading{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--card,#fff);color:var(--muted,#6e6e73);font-size:14px;}
+  .pdf-loading[hidden]{display:none;}
+  .pdf-spin{width:28px;height:28px;border-radius:50%;border:3px solid rgba(128,128,128,.28);border-top-color:#EE220C;animation:pdfSpin .8s linear infinite;}
+  @keyframes pdfSpin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.pdf-spin{animation-duration:2.4s;}}
   </style>
   <link rel="stylesheet" href="redesign.css" />
 </head>
@@ -1234,6 +1239,10 @@
         <input type="file" id="backup-restore-file" accept=".zip,application/zip" multiple style="display:none;" />
       </div>
 
+      <h3>Vystavené doklady na 10space</h3>
+      <div class="settings-group"><div style="padding:14px 16px;color:var(--muted);font-size:14px;" id="issued-status">Vystavené faktury, zálohové faktury a opravné doklady se po vystavení samy ukládají jako PDF do složky 01_Účetnictví / rok / MM-RRRR podle data vystavení. Tlačítkem uložíš doklady, které vznikly dřív, z právě zvoleného období.</div></div>
+      <button class="btn-secondary" id="btn-issued-backfill" style="width:auto;margin-bottom:16px;">Uložit dosud neuložené doklady</button>
+
       <h3>Historie změn</h3>
       <div class="settings-group"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Kdo, kdy a co změnil u dokladů, faktur, žádostí, čítačů a členů. Záznamy vytváří server a nelze je upravit ani smazat.</div></div>
       <button class="btn-secondary" id="btn-audit-log" style="width:auto;margin-bottom:16px;">Zobrazit historii změn</button>      
@@ -1529,8 +1538,9 @@
       <button class="modal-close" data-close="modal-pdf-preview">✕</button>
     </div>
     <div class="pdf-copies" id="pdf-copies" hidden></div>
-    <div style="flex:1;overflow:hidden;">
+    <div style="flex:1;overflow:hidden;position:relative;">
       <iframe id="pdf-preview-frame" style="width:100%;height:70vh;border:none;background:#fff;"></iframe>
+      <div id="pdf-loading" class="pdf-loading" role="status" hidden><span class="pdf-spin" aria-hidden="true"></span><span>Načítám PDF…</span></div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" data-close="modal-pdf-preview">Zavřít</button>
@@ -3223,7 +3233,7 @@ function invMenuItems(inv){
   if(['fav','zf','od'].includes(inv.invType))it.push({act:'pdf-fav',label:'Zobrazit PDF'});
   if(inv.invType==='zf'&&inv.paid&&!inv.settledBy&&!inv.cancelled)it.push({act:'zf-final',label:'Vystavit konečnou fakturu'});
   if(['fav','fap'].includes(inv.invType)&&!inv.cancelled&&!inv.settledByCorrection)it.push({act:'inv-correct',label:inv.invType==='fav'?'Vystavit opravný doklad':'Zaevidovat opravný doklad dodavatele'});
-  if(inv.url||inv.driveFileId)it.push({act:'open-url',label:'Zobrazit PDF'});
+  if(!['fav','zf','od'].includes(inv.invType)&&(inv.url||inv.driveFileId))it.push({act:'open-url',label:'Zobrazit PDF'});
   if(inv.receiptPath)it.push({act:'open-doklad',label:'Doklad (sken)'});
   if(inv.paid){if(linkedTx(inv.id))it.push({act:'unpair-inv',label:'Zrušit spárování'});}
   else it.push({act:'pair-inv',label:'Spárovat s dokladem'});
@@ -3424,17 +3434,21 @@ const driveIdOf=inv=>inv.driveFileId||((/drive\.google\.com\/(?:file\/d\/|open\?
 async function openInvPdf(inv){
   const id=driveIdOf(inv);
   if(!id){window.open(inv.url,'_blank','noopener');return;}
+  const frame=$('pdf-preview-frame'), load=$('pdf-loading'), dl=$('btn-pdf-download');
+  pdfCopiesOff();currentPdfBlob=null;currentPdfName=null;
+  frame.onload=null;frame.removeAttribute('src');dl.disabled=true;load.hidden=false;      // načítání: točící kolečko, než dorazí PDF
+  $('pdf-preview-title').textContent=`Náhled – ${inv.invNumber||inv.vendor||'faktura'}`;
+  openModal('modal-pdf-preview');
+  const done=()=>{load.hidden=true;dl.disabled=false;frame.onload=null;};
   try{
     const res=await fetch(`${FILE_STREAM_URL}?driveFileId=${encodeURIComponent(id)}`,{headers:{Authorization:'Bearer '+await auth.currentUser.getIdToken()}});
     if(!res.ok)throw new Error('HTTP '+res.status);
     const blob=await res.blob();
     if(!/pdf/i.test(blob.type))throw new Error('soubor není PDF');
-    pdfCopiesOff();currentPdfBlob=blob;currentPdfName=`${inv.invNumber||'faktura'}.pdf`;
-    $('pdf-preview-frame').src=URL.createObjectURL(blob);
-    $('pdf-preview-title').textContent=`Náhled – ${inv.invNumber||inv.vendor||'faktura'}`;
-    openModal('modal-pdf-preview');
+    currentPdfBlob=blob;currentPdfName=`${inv.invNumber||'faktura'}.pdf`;
+    dl.disabled=false;frame.onload=done;frame.src=URL.createObjectURL(blob);setTimeout(done,4000);   // kolečko zmizí s vykreslením PDF (nejpozději za 4 s)
   }catch(e){
-    console.warn('openInvPdf:',e.message);
+    console.warn('openInvPdf:',e.message);done();closeModal('modal-pdf-preview');
     if(inv.url){toast('PDF se nepodařilo načíst, otevírám odkaz na Disk.');window.open(inv.url,'_blank','noopener');}
     else toast('PDF se nepodařilo načíst.');
   }
@@ -3657,6 +3671,7 @@ $('btn-invoice-update').addEventListener('click',async()=>{
     await updateDoc(invDoc(editInvId),{...pc,vendor,amount,dueDate,ico:$('inv-edit-ico').value.trim(),origNumber:$('inv-edit-number').value.trim(),date:$('inv-edit-date').value,url:$('inv-edit-url').value.trim(),desc:$('inv-edit-desc').value.trim(),...(receiptPath?{receiptPath}:{})});
     await saveContactIfNew(vendor,$('inv-edit-ico').value.trim(),$('inv-edit-vendor').dataset.address||'');
     closeModal('modal-invoice-edit');toast('Faktura upravena ✓');
+    refileIssued(editInvId);
   }catch(e){console.error(e);toast('Chyba.');}
   $('btn-invoice-update').disabled=false;
 });
@@ -3693,10 +3708,53 @@ $('btn-fav-save').addEventListener('click',async()=>{
     if(invData.invNumber!==proposed)toast(`Přiděleno číslo ${invData.invNumber}.`);
     if(favAdvance)await updateDoc(invDoc(favAdvance.zfId),{settledBy:invRef.id,settledNumber:invData.invNumber});   // záloha je zúčtovaná konečnou fakturou
     await saveContactIfNew(vendor,$('fav-ico').value.trim(),$('fav-vendor').dataset.address||'');
-    await generateInvoicePDF({...invData});
+    const favBlob=await generateInvoicePDF({...invData});
+    autoFileIssued({...invData,id:invRef.id},favBlob);
     closeModal('modal-fav');toast(favMode==='zf'?'Zálohová faktura uložena ✓':'Faktura uložena ✓');
   }catch(e){console.error(e);toast('Chyba při ukládání.');}
   $('btn-fav-save').disabled=false;
+});
+
+/* Vystavené doklady (faktura, zálohová faktura, opravný doklad) se po vystavení samy uloží jako PDF na 10space do
+   01_Účetnictví/<rok>/<MM-RRRR> podle data vystavení a propojí se s dokladem (driveFileId). Úprava faktury soubor nahradí
+   novou verzí. Starší doklady uloží tlačítko v Nastavení. Ukládá server (funkce dokumentMetaApi). */
+const DOKUMENT_API='https://us-central1-base-39f52.cloudfunctions.net/dokumentMetaApi';
+const ISSUED_TYPES=['fav','zf','od'];
+const blobBase64=b=>new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]||'');r.onerror=()=>ko(r.error);r.readAsDataURL(b);});
+const fileIssuedPdf=async(inv,blob)=>bkFn(DOKUMENT_API,{action:'ulozit',period:activePeriod,id:inv.id,base64Data:await blobBase64(blob)});
+async function issuedBlob(inv){ // PDF dokladu bez náhledu
+  const od=inv.invType==='od',wrap=$('pdf-template');
+  wrap.style.display='block';wrap.innerHTML=od?odPdfHtml(inv):invoiceHtml(inv);
+  try{
+    await Promise.all([...wrap.querySelectorAll('img')].map(img=>new Promise(res=>{if(img.complete)res();else{img.onload=res;img.onerror=res;}})));
+    return await renderPdf({margin:0,filename:`${inv.invNumber}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:od?3:4,useCORS:true,allowTaint:false},jsPDF:{unit:'pt',format:'a4',orientation:'portrait'}},wrap.firstElementChild);
+  }finally{wrap.style.display='none';wrap.innerHTML='';}
+}
+async function autoFileIssued(inv,blob){ // po vystavení; chyba nesmí překážet, doklad zůstává uložený v 10korun
+  try{const j=await fileIssuedPdf(inv,blob);if(!j.preskoceno)toast(`PDF uloženo na 10space (${j.slozka}) ✓`);}
+  catch(e){console.warn('autoFileIssued:',e.message);toast('PDF se nepodařilo uložit na 10space. Dodatečně ho uložíš v Nastavení.');}
+}
+async function refileIssued(id){ // po úpravě faktury: nahradí uložené PDF novou verzí
+  try{
+    const s=await getDoc(invDoc(id)),inv={id,...s.data()};
+    if(!s.exists()||inv.invType!=='fav'||!inv.driveFileId)return;
+    await fileIssuedPdf(inv,await issuedBlob(inv));
+  }catch(e){console.warn('refileIssued:',e.message);toast('Upravené PDF se nepodařilo uložit na 10space.');}
+}
+$('btn-issued-backfill').addEventListener('click',async()=>{
+  if(userRole!=='treasurer'){toast('Ukládat smí jen hospodář.');return;}
+  const todo=allInvoices.filter(i=>ISSUED_TYPES.includes(i.invType)&&!i.cancelled&&!i.driveFileId&&i.invNumber&&i.date).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  if(!todo.length){toast(`V období ${activePeriod} není co ukládat.`);return;}
+  if(!confirm(`Uložit ${todo.length} vystavených dokladů z období ${activePeriod} na 10space do 01_Účetnictví?`))return;
+  const btn=$('btn-issued-backfill'),st=$('issued-status');btn.disabled=true;
+  let ok=0;const bad=[];
+  for(const [i,inv] of todo.entries()){
+    st.textContent=`Ukládám ${i+1} z ${todo.length}: ${inv.invNumber}…`;
+    try{await fileIssuedPdf(inv,await issuedBlob(inv));ok++;}
+    catch(e){console.warn('backfill',inv.invNumber,e.message);bad.push(inv.invNumber);}
+  }
+  st.textContent=`Uloženo ${ok} z ${todo.length}.${bad.length?' Nepodařilo se: '+bad.join(', ')+'. Zkus to znovu.':''}`;
+  btn.disabled=false;toast(bad.length?`Uloženo ${ok}, ${bad.length} se nepodařilo.`:`Uloženo ${ok} dokladů ✓`);
 });
 
 /* ── NUMBERING ── */
@@ -3802,6 +3860,7 @@ async function generateInvoicePDF(inv){
   $('pdf-preview-frame').src=URL.createObjectURL(blob);
   $('pdf-preview-title').textContent=`Náhled – ${inv.invNumber}`;
   openModal('modal-pdf-preview');
+  return blob;
 }
 
 $('btn-pdf-download').addEventListener('click',()=>{
@@ -4084,7 +4143,7 @@ $('od-save').addEventListener('click',async()=>{
       tx.update(invDoc(inv.id),{credited:round2((inv.credited||0)+c.amount),...((!inv.paid&&round2(c.unpaid-c.amount)<0.005)?{paid:true,paidDate:date,settledByCorrection:true}:{})});
     });
     closeModal('modal-od');toast('Opravný doklad uložen ✓');
-    if(fav)await generateOdPDF(od);
+    if(fav){const odBlob=await generateOdPDF(od);autoFileIssued({...od,id:newRef.id},odBlob);}
   }catch(e){console.error(e);toast('Opravný doklad se nepodařilo uložit.');}
   btn.disabled=false;
 });
@@ -4222,6 +4281,7 @@ async function showA4Pdf(html,filename,title){
     await Promise.all([...wrap.querySelectorAll('img')].map(img=>new Promise(res=>{if(img.complete)res();else{img.onload=res;img.onerror=res;}})));
     const blob=await renderPdf({margin:0,filename,image:{type:'jpeg',quality:0.98},html2canvas:{scale:3,useCORS:true,allowTaint:false},jsPDF:{unit:'pt',format:'a4',orientation:'portrait'}},wrap.firstElementChild);
     pdfCopiesOff();currentPdfBlob=blob;currentPdfName=filename;$('pdf-preview-frame').src=URL.createObjectURL(blob);$('pdf-preview-title').textContent=title;openModal('modal-pdf-preview');
+    return blob;
   }finally{wrap.style.display='none';wrap.innerHTML='';}
 }
 const pdfTh=(t,al,w)=>`<th style="text-align:${al};padding:7px 6px;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:${PDF_MUTED};font-weight:700;border-bottom:1.5px solid ${PDF_INK};${w?'width:'+w+'px;':''}">${t}</th>`;

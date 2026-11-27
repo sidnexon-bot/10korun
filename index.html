@@ -670,6 +670,34 @@
     .settings-label { color: var(--muted); font-size: 13px; margin-bottom: 1px; }
     .settings-value { font-weight: 500; font-size: 14px; }
 
+    /* Nastavení jako rozcestník (profil, skupiny s ikonami a šipkami, podstránky) */
+    #view-settings .st-pane { display: none; }
+    #view-settings.pane-open .st-pane.on { display: block; animation: fadeIn .22s cubic-bezier(.32,.72,0,1); }
+    #view-settings.pane-open #st-hub { display: none; }
+    #view-settings .st-pane > h3:first-of-type { display: none; }
+    #view-settings .st-ptitle { margin: 8px 0 12px; font-size: 28px; font-weight: 700; letter-spacing: -.03em; outline: none; }
+    #view-settings .st-back { width: fit-content !important; min-width: 0; display: inline-flex; align-items: center; gap: 4px; margin: 0; }
+    #view-settings .st-back svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    #view-settings h3.st-sec { margin: 22px 0 8px; padding: 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--muted); }
+    .st-grp { overflow: hidden; padding: 0; }
+    .st-nav { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; min-height: 52px; margin: 0; padding: 4px 14px; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--text); font: inherit; font-size: 16px; font-weight: 500; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .st-nav + .st-nav::before { content: ""; position: absolute; top: 0; left: 56px; right: 0; height: 1px; background: var(--border); }
+    .st-nav:active { background: rgba(120,120,128,.14); }
+    .st-nav:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .st-nic { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 8px; color: #fff; }
+    .st-nic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .st-nl { flex: 1; min-width: 0; }
+    .st-nsub { display: block; font-size: 13px; font-weight: 400; color: var(--muted); }
+    .st-nchev { flex: none; display: inline-flex; color: var(--muted); opacity: .6; }
+    .st-nchev svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    html[data-platform="android"] #view-settings h3.st-sec { font-size: 14px; font-weight: 500; letter-spacing: .01em; color: var(--and-accent); }
+    html[data-platform="android"] #view-settings .st-ptitle { font-size: 24px; font-weight: 400; letter-spacing: 0; }
+    html[data-platform="android"] .st-nav { min-height: 64px; font-weight: 400; }
+    html[data-platform="android"] .st-nav + .st-nav::before { display: none; }
+    html[data-platform="android"] .st-nic { width: 40px; height: 40px; border-radius: 50%; background: var(--and-tonal) !important; color: var(--and-accent); }
+    html[data-platform="android"] .st-grp { padding: 4px 0; }
+    @media (prefers-reduced-motion: reduce) { #view-settings.pane-open .st-pane.on { animation: none; } }
+
     /* ══════════════════════════════════
        MODAL
     ══════════════════════════════════ */
@@ -1202,16 +1230,25 @@
 
     <!-- ── NASTAVENÍ ── -->
     <div id="view-settings" class="view">
-      <div class="view-title" style="margin-bottom:16px;">Nastavení</div>
+      <div id="st-hub">
+        <div class="view-title" style="margin-bottom:6px;">Nastavení</div>
+        <h3 class="st-sec">Účetnictví</h3>
+        <div class="settings-group st-grp"><button type="button" class="st-nav" data-pane-go="org"><span class="st-nic" style="background:#007aff" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 9h5a1 1 0 0 1 1 1v11M8 8h2M8 12h2M8 16h2M17 13h1M17 17h1M3 21h18"/></svg></span><span class="st-nl">Organizace<span class="st-nsub">Název, IČO, adresa</span></span><span class="st-nchev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span></button><button type="button" class="st-nav" data-pane-go="obdobi"><span class="st-nic" style="background:#5856d6" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></span><span class="st-nl">Účetní období<span class="st-nsub">Aktivní rok a uzávěrka</span></span><span class="st-nchev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span></button><button type="button" class="st-nav" data-pane-go="sazby"><span class="st-nic" style="background:#ff9500" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 5L5 19"/><circle cx="7.5" cy="7.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/></svg></span><span class="st-nl">Sazby náhrad<span class="st-nsub">Vyhláška MPSV</span></span><span class="st-nchev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span></button></div>
+        <h3 class="st-sec">Data</h3>
+        <div class="settings-group st-grp"><button type="button" class="st-nav" data-pane-go="kontakty"><span class="st-nic" style="background:#34c759" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="8" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.9M16 4.1a4 4 0 0 1 0 7.8"/></svg></span><span class="st-nl">Adresář kontaktů</span><span class="st-nchev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span></button><button type="button" class="st-nav" data-pane-go="zaloha"><span class="st-nic" style="background:#8e8e93" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8M1 3h22v5H1zM10 12h4"/></svg></span><span class="st-nl">Záloha a archiv<span class="st-nsub">Záloha dat a doklady na 10space</span></span><span class="st-nchev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span></button><button type="button" class="st-nav" data-pane-go="historie"><span class="st-nic" style="background:#ff2d55" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="st-nl">Historie změn<span class="st-nsub">Kdo, kdy a co změnil</span></span><span class="st-nchev" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></span></button></div>
+      <div style="margin-top:24px;">
+        <button class="btn-danger" id="btn-signout-mob" style="width:auto;">Odhlásit se</button>
+      </div>
+      </div>
+      <div class="st-pane" data-pane="org" data-title="Organizace">
+        <button type="button" class="btn-secondary st-back" data-pane-back="1"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg><span>Nastavení</span></button>
+        <div class="view-title st-ptitle" tabindex="-1">Organizace</div>
       <h3>Organizace</h3>
       <div class="settings-group" id="settings-info"></div>
-      <h3>Adresář kontaktů</h3>
-      <div class="settings-group" id="settings-contacts"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Načítám…</div></div>
-
-      <h3>Sazby náhrad (vyhláška MPSV)</h3>
-      <div class="settings-group" id="rates-list"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Načítám…</div></div>
-      <button class="btn-secondary" id="btn-add-rate" style="width:auto;margin-bottom:16px;">+ Přidat sazbu od data</button>
-
+      </div>
+      <div class="st-pane" data-pane="obdobi" data-title="Účetní období">
+        <button type="button" class="btn-secondary st-back" data-pane-back="1"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg><span>Nastavení</span></button>
+        <div class="view-title st-ptitle" tabindex="-1">Účetní období</div>
       <h3>Účetní období</h3>
       <div class="settings-group">
         <div class="settings-row">
@@ -1226,6 +1263,25 @@
       <div class="stat-note" style="margin:0 0 10px;">Po uzavření nejde v období doklady přidávat, upravovat ani stornovat. Opravy se zadávají opravným dokladem v otevřeném období. Uzavřít doporučuji po inventuře, schválení výkazů a záloze.</div>
       <button class="btn-secondary" id="btn-lock-period" style="width:auto;margin-bottom:16px;">Uzavřít období</button>
 
+      </div>
+      <div class="st-pane" data-pane="sazby" data-title="Sazby náhrad">
+        <button type="button" class="btn-secondary st-back" data-pane-back="1"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg><span>Nastavení</span></button>
+        <div class="view-title st-ptitle" tabindex="-1">Sazby náhrad</div>
+      <h3>Sazby náhrad (vyhláška MPSV)</h3>
+      <div class="settings-group" id="rates-list"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Načítám…</div></div>
+      <button class="btn-secondary" id="btn-add-rate" style="width:auto;margin-bottom:16px;">+ Přidat sazbu od data</button>
+
+      </div>
+      <div class="st-pane" data-pane="kontakty" data-title="Adresář kontaktů">
+        <button type="button" class="btn-secondary st-back" data-pane-back="1"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg><span>Nastavení</span></button>
+        <div class="view-title st-ptitle" tabindex="-1">Adresář kontaktů</div>
+      <h3>Adresář kontaktů</h3>
+      <div class="settings-group" id="settings-contacts"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Načítám…</div></div>
+
+      </div>
+      <div class="st-pane" data-pane="zaloha" data-title="Záloha a archiv">
+        <button type="button" class="btn-secondary st-back" data-pane-back="1"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg><span>Nastavení</span></button>
+        <div class="view-title st-ptitle" tabindex="-1">Záloha a archiv</div>
       <h3>Záloha</h3>
       <div class="settings-group" id="backup-box">
         <div class="settings-row"><span class="settings-label">Poslední záloha</span><span class="settings-value" id="backup-last">–</span></div>
@@ -1243,12 +1299,14 @@
       <div class="settings-group"><div style="padding:14px 16px;color:var(--muted);font-size:14px;" id="issued-status">Vystavené faktury, zálohové faktury a opravné doklady se po vystavení samy ukládají jako PDF do složky 01_Účetnictví / rok / MM-RRRR podle data vystavení. Tlačítkem uložíš doklady, které vznikly dřív, z právě zvoleného období.</div></div>
       <button class="btn-secondary" id="btn-issued-backfill" style="width:auto;margin-bottom:16px;">Uložit dosud neuložené doklady</button>
 
+      </div>
+      <div class="st-pane" data-pane="historie" data-title="Historie změn">
+        <button type="button" class="btn-secondary st-back" data-pane-back="1"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg><span>Nastavení</span></button>
+        <div class="view-title st-ptitle" tabindex="-1">Historie změn</div>
       <h3>Historie změn</h3>
       <div class="settings-group"><div style="padding:14px 16px;color:var(--muted);font-size:14px;">Kdo, kdy a co změnil u dokladů, faktur, žádostí, čítačů a členů. Záznamy vytváří server a nelze je upravit ani smazat.</div></div>
       <button class="btn-secondary" id="btn-audit-log" style="width:auto;margin-bottom:16px;">Zobrazit historii změn</button>      
       
-      <div style="margin-top:20px;">
-        <button class="btn-danger" id="btn-signout-mob" style="width:auto;">Odhlásit se</button>
       </div>
     </div>
 
@@ -1776,7 +1834,26 @@ function showView(id) {
   $('view-'+id).classList.add('active');
   document.querySelectorAll(`[data-view="${id}"]`).forEach(el=>el.classList.add('active'));
   $('mobile-header-title').textContent = VIEW_TITLES[id]||id;
+  if(id==='settings') stPane(null,false);
 }
+
+// Nastavení jako rozcestník: položka otevře podstránku (zapisuje se do historie, ať tlačítko Zpět vrací na rozcestník)
+function stPane(k,push){
+  const v=$('view-settings');if(!v)return;
+  const p=k&&v.querySelector(`.st-pane[data-pane="${k}"]`);
+  v.querySelectorAll('.st-pane').forEach(x=>x.classList.toggle('on',x===p));
+  v.classList.toggle('pane-open',!!p);
+  if(p&&push){try{history.pushState({stPane:k},'')}catch(e){}}
+  window.scrollTo(0,0);
+  if(p){const h=p.querySelector('.st-ptitle');if(h)h.focus({preventScroll:true});}
+}
+document.addEventListener('click',e=>{
+  const g=e.target.closest&&e.target.closest('[data-pane-go],[data-pane-back]');if(!g||!$('view-settings').contains(g))return;
+  if(g.dataset.paneGo)return stPane(g.dataset.paneGo,true);
+  if(history.state&&history.state.stPane)return history.back();
+  stPane(null,false);
+});
+window.addEventListener('popstate',e=>{if($('view-settings')?.classList.contains('active'))stPane(e.state&&e.state.stPane||null,false);});
 
 function toast(msg,dur=2800){
   const t=$('toast'); t.textContent=msg; t.classList.add('show');

@@ -1,5 +1,8 @@
 # 10korun: přehled změn
 
+## 3.23.0 (27. 11. 2026)
+- Nastavení je rozcestník místo jedné dlouhé stránky: skupiny Účetnictví (Organizace, Účetní období a uzávěrka, Sazby náhrad) a Data (Adresář kontaktů, Záloha a archiv, Historie změn) s barevnou ikonou a šipkou, dole Odhlásit se. Každá položka otevře podstránku s tlačítkem „Nastavení“ a nadpisem; podstránka se zapisuje do historie, takže tlačítko Zpět (i na Androidu) vrací na rozcestník. Funkce, tlačítka a údaje jsou beze změny, mění se jen členění. Vzhled podle platformy: iPhone seskupené bloky s ikonami v barevných čtvercích, Android Material 3 s tonálními kolečky.
+
 ## 3.22.0 (26. 11. 2026)
 - Vystavené doklady (faktura, zálohová faktura, opravný doklad k vystavené faktuře) se po vystavení samy uloží jako PDF na 10space do `01_Účetnictví/<rok>/<MM-RRRR>` podle data vystavení. Složky rok a měsíc se podle potřeby založí. Soubor se pojmenuje číslem dokladu a v 10space je propojený s dokladem (údaje v podrobnostech souboru se berou z 10korun).
 - Úprava vystavené faktury nahradí uložené PDF novou verzí (původní verze zůstane v historii souboru), a změní-li se datum vystavení, soubor se přesune do správného měsíce. Soubor, který u dokladu ručně přiřadil člověk v 10space, se nepřepisuje.
